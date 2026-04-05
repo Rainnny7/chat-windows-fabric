@@ -11,7 +11,7 @@ I wanted something like [LabyMod](https://www.labymod.net/)’s chat filtering�
 its **own Fabric mod**, not tied to a big client stack. I couldn’t find an existing mod that did that the way I wanted,
 so this project exists to fill that gap.
 
-The codebase is **fully vibe coded**—built iteratively with AI help—with the goal of a small mod I can actually use.
+The codebase is **fully vibe coded**— the goal of a small mod I can actually use.
 
 ## Requirements
 
@@ -62,13 +62,3 @@ is stored with a `regex:` prefix when you save).
 
 Settings are saved under `.minecraft/config/chat-windows.json` (via [Fabric Loader](https://fabricmc.net/)’s config
 directory).
-
-## Links
-
-- **Download:** [GitHub Releases](https://github.com/Rainnny7/chat-windows/releases)
-- **Author:** [Rainnny](https://rainnny.club)
-- **Source:** [github.com/Rainnny7/chat-windows](https://github.com/Rainnny7/chat-windows)
-
-## License
-
-[CC0-1.0](LICENSE)
