@@ -7,7 +7,7 @@ import me.braydon.window.chat.ChatWindowsScreenHooks;
 import me.braydon.window.chat.ChatWindowsTick;
 import net.fabricmc.api.ClientModInitializer;
 
-public class TemplateModClient implements ClientModInitializer {
+public class ChatWindowsModClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         ChatWindowManager.get().init();

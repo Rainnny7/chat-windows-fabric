@@ -12,18 +12,14 @@
 		"sources": "https://github.com/Rainnny7/chat-windows"
 	},
 	"license": "CC0-1.0",
-	"environment": "*",
+	"environment": "client",
 	"entrypoints": {
-		"main": [
-          "me.braydon.window.TemplateMod"
-		],
 		"client": [
-          "me.braydon.window.TemplateModClient"
+			"me.braydon.window.ChatWindowsModClient"
 		]
 	},
 	"accessWidener": "chat-windows.accesswidener",
 	"mixins": [
-		"chat-windows.mixins.json",
 		{
 			"config": "chat-windows.client.mixins.json",
 			"environment": "client"
