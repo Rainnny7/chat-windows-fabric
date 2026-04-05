@@ -1,0 +1,38 @@
+{
+	"schemaVersion": 1,
+	"id": "chat-windows",
+	"version": "${version}",
+	"name": "Chat Windows",
+	"description": "Filter chat into extra panes that you can drag and resize (/chatwindow). Patterns match as plain text; begin with regex: for Java regex.",
+	"authors": [
+		"Braydon (Rainnny)"
+	],
+	"contact": {
+		"homepage": "https://rainnny.club",
+		"sources": "https://github.com/Rainnny7/chat-windows"
+	},
+	"license": "CC0-1.0",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+          "me.braydon.window.TemplateMod"
+		],
+		"client": [
+          "me.braydon.window.TemplateModClient"
+		]
+	},
+	"accessWidener": "chat-windows.accesswidener",
+	"mixins": [
+		"chat-windows.mixins.json",
+		{
+			"config": "chat-windows.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.18.4",
+		"minecraft": "~1.21.11",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}
