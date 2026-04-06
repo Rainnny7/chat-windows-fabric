@@ -31,7 +31,13 @@ public final class ChatUtilitiesScreenHooks {
         if (verticalAmount == 0.0) {
             return false;
         }
+        if (ChatUtilitiesManager.get().isPositioning()) {
+            return false;
+        }
         Minecraft mc = Minecraft.getInstance();
+        if (mc.debugEntries.isOverlayVisible()) {
+            return false;
+        }
         int gw = mc.getWindow().getGuiScaledWidth();
         int mx = (int) mouseX;
         int my = (int) mouseY;

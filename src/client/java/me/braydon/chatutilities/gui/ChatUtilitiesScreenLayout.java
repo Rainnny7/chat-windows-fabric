@@ -17,6 +17,9 @@ public final class ChatUtilitiesScreenLayout {
     public static final int TEXT_GRAY_DARK = 0xFF808080;
     public static final int TEXT_LABEL = 0xFFC8C8C8;
 
+    /** EditBox hint for fields that accept a literal substring or a {@code regex:} expression. */
+    public static final Component PATTERN_INPUT_HINT = Component.literal("Plain text or regex:…");
+
     public static final int TITLE_Y = 32;
     public static final int FOOTER_PRIMARY_Y_OFFSET = 28;
     public static final int FOOTER_SECONDARY_Y_OFFSET = 52;

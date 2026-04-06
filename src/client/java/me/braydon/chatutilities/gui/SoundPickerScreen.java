@@ -113,8 +113,7 @@ public final class SoundPickerScreen extends Screen {
                 this.font,
                 graphics,
                 Component.literal(
-                        "Click a row to choose that sound. Mouse wheel scrolls. Names are registry ids"
-                                + " (minecraft:… if omitted in rules)."),
+                        "Browse game sounds and pick one to use in your message rules."),
                 this.width / 2,
                 56,
                 listWidth,

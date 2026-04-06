@@ -5,16 +5,22 @@ import me.braydon.chatutilities.chat.ChatWindow;
 import me.braydon.chatutilities.chat.ServerProfile;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
 import java.util.List;
 import java.util.regex.PatternSyntaxException;
 
 public class WindowManageScreen extends Screen {
+    private static final int C_DANGER_TEXT = 0xFFE07878;
+    private static final int C_DANGER_TEXT_H = 0xFFFFA0A0;
+
     private static final int PAT_ROWS = 6;
     /** Max visible characters of the pattern on the remove button after the "Remove Pattern: " prefix. */
     private static final int REMOVE_PATTERN_LABEL_MAX = 22;
@@ -27,11 +33,41 @@ public class WindowManageScreen extends Screen {
     private EditBox newPatternField;
     private int patternScroll;
 
+    private static final long DESTRUCTIVE_CONFIRM_MS = 3000L;
+    private long removeWindowConfirmDeadlineMs;
+
     public WindowManageScreen(String profileId, String windowId, Screen parent) {
         super(Component.literal("Window Patterns"));
         this.profileId = profileId;
         this.windowId = windowId;
         this.parent = parent;
+    }
+
+    private AbstractWidget destructiveFlatButton(Component label, Runnable press, int x, int y, int w, int h) {
+        return new AbstractWidget(x, y, w, h, label) {
+            @Override
+            public void onClick(MouseButtonEvent event, boolean doubleClick) {
+                press.run();
+            }
+
+            @Override
+            protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                boolean hov = isHovered();
+                boolean act = active;
+                int bg = !act ? 0x35402020 : hov ? 0x55903030 : 0x45302828;
+                int outline = !act ? 0x45C06060 : hov ? 0x85FF9090 : 0x65D07070;
+                int tc = !act ? C_DANGER_TEXT : hov ? C_DANGER_TEXT_H : 0xFFF0A0A0;
+                g.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), bg);
+                g.renderOutline(getX(), getY(), getWidth(), getHeight(), outline);
+                g.drawCenteredString(Minecraft.getInstance().font, getMessage(),
+                        getX() + getWidth() / 2, getY() + (getHeight() - 8) / 2, tc);
+            }
+
+            @Override
+            public void updateWidgetNarration(NarrationElementOutput n) {
+                defaultButtonNarrationText(n);
+            }
+        };
     }
 
     @Override
@@ -60,7 +96,7 @@ public class WindowManageScreen extends Screen {
 
         newPatternField = new EditBox(this.font, cx - 100, y, 130, 20, Component.literal("pat"));
         newPatternField.setMaxLength(2048);
-        newPatternField.setHint(Component.literal("Plain text or regex:..."));
+        newPatternField.setHint(ChatUtilitiesScreenLayout.PATTERN_INPUT_HINT);
         addRenderableWidget(newPatternField);
         addRenderableWidget(
                 Button.builder(Component.literal("Add Pattern"), b -> {
@@ -110,14 +146,12 @@ public class WindowManageScreen extends Screen {
                     src.length() > REMOVE_PATTERN_LABEL_MAX
                             ? src.substring(0, REMOVE_PATTERN_LABEL_MAX - 3) + "..."
                             : src;
-            addRenderableWidget(
-                    Button.builder(Component.literal("Remove Pattern: " + patLabel), b -> {
-                                mgr.removePattern(p, windowId, pos);
-                                init();
-                            })
-                            .bounds(cx - 100, y, 200, 20)
-                            .tooltip(Tooltip.create(Component.literal(tip)))
-                            .build());
+            AbstractWidget removePat = destructiveFlatButton(Component.literal("Remove Pattern: " + patLabel), () -> {
+                mgr.removePattern(p, windowId, pos);
+                init();
+            }, cx - 100, y, 200, 20);
+            removePat.setTooltip(Tooltip.create(Component.literal(tip)));
+            addRenderableWidget(removePat);
             y += 22;
         }
 
@@ -127,17 +161,30 @@ public class WindowManageScreen extends Screen {
         int rowW = btnW * 3 + gap * 2;
         int footLeft = cx - rowW / 2;
 
+        long nowRm = System.currentTimeMillis();
+        boolean removeArmed = removeWindowConfirmDeadlineMs > nowRm;
         addRenderableWidget(
-                Button.builder(Component.literal("Remove Window"), b -> {
-                            mgr.removeWindow(p, windowId);
-                            if (parent instanceof ProfileWorkflowScreen wf) {
-                                Minecraft.getInstance().setScreen(wf.recreateForProfile());
+                destructiveFlatButton(
+                        Component.literal(removeArmed ? "✕ Confirm Removal" : "✕ Remove Window"),
+                        () -> {
+                            long t = System.currentTimeMillis();
+                            if (removeWindowConfirmDeadlineMs > t) {
+                                removeWindowConfirmDeadlineMs = 0;
+                                mgr.removeWindow(p, windowId);
+                                if (parent instanceof ProfileWorkflowScreen wf) {
+                                    Minecraft.getInstance().setScreen(wf.recreateForProfile());
+                                } else {
+                                    onClose();
+                                }
                             } else {
-                                onClose();
+                                removeWindowConfirmDeadlineMs = t + DESTRUCTIVE_CONFIRM_MS;
+                                init();
                             }
-                        })
-                        .bounds(footLeft, footerY, btnW, 20)
-                        .build());
+                        },
+                        footLeft,
+                        footerY,
+                        btnW,
+                        20));
 
         addRenderableWidget(
                 Button.builder(Component.literal("Back"), b -> onClose())
@@ -157,6 +204,16 @@ public class WindowManageScreen extends Screen {
                                 })
                         .bounds(footLeft + 2 * (btnW + gap), footerY, btnW, 20)
                         .build());
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        long now = System.currentTimeMillis();
+        if (removeWindowConfirmDeadlineMs != 0 && now >= removeWindowConfirmDeadlineMs) {
+            removeWindowConfirmDeadlineMs = 0;
+            init();
+        }
     }
 
     @Override
@@ -183,9 +240,7 @@ public class WindowManageScreen extends Screen {
                 this.font,
                 graphics,
                 Component.literal(
-                        "Only chat lines that match at least one pattern below are copied into this window. "
-                                + "Plain text matches as a substring; use regex: for a full regular expression. "
-                                + "Hide or Show controls whether the pane is drawn; Position lets you place it on screen while playing."),
+                        "Decide which messages belong in this window and how it behaves on your HUD."),
                 cx,
                 ChatUtilitiesScreenLayout.TITLE_Y + 24,
                 wrapW,

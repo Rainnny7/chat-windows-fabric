@@ -8,6 +8,7 @@ import net.minecraft.client.multiplayer.ServerStatusPinger;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.network.EventLoopGroupHolder;
+import java.awt.Color;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.UnknownHostException;
@@ -27,11 +28,16 @@ public final class ProfileFaviconCache {
     private static final long PING_FAIL_COOLDOWN_MS = 45_000L;
 
     private static final Map<String, Identifier> uploaded = new ConcurrentHashMap<>();
+    /** RGB {@code 0xRRGGBB} from favicon for sidebar accent; missing entry → default blue. */
+    private static final Map<String, Integer> accentRgbByKey = new ConcurrentHashMap<>();
     private static final Map<String, PingState> pingByKey = new ConcurrentHashMap<>();
     private static volatile Map<String, byte[]> listIconSnapshot = Map.of();
 
     private static ServerStatusPinger pinger;
     private static int tickCounter;
+
+    /** Same blue as sidebar accent when no favicon / no usable color ({@code C_ACCENT} RGB). */
+    public static final int DEFAULT_PROFILE_ACCENT_RGB = 0x3A9FE0;
 
     private ProfileFaviconCache() {}
 
@@ -74,6 +80,20 @@ public final class ProfileFaviconCache {
             return;
         }
         out.put(host, icon.clone());
+    }
+
+    /**
+     * Dominant color from the server icon for sidebar tinting, or {@link #DEFAULT_PROFILE_ACCENT_RGB}
+     * if there is no icon or the average is too gray. Call after {@link #getIcon} has run for the same host.
+     */
+    public static int getProfileAccentRgb(Minecraft mc, String profileHostRule) {
+        if (profileHostRule == null || profileHostRule.isBlank()) {
+            return DEFAULT_PROFILE_ACCENT_RGB;
+        }
+        getIcon(mc, profileHostRule);
+        String key = profileHostRule.strip().toLowerCase(Locale.ROOT);
+        Integer c = accentRgbByKey.get(key);
+        return c != null ? c : DEFAULT_PROFILE_ACCENT_RGB;
     }
 
     /**
@@ -200,6 +220,7 @@ public final class ProfileFaviconCache {
                 DynamicTexture tex = new DynamicTexture(() -> path, img);
                 mc.getTextureManager().register(id, tex);
                 uploaded.put(key, id);
+                accentRgbByKey.put(key, averageOpaqueRgb(img));
                 PingState st = pingByKey.get(key);
                 if (st != null) {
                     synchronized (st) {
@@ -212,6 +233,72 @@ public final class ProfileFaviconCache {
                 return false;
             }
         }
+    }
+
+    /**
+     * Picks a saturated accent from the icon: saturation-weighted blend of opaque pixels, skips
+     * near-black/near-white, then boosts saturation slightly. Falls back to plain average, then
+     * {@link #DEFAULT_PROFILE_ACCENT_RGB} if still too gray.
+     */
+    private static int averageOpaqueRgb(NativeImage img) {
+        long rSum = 0;
+        long gSum = 0;
+        long bSum = 0;
+        long rPlain = 0;
+        long gPlain = 0;
+        long bPlain = 0;
+        double wSum = 0;
+        int nPlain = 0;
+        int w = img.getWidth();
+        int h = img.getHeight();
+        for (int py = 0; py < h; py++) {
+            for (int px = 0; px < w; px++) {
+                int argb = img.getPixel(px, py);
+                int a = (argb >> 24) & 0xFF;
+                if (a < 40) {
+                    continue;
+                }
+                int r = (argb >> 16) & 0xFF;
+                int g = (argb >> 8) & 0xFF;
+                int b = argb & 0xFF;
+                rPlain += r;
+                gPlain += g;
+                bPlain += b;
+                nPlain++;
+                float[] hsb = Color.RGBtoHSB(r, g, b, null);
+                float bri = hsb[2];
+                if (bri < 0.07f || bri > 0.96f) {
+                    continue;
+                }
+                double weight = 0.12 + Math.pow(hsb[1], 1.15) * 2.2;
+                rSum += r * weight;
+                gSum += g * weight;
+                bSum += b * weight;
+                wSum += weight;
+            }
+        }
+        int r;
+        int g;
+        int b;
+        if (wSum >= 1e-3) {
+            r = (int) (rSum / wSum);
+            g = (int) (gSum / wSum);
+            b = (int) (bSum / wSum);
+        } else if (nPlain > 0) {
+            r = (int) (rPlain / nPlain);
+            g = (int) (gPlain / nPlain);
+            b = (int) (bPlain / nPlain);
+        } else {
+            return DEFAULT_PROFILE_ACCENT_RGB;
+        }
+        float[] hsb = Color.RGBtoHSB(r, g, b, null);
+        if (hsb[1] < 0.10f) {
+            return DEFAULT_PROFILE_ACCENT_RGB;
+        }
+        hsb[1] = Math.min(1f, hsb[1] * 1.22f);
+        hsb[2] = Math.min(1f, hsb[2] * 1.06f);
+        int packed = Color.HSBtoRGB(hsb[0], hsb[1], hsb[2]);
+        return ((packed >> 16) & 0xFF) << 16 | ((packed >> 8) & 0xFF) << 8 | (packed & 0xFF);
     }
 
     private static final class PingState {

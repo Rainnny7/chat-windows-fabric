@@ -24,6 +24,13 @@ loom {
 		}
 	}
 
+	// Loom 1.15+ disables the Mixin annotation processor unless legacy AP is on; without it no refmap is
+	// emitted and client-only mixins fail at runtime ("No refMap loaded", 0 injection targets).
+	mixin {
+		useLegacyMixinAp = true
+		add sourceSets.client, "chat-utilities.client.refmap.json"
+	}
+
 }
 
 dependencies {

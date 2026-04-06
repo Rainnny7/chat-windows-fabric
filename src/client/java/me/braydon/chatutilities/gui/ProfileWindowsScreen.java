@@ -60,7 +60,7 @@ public class ProfileWindowsScreen extends Screen implements ProfileWorkflowScree
         addRenderableWidget(newWinIdField);
         newWinPatField = new EditBox(this.font, cx + 3, y, 102, 20, Component.literal("pat"));
         newWinPatField.setMaxLength(2048);
-        newWinPatField.setHint(Component.literal("Text or regex:..."));
+        newWinPatField.setHint(ChatUtilitiesScreenLayout.PATTERN_INPUT_HINT);
         addRenderableWidget(newWinPatField);
         addRenderableWidget(
                 Button.builder(Component.literal("Add Chat Window"), b -> {
@@ -156,9 +156,7 @@ public class ProfileWindowsScreen extends Screen implements ProfileWorkflowScree
                 this.font,
                 graphics,
                 Component.literal(
-                        "Chat windows are extra panes that show a copy of lines matching your patterns—useful for separating lobby, party, or mod messages. "
-                                + "Matching text still appears in the main chat unless you hide it inside that window's settings. "
-                                + "Use regex: before a pattern for a regular expression."),
+                        "Set up named chat surfaces so you can follow different kinds of messages in parallel with the main chat."),
                 cx,
                 ChatUtilitiesScreenLayout.TITLE_Y + 12,
                 wrapW,

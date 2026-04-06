@@ -40,6 +40,25 @@ public final class ChatWindow {
         return id;
     }
 
+    /**
+     * Same window state under a new id (for rename). Preserves patterns, HUD history, layout, and
+     * positioning flags.
+     */
+    public ChatWindow withId(String newId) {
+        ChatWindow nw = new ChatWindow(newId, new ArrayList<>(patterns), new ArrayList<>(patternSources));
+        nw.historyScrollRows = this.historyScrollRows;
+        for (ChatWindowLine line : this.lines) {
+            nw.lines.addLast(line);
+        }
+        nw.anchorX = this.anchorX;
+        nw.anchorY = this.anchorY;
+        nw.widthFrac = this.widthFrac;
+        nw.maxVisibleLines = this.maxVisibleLines;
+        nw.visible = this.visible;
+        nw.positioningMode = this.positioningMode;
+        return nw;
+    }
+
     public List<String> getPatternSources() {
         return Collections.unmodifiableList(patternSources);
     }
@@ -64,6 +83,16 @@ public final class ChatWindow {
         }
         patterns.remove(i);
         patternSources.remove(i);
+        return true;
+    }
+
+    public boolean setPatternAtUserIndex(int userPosition, Pattern pattern, String source) {
+        int i = userPosition - 1;
+        if (i < 0 || i >= patterns.size()) {
+            return false;
+        }
+        patterns.set(i, pattern);
+        patternSources.set(i, source);
         return true;
     }
 

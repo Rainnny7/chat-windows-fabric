@@ -1,4 +1,25 @@
 {
     "key.chatutilities.open_menu": "Open Chat Utilities",
-    "key.categories.chatutilities": "Chat Utilities"
+    "key.category.chatutilities.root": "Chat Utilities",
+    "chat-utilities.settings.chat_symbol_selector": "Chat Symbol Selector",
+    "chat-utilities.settings.chat_text_shadow": "Chat Text Shadow",
+    "chat-utilities.settings.click_to_copy": "Click to Copy Chat",
+    "chat-utilities.settings.copy_plain_bind": "Copy Message",
+    "chat-utilities.settings.copy_formatted_bind": "Copy Message (Formatted)",
+    "chat-utilities.settings.copy_formatted_style": "Chat Copy Style (Formatted)",
+    "chat-utilities.settings.copy_formatted_style.value.section_symbol": "Section Symbol",
+    "chat-utilities.settings.copy_formatted_style.value.minimessage": "MiniMessage",
+    "chat-utilities.settings.open_menu.tooltip": "Key used to open this menu from anywhere in-game.\nLeft-click the button, then press a key.\nRight-click to clear the binding.",
+    "chat-utilities.settings.reset_controls.tooltip": "Restores the Open Chat Utilities key to its default and resets copy-click bindings to Ctrl+LMB and Ctrl+Shift+LMB.",
+    "chat-utilities.settings.copy_plain_bind.tooltip": "Click a chat line with this mouse button and modifiers to copy plain visible text (no formatting codes).",
+    "chat-utilities.settings.copy_formatted_bind.tooltip": "Click a chat line with this mouse button and modifiers to copy formatted text.\nStyle follows “Chat Copy Style (Formatted)” below.",
+    "chat-utilities.settings.chat_symbol_selector.tooltip": "Shows or hides the quick symbol picker on the chat screen.",
+    "chat-utilities.settings.chat_text_shadow.tooltip": "Draws a drop shadow behind chat text in the main HUD chat and in chat windows.",
+    "chat-utilities.settings.click_to_copy.tooltip": "Master switch for Ctrl+click (and your custom bindings) copying from chat.",
+    "chat-utilities.settings.copy_formatted_style.tooltip": "Section symbol: Java Edition legacy formatting (paragraph-sign codes); colors outside the 16 named colors use full RGB hex.\nMiniMessage: Adventure-style tags such as <red>, <bold>, <#RRGGBB> for plugins and web tools.",
+    "chat-utilities.settings.import_profiles.tooltip": "Merge profiles from a JSON file into this client.",
+    "chat-utilities.settings.export_profiles.tooltip": "Save all profiles to a JSON file you can back up or share.",
+    "chat-utilities.settings.rebind_click_prompt": "Click with modifiers…",
+    "chat-utilities.toast.copy_chat.title": "Chat Utilities",
+    "chat-utilities.toast.copy_chat.detail": "Copied message to clipboard"
 }

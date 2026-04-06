@@ -1,5 +1,7 @@
 package me.braydon.chatutilities.gui;
 
+import com.mojang.blaze3d.platform.InputConstants;
+
 import me.braydon.chatutilities.chat.ChatUtilitiesManager;
 import me.braydon.chatutilities.chat.ServerProfile;
 import net.minecraft.client.Minecraft;
@@ -7,6 +9,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
 
 import java.util.List;
@@ -28,6 +31,9 @@ public class ProfileEditorScreen extends Screen implements ProfileWorkflowScreen
     private int labelNameY;
     private int labelServersY;
 
+    private static final long DESTRUCTIVE_CONFIRM_MS = 3000L;
+    private long deleteProfileConfirmDeadlineMs;
+
     public ProfileEditorScreen(String profileId, ChatUtilitiesRootScreen chatRoot) {
         super(Component.literal("Edit Profile"));
         this.profileId = profileId;
@@ -44,16 +50,18 @@ public class ProfileEditorScreen extends Screen implements ProfileWorkflowScreen
         return new ProfileEditorScreen(profileId, chatRoot);
     }
 
-    /** Persists the name field into the profile when non-empty (call before {@code init()} from button handlers). */
+    /** Persists the name field into the profile (call before {@code init()} from button handlers). */
     private void applyNameFieldToProfile(ChatUtilitiesManager mgr, ServerProfile p) {
         if (nameField == null) {
             return;
         }
-        String n = nameField.getValue().strip();
-        if (!n.isEmpty()) {
-            p.setDisplayName(n);
-            mgr.markProfileServersDirty();
-        }
+        syncDisplayNameFromField(mgr, p, nameField.getValue());
+    }
+
+    private static void syncDisplayNameFromField(ChatUtilitiesManager mgr, ServerProfile p, String raw) {
+        String n = raw.strip();
+        p.setDisplayName(n.isEmpty() ? p.getId() : n);
+        mgr.markProfileServersDirty();
     }
 
     @Override
@@ -74,6 +82,7 @@ public class ProfileEditorScreen extends Screen implements ProfileWorkflowScreen
         nameField.setValue(p.getDisplayName());
         nameField.setMaxLength(128);
         nameField.setHint(Component.literal("e.g. Hypixel or My SMP"));
+        nameField.setResponder(s -> syncDisplayNameFromField(mgr, p, s));
         addRenderableWidget(nameField);
         y += 26;
 
@@ -162,14 +171,26 @@ public class ProfileEditorScreen extends Screen implements ProfileWorkflowScreen
         int rowW = btnW * 3 + gap * 2;
         int footLeft = cx - rowW / 2;
 
+        long nowDel = System.currentTimeMillis();
+        boolean deleteArmed = deleteProfileConfirmDeadlineMs > nowDel;
         addRenderableWidget(
-                Button.builder(Component.literal("Delete Profile"), b -> {
-                            Screen above = chatRoot.getParentScreen();
-                            Minecraft.getInstance()
-                                    .setScreen(
-                                            new DeleteProfileConfirmScreen(
-                                                    this, new ChatUtilitiesRootScreen(above), profileId));
-                        })
+                Button.builder(
+                                Component.literal(
+                                        deleteArmed ? "✕ Confirm Deletion" : "✕ Delete Profile"),
+                                b -> {
+                                    long t = System.currentTimeMillis();
+                                    if (deleteProfileConfirmDeadlineMs > t) {
+                                        deleteProfileConfirmDeadlineMs = 0;
+                                        ChatUtilitiesManager.get().removeProfile(profileId);
+                                        if (minecraft != null) {
+                                            minecraft.setScreen(
+                                                    new ChatUtilitiesRootScreen(chatRoot.getParentScreen()));
+                                        }
+                                    } else {
+                                        deleteProfileConfirmDeadlineMs = t + DESTRUCTIVE_CONFIRM_MS;
+                                        init();
+                                    }
+                                })
                         .bounds(footLeft, footerY, btnW, 20)
                         .build());
 
@@ -188,6 +209,38 @@ public class ProfileEditorScreen extends Screen implements ProfileWorkflowScreen
                         })
                         .bounds(footLeft + 2 * (btnW + gap), footerY, btnW, 20)
                         .build());
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        long now = System.currentTimeMillis();
+        if (deleteProfileConfirmDeadlineMs != 0 && now >= deleteProfileConfirmDeadlineMs) {
+            deleteProfileConfirmDeadlineMs = 0;
+            init();
+        }
+    }
+
+    @Override
+    public boolean keyPressed(KeyEvent event) {
+        int key = event.key();
+        if ((key == InputConstants.KEY_RETURN || key == InputConstants.KEY_NUMPADENTER)
+                && newServerField != null && newServerField.isFocused()) {
+            ChatUtilitiesManager mgr = ChatUtilitiesManager.get();
+            ServerProfile p = mgr.getProfile(profileId);
+            if (p != null) {
+                applyNameFieldToProfile(mgr, p);
+                String h = newServerField.getValue().strip().toLowerCase(Locale.ROOT);
+                if (!h.isEmpty() && !p.getServers().contains(h)) {
+                    p.getServers().add(h);
+                    mgr.markProfileServersDirty();
+                    newServerField.setValue("");
+                }
+                init();
+                return true;
+            }
+        }
+        return super.keyPressed(event);
     }
 
     @Override
@@ -211,8 +264,7 @@ public class ProfileEditorScreen extends Screen implements ProfileWorkflowScreen
                 this.font,
                 graphics,
                 Component.literal(
-                        "Set which servers use this profile. The mod compares your connection host to this list; "
-                                + "subdomains count as the same main domain (e.g. play.example.net matches example.net)."),
+                        "Name this profile and tie it to the servers where its rules should apply."),
                 cx,
                 ChatUtilitiesScreenLayout.TITLE_Y + 12,
                 wrapW,

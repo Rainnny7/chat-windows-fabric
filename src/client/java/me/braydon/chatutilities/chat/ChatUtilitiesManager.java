@@ -13,8 +13,6 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.Style;
-import net.minecraft.network.chat.TextColor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -160,6 +158,18 @@ public final class ChatUtilitiesManager {
         }
     }
 
+    public void setIgnorePatternAt(ServerProfile profile, int index, String raw) throws PatternSyntaxException {
+        List<String> list = profile.getIgnorePatternSources();
+        if (index < 0 || index >= list.size()) {
+            return;
+        }
+        String s = raw.strip();
+        compileUserMatchPattern(s);
+        list.set(index, s);
+        recompileIgnores(profile);
+        save();
+    }
+
     public void addMessageSound(ServerProfile profile, String patternRaw, String soundRaw)
             throws PatternSyntaxException {
         String pat = patternRaw == null ? "" : patternRaw.strip();
@@ -182,6 +192,25 @@ public final class ChatUtilitiesManager {
             recompileMessageSounds(profile);
             save();
         }
+    }
+
+    public void setMessageSoundAt(ServerProfile profile, int index, String patternRaw, String soundRaw)
+            throws PatternSyntaxException {
+        List<MessageSoundRule> list = profile.getMessageSounds();
+        if (index < 0 || index >= list.size()) {
+            return;
+        }
+        String pat = patternRaw == null ? "" : patternRaw.strip();
+        compileUserMatchPattern(pat);
+        Identifier soundId =
+                parseSoundId(soundRaw)
+                        .orElseThrow(() -> new IllegalArgumentException("Invalid sound id"));
+        if (BuiltInRegistries.SOUND_EVENT.get(soundId).isEmpty()) {
+            throw new IllegalArgumentException("Unknown sound: " + soundId);
+        }
+        list.set(index, new MessageSoundRule(pat, soundId.toString()));
+        recompileMessageSounds(profile);
+        save();
     }
 
     /**
@@ -289,12 +318,62 @@ public final class ChatUtilitiesManager {
         return true;
     }
 
+    public boolean setPatternAt(ServerProfile profile, String windowId, int userPosition, String patternInput)
+            throws PatternSyntaxException {
+        ChatWindow w = profile.getWindows().get(windowId);
+        if (w == null) {
+            return false;
+        }
+        Pattern p = compileUserMatchPattern(patternInput);
+        if (!w.setPatternAtUserIndex(userPosition, p, patternInput.strip())) {
+            return false;
+        }
+        save();
+        return true;
+    }
+
     public boolean removeWindow(ServerProfile profile, String windowId) {
         if (profile.getWindows().remove(windowId) != null) {
             save();
             return true;
         }
         return false;
+    }
+
+    /**
+     * Renames a chat window id, preserving map order and all window state. Fails if {@code newId}
+     * is blank, equals {@code oldId}, or is already in use.
+     */
+    public boolean renameWindow(ServerProfile profile, String oldId, String newId) {
+        String n = newId == null ? "" : newId.strip();
+        if (n.isEmpty() || n.equals(oldId)) {
+            return false;
+        }
+        if (profile.getWindows().containsKey(n)) {
+            return false;
+        }
+        List<String> ids = profile.getWindowIds();
+        int idx = ids.indexOf(oldId);
+        if (idx < 0) {
+            return false;
+        }
+        ChatWindow w = profile.getWindows().remove(oldId);
+        if (w == null) {
+            return false;
+        }
+        ChatWindow renamed = w.withId(n);
+        LinkedHashMap<String, ChatWindow> fresh = new LinkedHashMap<>();
+        for (String id : ids) {
+            if (id.equals(oldId)) {
+                fresh.put(n, renamed);
+            } else {
+                fresh.put(id, profile.getWindows().get(id));
+            }
+        }
+        profile.getWindows().clear();
+        profile.getWindows().putAll(fresh);
+        save();
+        return true;
     }
 
     public boolean toggleVisibility(ServerProfile profile, String windowId) {
@@ -567,77 +646,7 @@ public final class ChatUtilitiesManager {
     }
 
     private static String componentToLegacyLogString(Component message) {
-        StringBuilder out = new StringBuilder();
-        message.visit(
-                (style, segment) -> {
-                    if (!segment.isEmpty()) {
-                        char p = ChatFormatting.PREFIX_CODE;
-                        out.append(p).append(ChatFormatting.RESET.getChar());
-                        appendStyleAsLegacy(out, style);
-                        out.append(segment);
-                    }
-                    return Optional.empty();
-                },
-                Style.EMPTY);
-        if (out.length() > 0) {
-            return out.toString();
-        }
-        String plain = message.getString();
-        return plain == null ? "" : plain;
-    }
-
-    private static void appendStyleAsLegacy(StringBuilder out, Style style) {
-        char p = ChatFormatting.PREFIX_CODE;
-        TextColor tc = style.getColor();
-        if (tc != null) {
-            ChatFormatting color = legacyChatColorFor(tc);
-            if (color != null) {
-                out.append(p).append(color.getChar());
-            }
-        }
-        if (style.isBold()) {
-            out.append(p).append(ChatFormatting.BOLD.getChar());
-        }
-        if (style.isItalic()) {
-            out.append(p).append(ChatFormatting.ITALIC.getChar());
-        }
-        if (style.isUnderlined()) {
-            out.append(p).append(ChatFormatting.UNDERLINE.getChar());
-        }
-        if (style.isStrikethrough()) {
-            out.append(p).append(ChatFormatting.STRIKETHROUGH.getChar());
-        }
-        if (style.isObfuscated()) {
-            out.append(p).append(ChatFormatting.OBFUSCATED.getChar());
-        }
-    }
-
-    private static ChatFormatting legacyChatColorFor(TextColor tc) {
-        int rgb = tc.getValue() & 0xFFFFFF;
-        int bestDist = Integer.MAX_VALUE;
-        ChatFormatting nearest = ChatFormatting.WHITE;
-        for (ChatFormatting cf : ChatFormatting.values()) {
-            if (!cf.isColor()) {
-                continue;
-            }
-            Integer cRgbObj = cf.getColor();
-            if (cRgbObj == null) {
-                continue;
-            }
-            int cRgb = cRgbObj & 0xFFFFFF;
-            if (cRgb == rgb) {
-                return cf;
-            }
-            int dr = (rgb >> 16) - (cRgb >> 16);
-            int dg = ((rgb >> 8) & 0xFF) - ((cRgb >> 8) & 0xFF);
-            int db = (rgb & 0xFF) - (cRgb & 0xFF);
-            int dist = dr * dr + dg * dg + db * db;
-            if (dist < bestDist) {
-                bestDist = dist;
-                nearest = cf;
-            }
-        }
-        return nearest;
+        return ChatCopyTextHelper.toLegacySectionString(message);
     }
 
     static String plainTextForMatching(Component message) {
@@ -719,6 +728,53 @@ public final class ChatUtilitiesManager {
         if (configPath == null) {
             return;
         }
+        try {
+            Files.createDirectories(configPath.getParent());
+            Files.writeString(configPath, gson.toJson(buildRootV3()), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            LOGGER.error("Failed to save chat-utilities config", e);
+        }
+    }
+
+    /** Same JSON shape as {@code chat-utilities.json} — for export to a file. */
+    public String serializeProfilesToJson() {
+        return gson.toJson(buildRootV3());
+    }
+
+    /**
+     * Merges profiles from exported JSON. If an imported profile id already exists, a new id is assigned.
+     *
+     * @return number of profiles added
+     */
+    public int importProfilesFromJson(String json) throws JsonParseException {
+        RootV3 root = gson.fromJson(json, RootV3.class);
+        if (root == null || root.profiles == null) {
+            throw new JsonParseException("Missing profiles array");
+        }
+        int added = 0;
+        for (PersistedProfile pp : root.profiles) {
+            if (pp == null || pp.id == null || pp.id.isEmpty()) {
+                continue;
+            }
+            if (profilesById.containsKey(pp.id)) {
+                pp.id = UUID.randomUUID().toString();
+            }
+            ServerProfile sp = buildProfileFromPersisted(pp);
+            if (sp != null) {
+                profiles.add(sp);
+                profilesById.put(sp.getId(), sp);
+                recompileIgnores(sp);
+                recompileMessageSounds(sp);
+                added++;
+            }
+        }
+        if (added > 0) {
+            save();
+        }
+        return added;
+    }
+
+    private RootV3 buildRootV3() {
         RootV3 root = new RootV3();
         root.formatVersion = FORMAT_VERSION_V3;
         for (ServerProfile sp : profiles) {
@@ -746,12 +802,7 @@ public final class ChatUtilitiesManager {
             }
             root.profiles.add(pp);
         }
-        try {
-            Files.createDirectories(configPath.getParent());
-            Files.writeString(configPath, gson.toJson(root), StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            LOGGER.error("Failed to save chat-utilities config", e);
-        }
+        return root;
     }
 
     public void load() {
@@ -784,63 +835,70 @@ public final class ChatUtilitiesManager {
             return;
         }
         for (PersistedProfile pp : root.profiles) {
-            if (pp == null || pp.id == null || pp.id.isEmpty()) {
-                continue;
+            ServerProfile sp = buildProfileFromPersisted(pp);
+            if (sp != null) {
+                profiles.add(sp);
+                profilesById.put(sp.getId(), sp);
             }
-            ServerProfile sp = new ServerProfile(pp.id, pp.displayName != null ? pp.displayName : pp.id);
-            if (pp.servers != null) {
-                sp.getServers().addAll(pp.servers);
-            }
-            if (pp.ignorePatterns != null) {
-                sp.getIgnorePatternSources().addAll(pp.ignorePatterns);
-            }
-            if (pp.messageSounds != null) {
-                for (PersistedMessageSound pms : pp.messageSounds) {
-                    if (pms == null || pms.pattern == null || pms.pattern.strip().isEmpty()) {
-                        continue;
-                    }
-                    sp.getMessageSounds()
-                            .add(new MessageSoundRule(pms.pattern, pms.soundId != null ? pms.soundId : ""));
-                }
-            }
-            if (pp.windows != null) {
-                for (PersistedWindow pw : pp.windows) {
-                    if (pw == null || pw.id == null) {
-                        continue;
-                    }
-                    List<String> sources = new ArrayList<>();
-                    if (pw.patterns != null && !pw.patterns.isEmpty()) {
-                        sources.addAll(pw.patterns);
-                    } else if (pw.regex != null && !pw.regex.isEmpty()) {
-                        sources.add(pw.regex);
-                    }
-                    try {
-                        List<Pattern> compiled = new ArrayList<>();
-                        for (String src : sources) {
-                            if (src == null || src.strip().isEmpty()) {
-                                continue;
-                            }
-                            compiled.add(compileUserMatchPattern(src));
-                        }
-                        ChatWindow cw = new ChatWindow(pw.id, compiled, sources);
-                        cw.setAnchorX(pw.anchorX);
-                        cw.setAnchorY(pw.anchorY);
-                        cw.setVisible(pw.visible);
-                        if (pw.widthFrac > 0) {
-                            cw.setWidthFrac(pw.widthFrac);
-                        }
-                        if (pw.maxVisibleLines > 0) {
-                            cw.setMaxVisibleLines(pw.maxVisibleLines);
-                        }
-                        sp.getWindows().put(pw.id, cw);
-                    } catch (PatternSyntaxException e) {
-                        LOGGER.warn("Skipping window {}: bad pattern", pw.id, e);
-                    }
-                }
-            }
-            profiles.add(sp);
-            profilesById.put(sp.getId(), sp);
         }
+    }
+
+    private ServerProfile buildProfileFromPersisted(PersistedProfile pp) {
+        if (pp == null || pp.id == null || pp.id.isEmpty()) {
+            return null;
+        }
+        ServerProfile sp = new ServerProfile(pp.id, pp.displayName != null ? pp.displayName : pp.id);
+        if (pp.servers != null) {
+            sp.getServers().addAll(pp.servers);
+        }
+        if (pp.ignorePatterns != null) {
+            sp.getIgnorePatternSources().addAll(pp.ignorePatterns);
+        }
+        if (pp.messageSounds != null) {
+            for (PersistedMessageSound pms : pp.messageSounds) {
+                if (pms == null || pms.pattern == null || pms.pattern.strip().isEmpty()) {
+                    continue;
+                }
+                sp.getMessageSounds()
+                        .add(new MessageSoundRule(pms.pattern, pms.soundId != null ? pms.soundId : ""));
+            }
+        }
+        if (pp.windows != null) {
+            for (PersistedWindow pw : pp.windows) {
+                if (pw == null || pw.id == null) {
+                    continue;
+                }
+                List<String> sources = new ArrayList<>();
+                if (pw.patterns != null && !pw.patterns.isEmpty()) {
+                    sources.addAll(pw.patterns);
+                } else if (pw.regex != null && !pw.regex.isEmpty()) {
+                    sources.add(pw.regex);
+                }
+                try {
+                    List<Pattern> compiled = new ArrayList<>();
+                    for (String src : sources) {
+                        if (src == null || src.strip().isEmpty()) {
+                            continue;
+                        }
+                        compiled.add(compileUserMatchPattern(src));
+                    }
+                    ChatWindow cw = new ChatWindow(pw.id, compiled, sources);
+                    cw.setAnchorX(pw.anchorX);
+                    cw.setAnchorY(pw.anchorY);
+                    cw.setVisible(pw.visible);
+                    if (pw.widthFrac > 0) {
+                        cw.setWidthFrac(pw.widthFrac);
+                    }
+                    if (pw.maxVisibleLines > 0) {
+                        cw.setMaxVisibleLines(pw.maxVisibleLines);
+                    }
+                    sp.getWindows().put(pw.id, cw);
+                } catch (PatternSyntaxException e) {
+                    LOGGER.warn("Skipping window {}: bad pattern", pw.id, e);
+                }
+            }
+        }
+        return sp;
     }
 
     private void migrateFromLegacy(String json) throws JsonParseException {

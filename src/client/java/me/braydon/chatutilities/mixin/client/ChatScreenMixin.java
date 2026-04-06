@@ -1,6 +1,10 @@
 package me.braydon.chatutilities.mixin.client;
 
+import me.braydon.chatutilities.chat.ChatClickCopyHandler;
+import me.braydon.chatutilities.chat.ChatUtilitiesManager;
+import me.braydon.chatutilities.chat.ChatWindowClickHandler;
 import me.braydon.chatutilities.chat.ChatSymbolPalette;
+import me.braydon.chatutilities.client.ChatUtilitiesClientOptions;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -53,6 +57,9 @@ public abstract class ChatScreenMixin {
         if (input == null) {
             return;
         }
+        if (!ChatUtilitiesClientOptions.isShowChatSymbolSelector()) {
+            return;
+        }
         int fullW = input.getWidth();
         int shrink = chatUtilities$BTN_W + chatUtilities$BTN_GAP;
         if (fullW <= shrink + 40) {
@@ -92,6 +99,18 @@ public abstract class ChatScreenMixin {
         int sh = self.height;
         double mx = event.x();
         double my = event.y();
+        if (!ChatUtilitiesManager.get().isPositioning()
+                && ChatClickCopyHandler.tryHandleCopyClick(
+                        Minecraft.getInstance(), self, mx, my, event.button())) {
+            cir.setReturnValue(true);
+            return;
+        }
+        if (event.button() == 0
+                && !ChatUtilitiesManager.get().isPositioning()
+                && ChatWindowClickHandler.tryHandleClick(Minecraft.getInstance(), mx, my, event.button())) {
+            cir.setReturnValue(true);
+            return;
+        }
         if (event.button() == 0 && chatUtilities$symbolHit(mx, my)) {
             chatUtilities$palette.toggle();
             ChatSymbolPalette.playUiClickSound();

@@ -1,13 +1,17 @@
 package me.braydon.chatutilities.gui;
 
+import com.mojang.blaze3d.platform.InputConstants;
+
 import me.braydon.chatutilities.chat.ChatUtilitiesManager;
 import me.braydon.chatutilities.chat.ServerProfile;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.PatternSyntaxException;
 
@@ -21,6 +25,9 @@ public class ProfileIgnoresScreen extends Screen implements ProfileWorkflowScree
     private EditBox newIgnoreField;
     private int ignScroll;
     private int labelIgnoresY;
+
+    private record PendingIgnoreEdit(EditBox box, ServerProfile profile, int listIndex) {}
+    private final List<PendingIgnoreEdit> pendingIgnoreEdits = new ArrayList<>();
 
     public ProfileIgnoresScreen(String profileId, ChatUtilitiesRootScreen chatRoot) {
         super(Component.literal("Ignored Chat"));
@@ -41,6 +48,7 @@ public class ProfileIgnoresScreen extends Screen implements ProfileWorkflowScree
     @Override
     protected void init() {
         clearWidgets();
+        pendingIgnoreEdits.clear();
         ChatUtilitiesManager mgr = ChatUtilitiesManager.get();
         ServerProfile p = mgr.getProfile(profileId);
         if (p == null) {
@@ -54,7 +62,7 @@ public class ProfileIgnoresScreen extends Screen implements ProfileWorkflowScree
         labelIgnoresY = y - 11;
         newIgnoreField = new EditBox(this.font, cx - 100, y, 130, 20, Component.literal("ign"));
         newIgnoreField.setMaxLength(2048);
-        newIgnoreField.setHint(Component.literal("Hide matching chat..."));
+        newIgnoreField.setHint(ChatUtilitiesScreenLayout.PATTERN_INPUT_HINT);
         addRenderableWidget(newIgnoreField);
         addRenderableWidget(
                 Button.builder(Component.literal("Add Ignore"), b -> {
@@ -94,17 +102,26 @@ public class ProfileIgnoresScreen extends Screen implements ProfileWorkflowScree
             y += 24;
         }
         int igEnd = Math.min(ignScroll + IGN_ROWS, ignores.size());
+        int ignRowW = 200;
+        int ignXBtnW = 24;
+        int ignGap = 4;
         for (int i = ignScroll; i < igEnd; i++) {
             String pat = ignores.get(i);
-            String label = pat.length() > 24 ? pat.substring(0, 21) + "..." : pat;
             int idx = i;
+            EditBox ignEb =
+                    new EditBox(this.font, cx - 100, y, ignRowW - ignXBtnW - ignGap, 20, Component.literal("ign" + idx));
+            ignEb.setMaxLength(2048);
+            ignEb.setValue(pat);
+            ignEb.setHint(ChatUtilitiesScreenLayout.PATTERN_INPUT_HINT);
+            addRenderableWidget(ignEb);
             addRenderableWidget(
-                    Button.builder(Component.literal("Remove: " + label), b -> {
+                    Button.builder(Component.literal("✕"), b -> {
                                 mgr.removeIgnorePattern(p, idx);
                                 init();
                             })
-                            .bounds(cx - 100, y, 200, 20)
+                            .bounds(cx - 100 + ignRowW - ignXBtnW, y, ignXBtnW, 20)
                             .build());
+            pendingIgnoreEdits.add(new PendingIgnoreEdit(ignEb, p, idx));
             y += 22;
         }
 
@@ -123,6 +140,37 @@ public class ProfileIgnoresScreen extends Screen implements ProfileWorkflowScree
                                 b -> ChatUtilitiesScreenLayout.closeEntireChatUtilitiesMenu(chatRoot))
                         .bounds(footLeft + btnW + gap, footerY, btnW, 20)
                         .build());
+    }
+
+    @Override
+    public boolean keyPressed(KeyEvent event) {
+        int key = event.key();
+        if (key == InputConstants.KEY_RETURN || key == InputConstants.KEY_NUMPADENTER) {
+            ChatUtilitiesManager mgr = ChatUtilitiesManager.get();
+            ServerProfile p = mgr.getProfile(profileId);
+            if (p != null) {
+                for (PendingIgnoreEdit pie : pendingIgnoreEdits) {
+                    if (pie.box().isFocused()) {
+                        try {
+                            mgr.setIgnorePatternAt(pie.profile(), pie.listIndex(), pie.box().getValue());
+                            init();
+                        } catch (PatternSyntaxException ignored) {
+                        }
+                        return true;
+                    }
+                }
+                if (newIgnoreField != null && newIgnoreField.isFocused()) {
+                    try {
+                        mgr.addIgnorePattern(p, newIgnoreField.getValue());
+                        newIgnoreField.setValue("");
+                    } catch (PatternSyntaxException ignored) {
+                    }
+                    init();
+                    return true;
+                }
+            }
+        }
+        return super.keyPressed(event);
     }
 
     @Override
@@ -146,9 +194,7 @@ public class ProfileIgnoresScreen extends Screen implements ProfileWorkflowScree
                 this.font,
                 graphics,
                 Component.literal(
-                        "Ignored patterns remove matching chat lines completely—they never appear in-game. "
-                                + "If you still want to read those lines in a separate pane, use Chat Windows instead. "
-                                + "Prefix a pattern with regex: for a regular expression."),
+                        "Define what never reaches your chat so noise and clutter stay out of the way."),
                 cx,
                 ChatUtilitiesScreenLayout.TITLE_Y + 12,
                 wrapW,
