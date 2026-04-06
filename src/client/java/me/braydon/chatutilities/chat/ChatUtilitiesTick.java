@@ -1,4 +1,4 @@
-package me.braydon.window.chat;
+package me.braydon.chatutilities.chat;
 
 import com.mojang.blaze3d.platform.cursor.CursorType;
 import com.mojang.blaze3d.platform.cursor.CursorTypes;
@@ -11,7 +11,7 @@ import org.lwjgl.system.MemoryStack;
 
 import java.nio.DoubleBuffer;
 
-public final class ChatWindowsTick {
+public final class ChatUtilitiesTick {
     private static final int SAVE_THROTTLE_TICKS = 40;
 
     private enum DragKind {
@@ -34,22 +34,24 @@ public final class ChatWindowsTick {
     private static int pressMaxLines;
     private static int pressBoxW;
 
-    private ChatWindowsTick() {}
+    private ChatUtilitiesTick() {}
 
     public static void register() {
-        ClientTickEvents.END_CLIENT_TICK.register(ChatWindowsTick::onEndTick);
+        ClientTickEvents.END_CLIENT_TICK.register(ChatUtilitiesTick::onEndTick);
     }
 
     private static void onEndTick(Minecraft mc) {
+        ProfileFaviconCache.tick(mc);
+
         boolean chatNow = mc.screen instanceof ChatScreen;
         if (wasChatScreenOpen && !chatNow) {
-            for (ChatWindow w : ChatWindowManager.get().getWindows()) {
+            for (ChatWindow w : ChatUtilitiesManager.get().getActiveProfileWindows()) {
                 w.resetHistoryScroll();
             }
         }
         wasChatScreenOpen = chatNow;
 
-        ChatWindowManager mgr = ChatWindowManager.get();
+        ChatUtilitiesManager mgr = ChatUtilitiesManager.get();
         boolean allowHudInput =
                 mc.screen == null || (mc.screen instanceof ChatScreen && mgr.isPositioning());
         if (!allowHudInput) {
@@ -64,13 +66,14 @@ public final class ChatWindowsTick {
         if (escapeDown && !escapeWasDown && mgr.isPositioning()) {
             mgr.clearAllPositioningModes();
             mgr.save();
+            mgr.runRestoreScreenAfterPositionIfAny(mc);
             dragKind = DragKind.NONE;
             wasMouseDown = false;
         }
         escapeWasDown = escapeDown;
 
         ChatWindow positioned = null;
-        for (ChatWindow w : mgr.getWindows()) {
+        for (ChatWindow w : mgr.getActiveProfileWindows()) {
             if (w.isPositioningMode()) {
                 positioned = w;
                 break;

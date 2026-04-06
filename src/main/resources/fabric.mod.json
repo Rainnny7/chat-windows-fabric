@@ -1,8 +1,8 @@
 {
 	"schemaVersion": 1,
-	"id": "chat-windows",
+	"id": "chat-utilities",
 	"version": "${version}",
-	"name": "Chat Windows",
+	"name": "Chat Utilities",
 	"description": "Filter chat into extra panes that you can drag and resize (/chatwindow). Patterns match as plain text; begin with regex: for Java regex.",
 	"authors": [
 		"Braydon (Rainnny)"
@@ -15,13 +15,13 @@
 	"environment": "client",
 	"entrypoints": {
 		"client": [
-			"me.braydon.window.ChatWindowsModClient"
+			"me.braydon.chatutilities.ChatUtilitiesModClient"
 		]
 	},
-	"accessWidener": "chat-windows.accesswidener",
+	"accessWidener": "chat-utilities.accesswidener",
 	"mixins": [
 		{
-			"config": "chat-windows.client.mixins.json",
+			"config": "chat-utilities.client.mixins.json",
 			"environment": "client"
 		}
 	],

@@ -1,0 +1,13 @@
+{
+	"required": true,
+	"package": "me.braydon.chatutilities.mixin.client",
+	"compatibilityLevel": "JAVA_21",
+	"client": [
+		"ChatComponentMixin",
+		"ChatScreenMixin",
+		"MinecraftMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

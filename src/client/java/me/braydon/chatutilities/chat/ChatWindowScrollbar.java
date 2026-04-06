@@ -1,12 +1,10 @@
-package me.braydon.window.chat;
+package me.braydon.chatutilities.chat;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.util.Mth;
 
-/** Thin, low-contrast scrollbar when chat is open (similar to vanilla chat). */
 public final class ChatWindowScrollbar {
-    /** Vanilla chat uses a 1 GUI-pixel line on the inner right edge. */
     private static final int BAR_W = 1;
 
     private ChatWindowScrollbar() {}
@@ -39,11 +37,9 @@ public final class ChatWindowScrollbar {
             return;
         }
         float a = Mth.clamp(chatOpacity, 0f, 1f);
-        // Faint track (ghost white on dark chat), not a solid block
         int trackAlpha = Mth.clamp(Math.round(28 * a), 0, 255);
         int trackColor = (trackAlpha << 24) | 0xFFFFFF;
         graphics.fill(barX, trackY, barX + BAR_W, trackY + trackH, trackColor);
-        // Thumb: slightly more visible, still gray — avoid bright white
         int thumbAlpha = Mth.clamp(Math.round(85 * a), 0, 255);
         int thumbRgb = 0xB4B4B4;
         int thumbColor = (thumbAlpha << 24) | thumbRgb;

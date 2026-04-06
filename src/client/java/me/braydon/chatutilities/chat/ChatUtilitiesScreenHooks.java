@@ -1,4 +1,4 @@
-package me.braydon.window.chat;
+package me.braydon.chatutilities.chat;
 
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
@@ -8,11 +8,10 @@ import net.minecraft.client.gui.screens.ChatScreen;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Chat screen: scroll wheel on a hovered custom window scrolls its history (blocks vanilla chat scroll). */
-public final class ChatWindowsScreenHooks {
+public final class ChatUtilitiesScreenHooks {
     private static final int SCROLL_LINES_PER_NOTCH = 3;
 
-    private ChatWindowsScreenHooks() {}
+    private ChatUtilitiesScreenHooks() {}
 
     public static void register() {
         ScreenEvents.AFTER_INIT.register(
@@ -37,8 +36,8 @@ public final class ChatWindowsScreenHooks {
         int mx = (int) mouseX;
         int my = (int) mouseY;
 
-        ChatWindowManager mgr = ChatWindowManager.get();
-        List<ChatWindow> ordered = new ArrayList<>(mgr.getWindows());
+        ChatUtilitiesManager mgr = ChatUtilitiesManager.get();
+        List<ChatWindow> ordered = new ArrayList<>(mgr.getActiveProfileWindows());
         for (int i = ordered.size() - 1; i >= 0; i--) {
             ChatWindow w = ordered.get(i);
             if (!w.isVisible() || w.getLines().isEmpty()) {

@@ -15,10 +15,10 @@ repositories {
 
 loom {
 	splitEnvironmentSourceSets()
-	accessWidenerPath = file("src/main/resources/chat-windows.accesswidener")
+	accessWidenerPath = file("src/main/resources/chat-utilities.accesswidener")
 
 	mods {
-		"chat-windows" {
+		"chat-utilities" {
 			sourceSet sourceSets.main
 			sourceSet sourceSets.client
 		}

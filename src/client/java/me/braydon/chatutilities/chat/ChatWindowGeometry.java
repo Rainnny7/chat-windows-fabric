@@ -1,4 +1,4 @@
-package me.braydon.window.chat;
+package me.braydon.chatutilities.chat;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.ChatScreen;
@@ -9,13 +9,11 @@ import net.minecraft.util.Mth;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Shared layout for HUD render and positioning / resize hit-tests (GUI-scaled coordinates). */
 public final class ChatWindowGeometry {
     private static final int LINE_HEIGHT = 9;
     private static final int PADDING = 4;
     public static final int EDGE_PX = 6;
 
-    /** Hit zone for /chatwindow position: move body vs resize edges (GUI-scaled coords). */
     public enum PositioningPointer {
         NONE,
         MOVE,
@@ -73,9 +71,7 @@ public final class ChatWindowGeometry {
     public final int anchorXGui;
     public final int anchorYGui;
     public final List<RenderedRow> rows;
-    /** Max scroll offset in rows when in history mode (for clamping). */
     public final int maxHistoryScrollRows;
-    /** Extra Y inside the box before the first text row (history mode: bottom-align short content). */
     public final int contentStartYOffset;
 
     private ChatWindowGeometry(
@@ -99,7 +95,6 @@ public final class ChatWindowGeometry {
         this.contentStartYOffset = contentStartYOffset;
     }
 
-    /** Positioning / resize: no fade, no chat-screen expansion. */
     public static ChatWindowGeometry compute(ChatWindow window, Minecraft mc, int gw, int gh, Component placeholderWhenNoLine) {
         return compute(
                 window,
@@ -114,11 +109,6 @@ public final class ChatWindowGeometry {
                 0);
     }
 
-    /**
-     * @param forceOpaque ignore fade (positioning mode)
-     * @param chatScreenOpen when {@link ChatScreen} is open, show full stored history in a viewport of {@link ChatWindow#getMaxVisibleLines()}
-     *     rows (same height as in position mode); scroll with the wheel over the window
-     */
     public static ChatWindowGeometry compute(
             ChatWindow window,
             Minecraft mc,
@@ -201,7 +191,6 @@ public final class ChatWindowGeometry {
         } else {
             int contentRows = Math.max(rows.isEmpty() ? 1 : rows.size(), 1);
             if (forceOpaque) {
-                // Positioning: height follows maxVisibleLines so vertical resize is visible immediately
                 lineCount = Math.max(contentRows, viewportRows);
             } else {
                 lineCount = contentRows;
@@ -222,10 +211,6 @@ public final class ChatWindowGeometry {
                 x, y, boxW, boxH, anchorXGui, anchorYGui, rows, maxHistoryScroll, contentStartYOffset);
     }
 
-    /**
-     * Hit-test for scroll wheel on {@link ChatScreen}: same box size as {@link #compute} when chat is open
-     * ({@link ChatWindow#getMaxVisibleLines()} rows tall).
-     */
     public static boolean historyHitTest(ChatWindow window, Minecraft mc, int gw, int mouseGuiX, int mouseGuiY) {
         if (!(mc.screen instanceof ChatScreen) || window.getLines().isEmpty()) {
             return false;
@@ -244,7 +229,6 @@ public final class ChatWindowGeometry {
                 && mouseGuiY < y + boxH;
     }
 
-    /** Total wrapped rows and viewport row count ({@link ChatWindow#getMaxVisibleLines()}) for chat-screen scroll. */
     public static int[] historyScrollMetrics(ChatWindow window, Minecraft mc, int gw) {
         int maxLineWidth = Math.max(24, Math.round(window.getWidthFrac() * gw) - PADDING * 2);
         int total = countWrappedRows(window, mc, maxLineWidth);

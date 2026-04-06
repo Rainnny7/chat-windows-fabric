@@ -1,4 +1,4 @@
-package me.braydon.window.chat;
+package me.braydon.chatutilities.chat;
 
 import java.util.*;
 import java.util.regex.Pattern;
@@ -10,7 +10,6 @@ public final class ChatWindow {
     public static final float MIN_WIDTH_FRAC = 0.12f;
     public static final float MAX_WIDTH_FRAC = 0.98f;
     public static final int MIN_VISIBLE_LINES = 2;
-    /** Enough for a tall viewport on large GUIs; not tied to vanilla chat line count. */
     public static final int MAX_VISIBLE_LINES_CAP = 512;
 
     private final String id;
@@ -31,7 +30,6 @@ public final class ChatWindow {
         this.patternSources.add(firstSource);
     }
 
-    /** Restore from persistence (compiled list must match sources). */
     public ChatWindow(String id, List<Pattern> compiled, List<String> sources) {
         this.id = id;
         this.patterns.addAll(compiled);
@@ -61,7 +59,7 @@ public final class ChatWindow {
 
     public boolean removePatternAtUserIndex(int userPosition) {
         int i = userPosition - 1;
-        if (i < 0 || i >= patterns.size() || patterns.size() <= 1) {
+        if (i < 0 || i >= patterns.size()) {
             return false;
         }
         patterns.remove(i);
@@ -70,6 +68,9 @@ public final class ChatWindow {
     }
 
     public boolean matches(String text) {
+        if (patterns.isEmpty()) {
+            return false;
+        }
         for (Pattern p : patterns) {
             if (p.matcher(text).find()) {
                 return true;
@@ -110,8 +111,10 @@ public final class ChatWindow {
         lines.addLast(line);
     }
 
-    public void clearLines() {
+    /** Clears HUD history for this window (e.g. when vanilla chat is cleared with F3+D). */
+    public void clearStoredChat() {
         lines.clear();
+        resetHistoryScroll();
     }
 
     public float getAnchorX() {
@@ -164,10 +167,6 @@ public final class ChatWindow {
 
     public void setPositioningMode(boolean positioningMode) {
         this.positioningMode = positioningMode;
-    }
-
-    public void togglePositioningMode() {
-        this.positioningMode = !this.positioningMode;
     }
 
     private static float clamp01(float v) {

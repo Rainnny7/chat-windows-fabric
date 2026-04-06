@@ -1,4 +1,4 @@
-package me.braydon.window.chat;
+package me.braydon.chatutilities.chat;
 
 import com.mojang.blaze3d.platform.Window;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
@@ -12,11 +12,11 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 
-public final class ChatWindowsHud {
-    private ChatWindowsHud() {}
+public final class ChatUtilitiesHud {
+    private ChatUtilitiesHud() {}
 
     public static void register() {
-        HudRenderCallback.EVENT.register(ChatWindowsHud::render);
+        HudRenderCallback.EVENT.register(ChatUtilitiesHud::render);
     }
 
     private static void render(GuiGraphics graphics, DeltaTracker deltaTracker) {
@@ -34,13 +34,12 @@ public final class ChatWindowsHud {
         int guiTick = mc.gui.getGuiTicks();
         float chatOpacity = mc.options.chatOpacity().get().floatValue();
 
-        for (ChatWindow window : ChatWindowManager.get().getWindows()) {
+        for (ChatWindow window : ChatUtilitiesManager.get().getActiveProfileWindows()) {
             if (!window.isVisible()) {
                 continue;
             }
 
             boolean hasStored = !window.getLines().isEmpty();
-            // Filter windows with no lines: only show the hint while chat is open (T).
             if (!hasStored && !window.isPositioningMode() && !chatOpen) {
                 continue;
             }
@@ -92,14 +91,12 @@ public final class ChatWindowsHud {
                 graphics.fill(x, y, x + boxW, y + boxH, 0x80000000);
                 renderPlaceholderRows(graphics, mc, geo, x, y, boxW, boxH, 0xAAAAAA, chatOpacity);
             } else {
-                // Empty filter window (chat open): same panel + text path as real chat lines.
                 graphics.fill(x, y, x + boxW, y + boxH, 0x80000000);
                 renderStyledRows(graphics, geo, x, y, boxW, boxH, chatOpacity);
             }
         }
     }
 
-    /** Full style, hover/click hints, and opacity (vanilla-style chat text). */
     private static void renderStyledRows(
             GuiGraphics graphics,
             ChatWindowGeometry geo,
