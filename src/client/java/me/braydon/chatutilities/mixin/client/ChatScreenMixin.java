@@ -2,19 +2,20 @@ package me.braydon.chatutilities.mixin.client;
 
 import me.braydon.chatutilities.chat.ChatClickCopyHandler;
 import me.braydon.chatutilities.chat.ChatSymbolPalette;
+import me.braydon.chatutilities.chat.ChatSymbolPaletteLayer;
 import me.braydon.chatutilities.chat.ChatUtilitiesHud;
 import me.braydon.chatutilities.chat.ChatUtilitiesManager;
 import me.braydon.chatutilities.chat.ChatWindowClickHandler;
 import me.braydon.chatutilities.client.ChatUtilitiesClientOptions;
+import me.braydon.chatutilities.command.ChatUtilitiesCommands;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.CommandSuggestions;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
+import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -27,15 +28,18 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * Chat screen draws {@link net.minecraft.client.gui.components.CommandSuggestions} after {@code super.render()},
- * so a normal {@code Button} widget was covered. We paint the symbol chip in {@code render} TAIL (same pass as the
- * palette) and handle clicks manually.
+ * so a normal {@code Button} widget was covered. The chip and symbol palette are drawn from Fabric
+ * {@link ScreenEvents#afterRender} so they layer above other mods that inject into {@code ChatScreen#render}; clicks
+ * are still handled in this mixin.
  */
 @Mixin(ChatScreen.class)
 public abstract class ChatScreenMixin {
     private static final int chatUtilities$BTN_GAP = 3;
+    /** Space between symbol chip and settings chip (smaller than {@link #chatUtilities$BTN_GAP}). */
+    private static final int chatUtilities$BTN_GAP_INNER = 1;
     private static final int chatUtilities$BTN_W = 20;
-    /** Vanilla chat line is 12px tall; the bar chrome reads slightly taller—center the chip in this strip. */
-    private static final int chatUtilities$CHAT_BAR_H = 14;
+    /** Vanilla font baseline sits slightly low in the chat bar; nudge the chip up for optical centering. */
+    private static final int chatUtilities$CHIP_Y_NUDGE = -2;
 
     @Shadow
     protected EditBox input;
@@ -82,21 +86,72 @@ public abstract class ChatScreenMixin {
     @Unique
     private int chatUtilities$symH;
 
+    @Unique
+    private int chatUtilities$menuX;
+
+    @Unique
+    private int chatUtilities$menuY;
+
+    @Unique
+    private int chatUtilities$menuW;
+
+    @Unique
+    private int chatUtilities$menuH;
+
+    @Unique
+    private int chatUtilities$menuAnchorY;
+
+    @Unique
+    private boolean chatUtilities$fabricAfterRenderHooked;
+
     @Inject(method = "init", at = @At("TAIL"))
     private void chatUtilities$afterInit(CallbackInfo ci) {
         chatUtilities$symW = 0;
+        chatUtilities$menuW = 0;
         ChatScreen self = (ChatScreen) (Object) this;
         if (input != null && ChatUtilitiesClientOptions.isShowChatSymbolSelector()) {
             int fullW = input.getWidth();
-            int shrink = chatUtilities$BTN_W + chatUtilities$BTN_GAP;
+            boolean menuChip = ChatUtilitiesClientOptions.isShowChatBarMenuButton();
+            int shrink =
+                    menuChip
+                            ? chatUtilities$BTN_GAP
+                                    + chatUtilities$BTN_W
+                                    + chatUtilities$BTN_GAP_INNER
+                                    + chatUtilities$BTN_W
+                                    + chatUtilities$BTN_GAP
+                            : chatUtilities$BTN_W + chatUtilities$BTN_GAP;
             if (fullW > shrink + 40) {
                 input.setWidth(fullW - shrink);
                 chatUtilities$symX = input.getX() + input.getWidth() + chatUtilities$BTN_GAP;
                 chatUtilities$symW = chatUtilities$BTN_W;
                 chatUtilities$symH = Math.max(input.getHeight(), 12);
                 chatUtilities$symY =
-                        self.height - chatUtilities$CHAT_BAR_H + (chatUtilities$CHAT_BAR_H - chatUtilities$symH) / 2;
+                        input.getY()
+                                + (input.getHeight() - chatUtilities$symH) / 2
+                                + chatUtilities$CHIP_Y_NUDGE;
+                if (menuChip) {
+                    chatUtilities$menuX =
+                            chatUtilities$symX
+                                    + chatUtilities$symW
+                                    + chatUtilities$BTN_GAP_INNER;
+                    chatUtilities$menuW = chatUtilities$BTN_W;
+                    chatUtilities$menuH = chatUtilities$symH;
+                    chatUtilities$menuY = chatUtilities$symY;
+                }
             }
+        }
+        if (!chatUtilities$fabricAfterRenderHooked) {
+            chatUtilities$fabricAfterRenderHooked = true;
+            ScreenEvents.afterRender(self)
+                    .register(
+                            (screen, graphics, mouseX, mouseY, partialTick) ->
+                                    ChatSymbolPaletteLayer.render(
+                                            graphics,
+                                            Minecraft.getInstance().font,
+                                            screen.width,
+                                            screen.height,
+                                            mouseX,
+                                            mouseY));
         }
         chatUtilities$initBarSlideAfterLayout(self);
     }
@@ -120,7 +175,18 @@ public abstract class ChatScreenMixin {
         chatUtilities$barAnimActive = true;
         chatUtilities$barAnimStartMs = System.currentTimeMillis();
         chatUtilities$inputAnchorY = input.getY();
-        chatUtilities$symAnchorY = chatUtilities$symW > 0 ? chatUtilities$symY : 0;
+        chatUtilities$symAnchorY =
+                chatUtilities$symW > 0
+                        ? input.getY()
+                                + (input.getHeight() - chatUtilities$symH) / 2
+                                + chatUtilities$CHIP_Y_NUDGE
+                        : 0;
+        chatUtilities$menuAnchorY =
+                chatUtilities$menuW > 0
+                        ? input.getY()
+                                + (input.getHeight() - chatUtilities$menuH) / 2
+                                + chatUtilities$CHIP_Y_NUDGE
+                        : 0;
         chatUtilities$applyBarSlideOffset(chatUtilities$slideDistance());
     }
 
@@ -138,6 +204,9 @@ public abstract class ChatScreenMixin {
         input.setY(chatUtilities$inputAnchorY + dy);
         if (chatUtilities$symW > 0) {
             chatUtilities$symY = chatUtilities$symAnchorY + dy;
+        }
+        if (chatUtilities$menuW > 0) {
+            chatUtilities$menuY = chatUtilities$menuAnchorY + dy;
         }
         commandSuggestions.updateCommandInfo();
     }
@@ -171,8 +240,17 @@ public abstract class ChatScreenMixin {
             chatUtilities$inputAnchorY = input.getY();
             if (chatUtilities$symW > 0) {
                 chatUtilities$symY =
-                        self.height - chatUtilities$CHAT_BAR_H + (chatUtilities$CHAT_BAR_H - chatUtilities$symH) / 2;
+                        input.getY()
+                                + (input.getHeight() - chatUtilities$symH) / 2
+                                + chatUtilities$CHIP_Y_NUDGE;
                 chatUtilities$symAnchorY = chatUtilities$symY;
+            }
+            if (chatUtilities$menuW > 0) {
+                chatUtilities$menuY =
+                        input.getY()
+                                + (input.getHeight() - chatUtilities$menuH) / 2
+                                + chatUtilities$CHIP_Y_NUDGE;
+                chatUtilities$menuAnchorY = chatUtilities$menuY;
             }
             commandSuggestions.updateCommandInfo();
         }
@@ -210,6 +288,7 @@ public abstract class ChatScreenMixin {
     private void chatUtilities$onRemoved(CallbackInfo ci) {
         chatUtilities$palette.setOpen(false);
         chatUtilities$symW = 0;
+        chatUtilities$menuW = 0;
         chatUtilities$barAnimActive = false;
         chatUtilities$barVisualDy = 0;
         chatUtilities$layoutW = Integer.MIN_VALUE;
@@ -223,6 +302,15 @@ public abstract class ChatScreenMixin {
                 && mx < chatUtilities$symX + chatUtilities$symW
                 && my >= chatUtilities$symY
                 && my < chatUtilities$symY + chatUtilities$symH;
+    }
+
+    @Unique
+    private boolean chatUtilities$menuHit(double mx, double my) {
+        return chatUtilities$menuW > 0
+                && mx >= chatUtilities$menuX
+                && mx < chatUtilities$menuX + chatUtilities$menuW
+                && my >= chatUtilities$menuY
+                && my < chatUtilities$menuY + chatUtilities$menuH;
     }
 
     @Inject(
@@ -244,6 +332,13 @@ public abstract class ChatScreenMixin {
         if (event.button() == 0
                 && !ChatUtilitiesManager.get().isPositioning()
                 && ChatWindowClickHandler.tryHandleClick(Minecraft.getInstance(), mx, my, event.button())) {
+            cir.setReturnValue(true);
+            return;
+        }
+        if (event.button() == 0 && chatUtilities$menuHit(mx, my)) {
+            chatUtilities$palette.setOpen(false);
+            ChatSymbolPalette.playUiClickSound();
+            ChatUtilitiesCommands.openMenuNextTick(Minecraft.getInstance());
             cir.setReturnValue(true);
             return;
         }
@@ -288,29 +383,17 @@ public abstract class ChatScreenMixin {
             method = "render(Lnet/minecraft/client/gui/GuiGraphics;IIF)V",
             at = @At("TAIL"))
     private void chatUtilities$renderOverChatUi(GuiGraphics graphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
-        Minecraft mc = Minecraft.getInstance();
-        Font font = mc.font;
-        if (chatUtilities$symW > 0) {
-            boolean hovered = chatUtilities$symbolHit(mouseX, mouseY);
-            int x0 = chatUtilities$symX;
-            int y0 = chatUtilities$symY;
-            int x1 = x0 + chatUtilities$symW;
-            int y1 = y0 + chatUtilities$symH;
-            int bg = hovered ? 0xFF5A5A78 : 0xFF3C3C3C;
-            graphics.fill(x0, y0, x1, y1, bg);
-            graphics.renderOutline(x0, y0, chatUtilities$symW, chatUtilities$symH, 0xFF8E8E8E);
-            Component face = Component.literal("\u263A");
-            int tw = font.width(face);
-            int th = font.lineHeight;
-            graphics.drawString(
-                    font,
-                    face,
-                    x0 + (chatUtilities$symW - tw) / 2,
-                    y0 + (chatUtilities$symH - th) / 2,
-                    0xFFFFFFFF,
-                    false);
-        }
-        chatUtilities$palette.render(graphics, font, ((ChatScreen) (Object) this).width, ((ChatScreen) (Object) this).height, mouseX, mouseY);
-        ChatUtilitiesHud.renderPositioningOverChatScreen(graphics, mc.getDeltaTracker());
+        ChatSymbolPaletteLayer.prepare(
+                chatUtilities$palette,
+                chatUtilities$symW > 0,
+                chatUtilities$symX,
+                chatUtilities$symY,
+                chatUtilities$symW,
+                chatUtilities$symH,
+                chatUtilities$menuW > 0,
+                chatUtilities$menuX,
+                chatUtilities$menuY,
+                chatUtilities$menuW,
+                chatUtilities$menuH);
     }
 }

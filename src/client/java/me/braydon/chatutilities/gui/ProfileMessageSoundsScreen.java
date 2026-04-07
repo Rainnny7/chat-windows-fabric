@@ -216,7 +216,7 @@ public final class ProfileMessageSoundsScreen extends Screen implements ProfileW
                         .build());
         addRenderableWidget(
                 Button.builder(
-                                Component.literal("Done"),
+                                ChatUtilitiesScreenLayout.BUTTON_DONE,
                                 b -> ChatUtilitiesScreenLayout.closeEntireChatUtilitiesMenu(chatRoot))
                         .bounds(footLeft + btnW + gap, footerY, btnW, 20)
                         .build());

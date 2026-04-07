@@ -21,11 +21,17 @@ public final class ChatUtilitiesClientOptions {
 
     private static boolean showChatSymbolSelector = true;
 
+    /** Gear chip to the right of the symbol selector on {@link net.minecraft.client.gui.screens.ChatScreen}. */
+    private static boolean showChatBarMenuButton = true;
+
     private static boolean chatTextShadow = true;
 
     private static boolean clickToCopyEnabled = true;
 
     private static CopyFormattedStyle copyFormattedStyle = CopyFormattedStyle.VANILLA;
+
+    /** Legacy codes inserted from the chat symbol palette (color/style strip). */
+    private static CopyFormattedStyle symbolPaletteInsertStyle = CopyFormattedStyle.VANILLA;
 
     private static ClickMouseBinding copyPlainBinding = ClickMouseBinding.defaultPlain();
 
@@ -101,6 +107,19 @@ public final class ChatUtilitiesClientOptions {
         setShowChatSymbolSelector(!showChatSymbolSelector);
     }
 
+    public static boolean isShowChatBarMenuButton() {
+        return showChatBarMenuButton;
+    }
+
+    public static void setShowChatBarMenuButton(boolean value) {
+        showChatBarMenuButton = value;
+        save();
+    }
+
+    public static void toggleShowChatBarMenuButton() {
+        setShowChatBarMenuButton(!showChatBarMenuButton);
+    }
+
     public static boolean isChatTextShadow() {
         return chatTextShadow;
     }
@@ -139,6 +158,24 @@ public final class ChatUtilitiesClientOptions {
     public static void cycleCopyFormattedStyle() {
         setCopyFormattedStyle(
                 switch (copyFormattedStyle) {
+                    case VANILLA -> CopyFormattedStyle.SECTION_SYMBOL;
+                    case SECTION_SYMBOL -> CopyFormattedStyle.MINIMESSAGE;
+                    case MINIMESSAGE -> CopyFormattedStyle.VANILLA;
+                });
+    }
+
+    public static CopyFormattedStyle getSymbolPaletteInsertStyle() {
+        return symbolPaletteInsertStyle;
+    }
+
+    public static void setSymbolPaletteInsertStyle(CopyFormattedStyle value) {
+        symbolPaletteInsertStyle = value != null ? value : CopyFormattedStyle.VANILLA;
+        save();
+    }
+
+    public static void cycleSymbolPaletteInsertStyle() {
+        setSymbolPaletteInsertStyle(
+                switch (symbolPaletteInsertStyle) {
                     case VANILLA -> CopyFormattedStyle.SECTION_SYMBOL;
                     case SECTION_SYMBOL -> CopyFormattedStyle.MINIMESSAGE;
                     case MINIMESSAGE -> CopyFormattedStyle.VANILLA;
@@ -259,9 +296,11 @@ public final class ChatUtilitiesClientOptions {
      */
     public static void resetAllToDefaults() {
         showChatSymbolSelector = true;
+        showChatBarMenuButton = true;
         chatTextShadow = true;
         clickToCopyEnabled = true;
         copyFormattedStyle = CopyFormattedStyle.VANILLA;
+        symbolPaletteInsertStyle = CopyFormattedStyle.VANILLA;
         copyPlainBinding = ClickMouseBinding.defaultPlain();
         copyFormattedBinding = ClickMouseBinding.defaultFormatted();
         lastMenuProfileId = null;
@@ -284,10 +323,16 @@ public final class ChatUtilitiesClientOptions {
             Data d = GSON.fromJson(json, Data.class);
             if (d != null) {
                 showChatSymbolSelector = d.showChatSymbolSelector;
+                if (d.showChatBarMenuButton != null) {
+                    showChatBarMenuButton = d.showChatBarMenuButton;
+                }
                 chatTextShadow = d.chatTextShadow;
                 clickToCopyEnabled = d.clickToCopyEnabled;
                 if (d.copyFormattedStyle != null) {
                     copyFormattedStyle = parseCopyFormattedStyle(d.copyFormattedStyle);
+                }
+                if (d.symbolPaletteInsertStyle != null) {
+                    symbolPaletteInsertStyle = parseCopyFormattedStyle(d.symbolPaletteInsertStyle);
                 }
                 if (d.copyPlainBinding != null) {
                     copyPlainBinding = d.copyPlainBinding.normalized();
@@ -323,9 +368,11 @@ public final class ChatUtilitiesClientOptions {
             Files.createDirectories(path.getParent());
             Data d = new Data();
             d.showChatSymbolSelector = showChatSymbolSelector;
+            d.showChatBarMenuButton = showChatBarMenuButton;
             d.chatTextShadow = chatTextShadow;
             d.clickToCopyEnabled = clickToCopyEnabled;
             d.copyFormattedStyle = copyFormattedStyle.name();
+            d.symbolPaletteInsertStyle = symbolPaletteInsertStyle.name();
             d.copyPlainBinding = copyPlainBinding;
             d.copyFormattedBinding = copyFormattedBinding;
             d.smoothChat = smoothChat;
@@ -402,9 +449,12 @@ public final class ChatUtilitiesClientOptions {
 
     private static final class Data {
         boolean showChatSymbolSelector = true;
+        /** {@code null} when absent from older config files (defaults to {@code true} in static state). */
+        Boolean showChatBarMenuButton;
         boolean chatTextShadow = true;
         boolean clickToCopyEnabled = true;
         String copyFormattedStyle = CopyFormattedStyle.VANILLA.name();
+        String symbolPaletteInsertStyle = CopyFormattedStyle.VANILLA.name();
         ClickMouseBinding copyPlainBinding;
         ClickMouseBinding copyFormattedBinding;
         boolean smoothChat;

@@ -193,7 +193,7 @@ public class WindowManageScreen extends Screen {
 
         addRenderableWidget(
                 Button.builder(
-                                Component.literal("Done"),
+                                ChatUtilitiesScreenLayout.BUTTON_DONE,
                                 b -> {
                                     if (parent instanceof ProfileWorkflowScreen wf) {
                                         ChatUtilitiesScreenLayout.closeEntireChatUtilitiesMenu(

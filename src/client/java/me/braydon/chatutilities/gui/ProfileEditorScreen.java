@@ -201,7 +201,7 @@ public class ProfileEditorScreen extends Screen implements ProfileWorkflowScreen
                         .build());
 
         addRenderableWidget(
-                Button.builder(Component.literal("Done"), b -> {
+                Button.builder(ChatUtilitiesScreenLayout.BUTTON_DONE, b -> {
                             applyNameFieldToProfile(mgr, p);
                             ChatUtilitiesScreenLayout.closeEntireChatUtilitiesMenu(chatRoot);
                         })

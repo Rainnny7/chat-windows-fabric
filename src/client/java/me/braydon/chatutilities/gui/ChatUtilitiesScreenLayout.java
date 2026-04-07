@@ -20,6 +20,12 @@ public final class ChatUtilitiesScreenLayout {
     /** EditBox hint for fields that accept a literal substring or a {@code regex:} expression. */
     public static final Component PATTERN_INPUT_HINT = Component.literal("Plain text or regex:…");
 
+    /** Heavy check mark — primary footer “Done” (same family as ✕ on destructive rows). */
+    public static final Component BUTTON_DONE = Component.literal("\u2714 Done");
+
+    /** Position / layout indicator — opens HUD window positioning from Chat Windows. */
+    public static final Component BUTTON_ADJUST_LAYOUT = Component.literal("\u2316 Adjust Layout");
+
     public static final int TITLE_Y = 32;
     public static final int FOOTER_PRIMARY_Y_OFFSET = 28;
     public static final int FOOTER_SECONDARY_Y_OFFSET = 52;

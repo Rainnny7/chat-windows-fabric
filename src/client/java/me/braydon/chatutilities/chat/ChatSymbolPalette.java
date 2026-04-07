@@ -1,21 +1,44 @@
 package me.braydon.chatutilities.chat;
 
+import me.braydon.chatutilities.client.ChatUtilitiesClientOptions;
+import me.braydon.chatutilities.gui.ChatUtilitiesScreenLayout;
+import me.braydon.chatutilities.gui.ThinScrollbar;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.resources.language.I18n;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.Mth;
+import org.jspecify.annotations.Nullable;
 
 /**
- * LabyMod-style palette: style codes (§) and a scrollable Unicode grid, anchored to the bottom-right
- * above the chat bar.
+ * LabyMod-style palette: legacy codes in a left strip and a scrollable Unicode grid in a panel anchored
+ * bottom-right above the chat bar.
  */
 public final class ChatSymbolPalette {
-    /** Same ordering as common chat-color mods (digits, hex colors, then magic/reset). */
-    private static final String STYLE_CODES = "0123456789abcdefkmnlopr";
+    /** Match {@link me.braydon.chatutilities.gui.ChatUtilitiesRootScreen} panel styling. */
+    public static final int PALETTE_PANEL_BG = 0xF0101012;
+
+    public static final int PALETTE_PANEL_EDGE = 0xFF2C2C3A;
+    public static final int PALETTE_SIDEBAR_BG = 0xFF080810;
+    public static final int PALETTE_SIDEBAR_SEP = 0xFF1E1E28;
+    public static final int PALETTE_SYMBOL_WELL = 0x28080810;
+    public static final int PALETTE_HOVER_CELL = 0x304878C8;
+    public static final int PALETTE_HOVER_FORMAT = 0x40FFFFFF;
+
+    /** Chat bar chip — same family as root GUI list rows. */
+    public static final int HUD_CHIP_FILL = 0xE510121A;
+
+    public static final int HUD_CHIP_FILL_HOVER = 0xE81C2840;
+    public static final int HUD_CHIP_EDGE = 0xFF2C2C3A;
+    public static final int HUD_CHIP_TEXT = 0xFFEAEAF0;
+
+    private static final String FORMAT_STYLES = "kmnlor";
+    private static final String FORMAT_HEX = "abcdef";
+    private static final String FORMAT_DIGITS = "0123456789";
 
     /**
      * Unicode shortcuts (from LabyMod {@code GuiChatSymbols#createSymbols}); BMP characters only in the
@@ -26,12 +49,15 @@ public final class ChatSymbolPalette {
 
     private static final String[] SYMBOLS = buildSymbols();
 
-    private static final int COLOR_COLS = 8;
     private static final int CELL = 11;
-    private static final int SYMBOL_COLS = 9;
     private static final int SYMBOL_CELL = 10;
     private static final int PANEL_PAD = 4;
-    private static final int SCROLLBAR_W = 4;
+    private static final int EDGE_MARGIN = 4;
+    /** Total width of the symbols panel (right block), matching the previous single-panel body width. */
+    private static final int MAIN_PANEL_WIDTH = 148;
+    private static final int STRIP_GAP = 5;
+    private static final int STACK_HEIGHT = 136;
+    private static final int CLOSE_SIZE = 10;
 
     private boolean open;
     private double scrollPixels;
@@ -59,53 +85,77 @@ public final class ChatSymbolPalette {
         return out;
     }
 
-    /** Total outer width from right edge (wider than original Laby strip). */
-    private static final int PANEL_WIDTH = 152;
-
-    private static int panelLeft(int screenWidth) {
-        return screenWidth - PANEL_WIDTH;
+    private static int stripWidth() {
+        return PANEL_PAD * 2 + 3 * CELL;
     }
 
-    private static int panelRight(int screenWidth) {
-        return screenWidth - 4;
-    }
-
-    private static int panelBottom(int screenHeight) {
+    private static int stackBottom(int screenHeight) {
         return screenHeight - 18;
     }
 
-    private static int panelTop(int screenHeight) {
-        return panelBottom(screenHeight) - 136;
+    private static int stackTop(int screenHeight) {
+        return stackBottom(screenHeight) - STACK_HEIGHT;
     }
 
-    private static int colorSectionBottom(int screenHeight) {
-        return panelTop(screenHeight) + PANEL_PAD + ((STYLE_CODES.length() + COLOR_COLS - 1) / COLOR_COLS) * CELL + 2;
+    private static int mainPanelRight(int screenWidth) {
+        return screenWidth - EDGE_MARGIN;
     }
 
-    private static int symbolsTop(int screenHeight) {
-        return colorSectionBottom(screenHeight) + 2;
+    private static int mainPanelLeft(int screenWidth) {
+        return mainPanelRight(screenWidth) - MAIN_PANEL_WIDTH;
     }
 
-    private static int symbolsAreaHeight(int screenHeight) {
-        return panelBottom(screenHeight) - symbolsTop(screenHeight) - PANEL_PAD;
+    private static int stripRight(int screenWidth) {
+        return mainPanelLeft(screenWidth) - STRIP_GAP;
+    }
+
+    private static int stripLeft(int screenWidth) {
+        return stripRight(screenWidth) - stripWidth();
+    }
+
+    private static int symbolsTop(int screenHeight, Font font) {
+        int st = stackTop(screenHeight);
+        return st + PANEL_PAD + font.lineHeight + 4;
+    }
+
+    private static int symbolsAreaHeight(int screenHeight, Font font) {
+        return stackBottom(screenHeight) - PANEL_PAD - symbolsTop(screenHeight, font);
     }
 
     private static int symbolsAreaLeft(int screenWidth) {
-        return panelLeft(screenWidth) + PANEL_PAD;
+        return mainPanelLeft(screenWidth) + PANEL_PAD;
     }
 
     private static int symbolsAreaRight(int screenWidth) {
-        return panelRight(screenWidth) - PANEL_PAD - SCROLLBAR_W - 2;
+        return mainPanelRight(screenWidth) - PANEL_PAD - ThinScrollbar.W;
+    }
+
+    /** As many columns as fit in the symbol well so the grid uses the full width (scrollbar stays on the right). */
+    private static int symbolColumnCount(int symbolsAreaWidth) {
+        return Math.max(1, symbolsAreaWidth / SYMBOL_CELL);
+    }
+
+    private static int symbolRowCount(int cols) {
+        return (SYMBOLS.length + cols - 1) / cols;
+    }
+
+    private static int closeButtonX(int screenWidth) {
+        return mainPanelRight(screenWidth) - PANEL_PAD - CLOSE_SIZE;
+    }
+
+    private static int closeButtonY(int screenHeight) {
+        return stackTop(screenHeight) + 3;
     }
 
     public boolean containsPoint(double mx, double my, int screenWidth, int screenHeight) {
         if (!open) {
             return false;
         }
-        return mx >= panelLeft(screenWidth)
-                && mx < panelRight(screenWidth)
-                && my >= panelTop(screenHeight)
-                && my < panelBottom(screenHeight);
+        int sl = stripLeft(screenWidth);
+        int mr = mainPanelRight(screenWidth);
+        int st = stackTop(screenHeight);
+        int sb = stackBottom(screenHeight);
+        return mx >= sl && mx < mr && my >= st && my < sb;
     }
 
     /** @return true if the click was used by the palette (caller should swallow the event). */
@@ -113,41 +163,67 @@ public final class ChatSymbolPalette {
         if (!open || button != 0) {
             return false;
         }
-        int pl = panelLeft(screenWidth);
-        int pt = panelTop(screenHeight);
-        int colorBottom = colorSectionBottom(screenHeight);
-
-        for (int i = 0; i < STYLE_CODES.length(); i++) {
-            char code = STYLE_CODES.charAt(i);
-            int col = i % COLOR_COLS;
-            int row = i / COLOR_COLS;
-            int cx = pl + PANEL_PAD + col * CELL;
-            int cy = pt + PANEL_PAD + row * CELL;
-            if (mx >= cx && mx < cx + CELL && my >= cy && my < cy + CELL) {
-                insertFormatting(input, code);
+        int cx = closeButtonX(screenWidth);
+        int cy = closeButtonY(screenHeight);
+        if (mx >= cx && mx < cx + CLOSE_SIZE && my >= cy && my < cy + CLOSE_SIZE) {
+            setOpen(false);
+            playClick();
+            return true;
+        }
+        Minecraft mc = Minecraft.getInstance();
+        if (tryClickFormatStrip(mx, my, screenWidth, screenHeight, input)) {
+            return true;
+        }
+        Font font = mc.font;
+        int symTop = symbolsTop(screenHeight, font);
+        int symH = symbolsAreaHeight(screenHeight, font);
+        int symLeft = symbolsAreaLeft(screenWidth);
+        int symRight = symbolsAreaRight(screenWidth);
+        int areaW = symRight - symLeft;
+        int cols = symbolColumnCount(areaW);
+        if (my >= symTop && my < symTop + symH && mx >= symLeft && mx < symRight) {
+            if (mx >= symLeft + cols * SYMBOL_CELL) {
+                return false;
+            }
+            int col = (int) ((mx - symLeft) / SYMBOL_CELL);
+            int row = (int) ((my - symTop + scrollPixels) / SYMBOL_CELL);
+            if (col < 0 || col >= cols || row < 0) {
+                return false;
+            }
+            int index = row * cols + col;
+            if (index < SYMBOLS.length) {
+                insertRaw(input, SYMBOLS[index]);
                 playClick();
                 return true;
             }
         }
+        return false;
+    }
 
-        int symTop = symbolsTop(screenHeight);
-        int symH = symbolsAreaHeight(screenHeight);
-        int symLeft = symbolsAreaLeft(screenWidth);
-        int symRight = symbolsAreaRight(screenWidth);
-        if (my >= symTop && my < symTop + symH && mx >= symLeft && mx < symRight) {
-            int col = (int) ((mx - symLeft) / SYMBOL_CELL);
-            int row = (int) ((my - symTop + scrollPixels) / SYMBOL_CELL);
-            col = Mth.clamp(col, 0, SYMBOL_COLS - 1);
-            if (col < SYMBOL_COLS && row >= 0) {
-                int index = row * SYMBOL_COLS + col;
-                if (index < SYMBOLS.length) {
-                    insertRaw(input, SYMBOLS[index]);
+    private boolean tryClickFormatStrip(
+            double mx, double my, int screenWidth, int screenHeight, EditBox input) {
+        int st = stackTop(screenHeight);
+        int sb = stackBottom(screenHeight);
+        int sr = stripRight(screenWidth);
+        int sl = stripLeft(screenWidth);
+        if (my < st || my >= sb || mx < sl || mx >= sr) {
+            return false;
+        }
+        int innerLeft = sl + PANEL_PAD;
+        int innerTop = st + PANEL_PAD;
+        String[] cols = {FORMAT_STYLES, FORMAT_HEX, FORMAT_DIGITS};
+        for (int c = 0; c < cols.length; c++) {
+            String s = cols[c];
+            for (int r = 0; r < s.length(); r++) {
+                int cellX = innerLeft + c * CELL;
+                int cellY = innerTop + r * CELL;
+                if (mx >= cellX && mx < cellX + CELL && my >= cellY && my < cellY + CELL) {
+                    insertFormatting(input, s.charAt(r));
                     playClick();
                     return true;
                 }
             }
         }
-
         return false;
     }
 
@@ -156,20 +232,25 @@ public final class ChatSymbolPalette {
         if (!open || verticalAmount == 0.0) {
             return false;
         }
-        int symTop = symbolsTop(screenHeight);
-        int symH = symbolsAreaHeight(screenHeight);
+        Minecraft mc = Minecraft.getInstance();
+        Font font = mc.font;
+        int symTop = symbolsTop(screenHeight, font);
+        int symH = symbolsAreaHeight(screenHeight, font);
         int symLeft = symbolsAreaLeft(screenWidth);
-        int symRight = panelRight(screenWidth) - PANEL_PAD;
-        if (mx >= symLeft && mx < symRight && my >= symTop && my < symTop + symH) {
-            nudgeScroll(-verticalAmount * 12.0, screenHeight);
+        int symRight = mainPanelRight(screenWidth) - PANEL_PAD;
+        int scrollRight = mainPanelRight(screenWidth) - PANEL_PAD;
+        if (mx >= symLeft && mx < scrollRight && my >= symTop && my < symTop + symH) {
+            nudgeScroll(-verticalAmount * 12.0, screenWidth, screenHeight, font);
             return true;
         }
         return false;
     }
 
-    private void nudgeScroll(double delta, int screenHeight) {
-        int rows = (SYMBOLS.length + SYMBOL_COLS - 1) / SYMBOL_COLS;
-        int symH = symbolsAreaHeight(screenHeight);
+    private void nudgeScroll(double delta, int screenWidth, int screenHeight, Font font) {
+        int areaW = symbolsAreaRight(screenWidth) - symbolsAreaLeft(screenWidth);
+        int cols = symbolColumnCount(areaW);
+        int rows = symbolRowCount(cols);
+        int symH = symbolsAreaHeight(screenHeight, font);
         int contentH = rows * SYMBOL_CELL;
         double maxScroll = Math.max(0, contentH - symH);
         scrollPixels = Mth.clamp(scrollPixels + delta, 0, maxScroll);
@@ -179,44 +260,66 @@ public final class ChatSymbolPalette {
         if (!open) {
             return;
         }
-        int pl = panelLeft(screenWidth);
-        int pr = panelRight(screenWidth);
-        int pt = panelTop(screenHeight);
-        int pb = panelBottom(screenHeight);
-        graphics.fill(pl, pt, pr, pb, 0xC8000000);
-        graphics.renderOutline(pl, pt, pr - pl, pb - pt, 0xFF555555);
+        int sl = stripLeft(screenWidth);
+        int sr = stripRight(screenWidth);
+        int ml = mainPanelLeft(screenWidth);
+        int mr = mainPanelRight(screenWidth);
+        int st = stackTop(screenHeight);
+        int sb = stackBottom(screenHeight);
 
-        int colorBottom = colorSectionBottom(screenHeight);
-        for (int i = 0; i < STYLE_CODES.length(); i++) {
-            char code = STYLE_CODES.charAt(i);
-            int col = i % COLOR_COLS;
-            int row = i / COLOR_COLS;
-            int cx = pl + PANEL_PAD + col * CELL;
-            int cy = pt + PANEL_PAD + row * CELL;
-            boolean hovered =
-                    mouseX >= cx && mouseX < cx + CELL && mouseY >= cy && mouseY < cy + CELL;
-            int bg = hovered ? 0xFF5A5A78 : 0xFF2A2A2A;
-            graphics.fill(cx, cy, cx + CELL, cy + CELL, bg);
-            String label = String.valueOf(code);
-            int tw = font.width(label);
-            graphics.drawString(font, label, cx + (CELL - tw) / 2, cy + 2, 0xFFFFFFFF, false);
+        graphics.fill(sl, st, sr, sb, PALETTE_SIDEBAR_BG);
+        graphics.fill(ml, st, mr, sb, PALETTE_PANEL_BG);
+
+        graphics.fill(sr - 1, st, sr, sb, PALETTE_SIDEBAR_SEP);
+
+        graphics.renderOutline(sl, st, mr - sl, sb - st, PALETTE_PANEL_EDGE);
+
+        renderFormatStrip(graphics, font, mouseX, mouseY, screenWidth, screenHeight);
+
+        String title = I18n.get("chat-utilities.chat.symbol_palette.title");
+        graphics.drawString(font, title, ml + PANEL_PAD, st + PANEL_PAD, ChatUtilitiesScreenLayout.TEXT_LABEL, false);
+
+        int cbx = closeButtonX(screenWidth);
+        int cby = closeButtonY(screenHeight);
+        boolean closeHover =
+                mouseX >= cbx && mouseX < cbx + CLOSE_SIZE && mouseY >= cby && mouseY < cby + CLOSE_SIZE;
+        if (closeHover) {
+            graphics.fill(cbx, cby, cbx + CLOSE_SIZE, cby + CLOSE_SIZE, PALETTE_HOVER_FORMAT);
         }
+        String closeLabel = "\u00D7";
+        int cw = font.width(closeLabel);
+        int ch = font.lineHeight;
+        graphics.drawString(
+                font,
+                closeLabel,
+                cbx + (CLOSE_SIZE - cw) / 2,
+                cby + (CLOSE_SIZE - ch) / 2,
+                closeHover ? 0xFFFFFFFF : ChatUtilitiesScreenLayout.TEXT_GRAY,
+                false);
 
-        int symTop = symbolsTop(screenHeight);
-        int symH = symbolsAreaHeight(screenHeight);
+        int divY = st + PANEL_PAD + font.lineHeight + 2;
+        graphics.fill(ml + PANEL_PAD, divY, mr - PANEL_PAD, divY + 1, PALETTE_SIDEBAR_SEP);
+
+        int symTop = symbolsTop(screenHeight, font);
+        int symH = symbolsAreaHeight(screenHeight, font);
         int symLeft = symbolsAreaLeft(screenWidth);
         int symRight = symbolsAreaRight(screenWidth);
-        graphics.fill(symLeft, symTop, symRight, symTop + symH, 0x66000000);
+        int areaW = symRight - symLeft;
+        int cols = symbolColumnCount(areaW);
+        int rowsTotal = symbolRowCount(cols);
+        int contentHScroll = rowsTotal * SYMBOL_CELL;
+        scrollPixels = Mth.clamp(scrollPixels, 0, Math.max(0, contentHScroll - symH));
+
+        graphics.fill(symLeft, symTop, symRight, symTop + symH, PALETTE_SYMBOL_WELL);
 
         int firstRow = (int) (scrollPixels / SYMBOL_CELL);
         double yOff = scrollPixels % SYMBOL_CELL;
-        // GuiGraphics.enableScissor(x1, y1, x2, y2) — opposite corners, not (x, y, w, h).
         graphics.enableScissor(symLeft, symTop, symRight, symTop + symH);
         try {
             for (int row = 0; row <= symH / SYMBOL_CELL + 1; row++) {
                 int r = firstRow + row;
-                for (int c = 0; c < SYMBOL_COLS; c++) {
-                    int idx = r * SYMBOL_COLS + c;
+                for (int c = 0; c < cols; c++) {
+                    int idx = r * cols + c;
                     if (idx >= SYMBOLS.length) {
                         break;
                     }
@@ -236,7 +339,7 @@ public final class ChatSymbolPalette {
                                 Math.max(symTop, sy),
                                 sx + SYMBOL_CELL,
                                 Math.min(symTop + symH, sy + SYMBOL_CELL),
-                                0x336666FF);
+                                PALETTE_HOVER_CELL);
                     }
                     String sym = SYMBOLS[idx];
                     int sw = font.width(sym);
@@ -251,24 +354,61 @@ public final class ChatSymbolPalette {
             graphics.disableScissor();
         }
 
-        int sbLeft = symRight + 2;
-        int sbRight = sbLeft + SCROLLBAR_W;
-        graphics.fill(sbLeft, symTop, sbRight, symTop + symH, 0xFF1A1A1A);
-        int rows = (SYMBOLS.length + SYMBOL_COLS - 1) / SYMBOL_COLS;
+        int rows = symbolRowCount(cols);
         int contentH = rows * SYMBOL_CELL;
-        if (contentH > symH) {
-            double frac = symH / (double) contentH;
-            int thumbH = Math.max(8, (int) (symH * frac));
-            double maxScroll = contentH - symH;
-            double t = maxScroll > 0 ? scrollPixels / maxScroll : 0;
-            int thumbY = symTop + (int) ((symH - thumbH) * t);
-            graphics.fill(sbLeft, thumbY, sbRight, thumbY + thumbH, 0xFFAAAAAA);
-        }
+        ThinScrollbar.render(graphics, symRight, symTop, symH, contentH, scrollPixels, 1f);
+    }
 
+    private void renderFormatStrip(
+            GuiGraphics graphics, Font font, int mouseX, int mouseY, int screenWidth, int screenHeight) {
+        int st = stackTop(screenHeight);
+        int sl = stripLeft(screenWidth);
+        int innerLeft = sl + PANEL_PAD;
+        int innerTop = st + PANEL_PAD;
+        String[] cols = {FORMAT_STYLES, FORMAT_HEX, FORMAT_DIGITS};
+        for (int c = 0; c < cols.length; c++) {
+            String s = cols[c];
+            for (int r = 0; r < s.length(); r++) {
+                int cx = innerLeft + c * CELL;
+                int cy = innerTop + r * CELL;
+                boolean hovered =
+                        mouseX >= cx && mouseX < cx + CELL && mouseY >= cy && mouseY < cy + CELL;
+                int bg = hovered ? PALETTE_HOVER_FORMAT : 0x20000000;
+                graphics.fill(cx, cy, cx + CELL, cy + CELL, bg);
+                char code = s.charAt(r);
+                String label = String.valueOf(code);
+                int tw = font.width(label);
+                int fg = labelColorForCode(code);
+                graphics.drawString(font, label, cx + (CELL - tw) / 2, cy + 2, fg, false);
+            }
+        }
+    }
+
+    private static int labelColorForCode(char code) {
+        ChatFormatting f = formattingForLegacyCodeChar(code);
+        if (f != null) {
+            Integer c = f.getColor();
+            if (c != null) {
+                return 0xFF000000 | c;
+            }
+        }
+        return ChatUtilitiesScreenLayout.TEXT_LABEL;
+    }
+
+    private static @Nullable ChatFormatting formattingForLegacyCodeChar(char code) {
+        for (ChatFormatting f : ChatFormatting.values()) {
+            if (f.getChar() == code) {
+                return f;
+            }
+        }
+        return null;
     }
 
     private static void insertFormatting(EditBox box, char code) {
-        insertRaw(box, String.valueOf(ChatFormatting.PREFIX_CODE) + code);
+        String text =
+                ChatPaletteFormatInsert.textForLegacyCode(
+                        code, ChatUtilitiesClientOptions.getSymbolPaletteInsertStyle());
+        insertRaw(box, text);
     }
 
     private static void insertRaw(EditBox box, String text) {

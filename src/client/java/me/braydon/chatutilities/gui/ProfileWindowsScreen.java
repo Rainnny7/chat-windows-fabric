@@ -129,7 +129,7 @@ public class ProfileWindowsScreen extends Screen implements ProfileWorkflowScree
                         .build());
         addRenderableWidget(
                 Button.builder(
-                                Component.literal("Done"),
+                                ChatUtilitiesScreenLayout.BUTTON_DONE,
                                 b -> ChatUtilitiesScreenLayout.closeEntireChatUtilitiesMenu(chatRoot))
                         .bounds(footLeft + btnW + gap, footerY, btnW, 20)
                         .build());
