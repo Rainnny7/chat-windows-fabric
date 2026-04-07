@@ -55,7 +55,10 @@ public final class ChatSymbolPalette {
     private static final int EDGE_MARGIN = 4;
     /** Total width of the symbols panel (right block), matching the previous single-panel body width. */
     private static final int MAIN_PANEL_WIDTH = 148;
-    private static final int STRIP_GAP = 5;
+    /** Space between the legacy-code strip and the symbols panel (kept small so the two read as one block). */
+    private static final int STRIP_GAP = 1;
+    /** Left inset of the symbol grid inside the main panel (title/divider keep {@link #PANEL_PAD}). */
+    private static final int SYMBOL_WELL_PAD_LEFT = 2;
     private static final int STACK_HEIGHT = 136;
     private static final int CLOSE_SIZE = 10;
 
@@ -123,7 +126,7 @@ public final class ChatSymbolPalette {
     }
 
     private static int symbolsAreaLeft(int screenWidth) {
-        return mainPanelLeft(screenWidth) + PANEL_PAD;
+        return mainPanelLeft(screenWidth) + SYMBOL_WELL_PAD_LEFT;
     }
 
     private static int symbolsAreaRight(int screenWidth) {

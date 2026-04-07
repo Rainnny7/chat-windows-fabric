@@ -37,11 +37,11 @@ public final class ChatPaletteFormatInsert {
             return "<" + minimessageColorName(fmt) + ">";
         }
         return switch (fmt) {
-            case BOLD -> "<bold>";
-            case ITALIC -> "<italic>";
-            case UNDERLINE -> "<underlined>";
-            case STRIKETHROUGH -> "<strikethrough>";
-            case OBFUSCATED -> "<obfuscated>";
+            case BOLD -> "<b>";
+            case ITALIC -> "<i>";
+            case UNDERLINE -> "<u>";
+            case STRIKETHROUGH -> "<st>";
+            case OBFUSCATED -> "<obf>";
             default -> "";
         };
     }

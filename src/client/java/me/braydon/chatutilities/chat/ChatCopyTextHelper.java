@@ -176,11 +176,11 @@ public final class ChatCopyTextHelper {
             return;
         }
         switch (fmt) {
-            case BOLD -> out.append("<bold>");
-            case ITALIC -> out.append("<italic>");
-            case UNDERLINE -> out.append("<underlined>");
-            case STRIKETHROUGH -> out.append("<strikethrough>");
-            case OBFUSCATED -> out.append("<obfuscated>");
+            case BOLD -> out.append("<b>");
+            case ITALIC -> out.append("<i>");
+            case UNDERLINE -> out.append("<u>");
+            case STRIKETHROUGH -> out.append("<st>");
+            case OBFUSCATED -> out.append("<obf>");
             default -> {}
         }
     }
