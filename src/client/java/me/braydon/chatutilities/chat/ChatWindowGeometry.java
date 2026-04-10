@@ -444,9 +444,9 @@ public final class ChatWindowGeometry {
         int y = Math.min(Math.max(0, anchorYGui - boxH), Math.max(0, gh - boxH));
 
         if (!tightLayoutChrome && lineCount > rows.size()) {
-            // With a fixed window height, keep content anchored to the top so there isn't a large blank header area
-            // and rows aren't pushed downward/cut off by slide offsets near the bottom edge.
-            contentStartYOffset = 0;
+            // Keep newest messages anchored to the bottom (like vanilla chat). This also prevents "reflow" when opening
+            // the chat screen (T) where the same window would otherwise jump from top-aligned to bottom-aligned.
+            contentStartYOffset = Math.max(0, (lineCount - rows.size()) * lh);
         }
 
         // In compact layout-chrome mode the outline uses only LAYOUT_MODE_CONTENT_INSET (2px) as

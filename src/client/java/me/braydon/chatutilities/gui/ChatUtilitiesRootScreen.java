@@ -287,6 +287,10 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
     /** Width reserved left of the timestamp format {@link EditBox} for the live preview (see {@link #buildSettingsWidgets}). */
     private int settingsTimestampPreviewSlotW = 72;
 
+    private EditBox settingsStackedMessageFormatField;
+    /** Width reserved left of the stacked format {@link EditBox} for the live preview. */
+    private int settingsStackedMessagePreviewSlotW = 72;
+
     /** Background rects for expanded window blocks; filled in {@link #buildChatWindowsWidgets}. */
     private record WinChromeRect(int l, int t, int r, int b) {}
     private final List<WinChromeRect> winChromeRects = new ArrayList<>();
@@ -375,6 +379,8 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
     private final List<PendingChatEffectEdit> pendingChatEffectEdits = new ArrayList<>();
     /** Session-only collapse state for Chat Actions groups (index-based; rebuilt on init). */
     private final java.util.Set<Integer> collapsedChatActionGroups = new java.util.HashSet<>();
+    /** One-time seed so Chat Actions groups start collapsed by default. */
+    private boolean chatActionsCollapseSeeded;
     private record PendingCommandAliasEdit(EditBox fromBox, EditBox toBox, ServerProfile profile, int index) {}
     private final List<PendingCommandAliasEdit> pendingCommandAliasEdits = new ArrayList<>();
 
@@ -2438,6 +2444,13 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
         y += fh + 14;
 
         List<ChatActionGroup> groups = p.getChatActionGroups();
+        if (!chatActionsCollapseSeeded) {
+            collapsedChatActionGroups.clear();
+            for (int i = 0; i < groups.size(); i++) {
+                collapsedChatActionGroups.add(i);
+            }
+            chatActionsCollapseSeeded = true;
+        }
         int rMax = Math.max(0, groups.size() - ACTION_GROUP_PAGE);
         actionScroll = Math.min(actionScroll, rMax);
         int gEnd = Math.min(actionScroll + ACTION_GROUP_PAGE, groups.size());
@@ -2676,9 +2689,10 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
 
                     pendingChatEffectEdits.add(new PendingChatEffectEdit(sndEb, null, p, gix, eix));
                 }
-                y += rfh + 14;
+                y += rfh + 6;
             }
 
+            // Keep the "+ Add effect" control pinned to the bottom of the expanded group.
             addRenderableWidget(
                     flatButton(
                             Component.literal("+ Add effect"),
@@ -2694,7 +2708,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                             y,
                             Math.min(listRowFormW, 120),
                             rfh));
-            y += rfh + 18;
+            y += rfh + 12;
             winChromeRects.add(
                     new WinChromeRect(fx - 4, groupChromeTop - 4, fx + listRowFormW + 4, y + 4));
             y += 10;
@@ -3044,6 +3058,33 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
         addSettingsScrollClipWidget(
                 chatHistoryLimitSlider(keyBtnX, settingsScrolledY(settingsChatHistoryLimitRowY()), keyBtnW, 22));
 
+        // ── Message stacking ─────────────────────────────────────────────────
+        addSettingsScrollClipWidget(
+                flatButtonStackRepeatedMessages(keyBtnX, settingsScrolledY(settingsStackRepeatedMessagesRowY()), keyBtnW, 22));
+        addSettingsScrollClipWidget(
+                stackedMessageColorSettingButton(keyBtnX, settingsScrolledY(settingsStackedMessageColorRowY()), keyBtnW, 22));
+        int fmtGap2 = 4;
+        String fmtSample2 =
+                ChatUtilitiesClientOptions.getStackedMessageFormat().replace("%amount%", "3");
+        int smPreviewW = Mth.clamp(this.font.width(fmtSample2) + 8, 72, 120);
+        settingsStackedMessagePreviewSlotW = smPreviewW;
+        int smFieldX = keyBtnX;
+        int smFieldW = keyBtnW;
+        settingsStackedMessageFormatField =
+                new EditBox(
+                        this.font,
+                        smFieldX,
+                        settingsScrolledY(settingsStackedMessageFormatRowY()),
+                        smFieldW,
+                        20,
+                        Component.literal("stackfmt"));
+        settingsStackedMessageFormatField.setMaxLength(96);
+        settingsStackedMessageFormatField.setValue(ChatUtilitiesClientOptions.getStackedMessageFormat());
+        settingsStackedMessageFormatField.setResponder(ChatUtilitiesClientOptions::setStackedMessageFormat);
+        settingsStackedMessageFormatField.setHint(
+                Component.translatable("chat-utilities.settings.stacked_message.format_hint"));
+        addSettingsScrollClipWidget(settingsStackedMessageFormatField);
+
         addSettingsScrollClipWidget(
                 flatButtonChatTimestamps(keyBtnX, settingsScrolledY(settingsTimestampShowRowY()), keyBtnW, 22));
         addSettingsScrollClipWidget(
@@ -3099,8 +3140,6 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                 chatBarBackgroundOpacitySlider(
                         keyBtnX, settingsScrolledY(settingsChatBarBackgroundRowY()), keyBtnW, 22));
         addSettingsScrollClipWidget(flatButtonChatTextShadow(keyBtnX, settingsScrolledY(settingsShadowRowY()), keyBtnW, 22));
-        addSettingsScrollClipWidget(
-                flatButtonStackRepeatedMessages(keyBtnX, settingsScrolledY(settingsStackRepeatedMessagesRowY()), keyBtnW, 22));
         addSettingsScrollClipWidget(
                 flatButtonChatBarMenuButton(keyBtnX, settingsScrolledY(settingsChatBarMenuButtonRowY()), keyBtnW, 22));
         addSettingsScrollClipWidget(
@@ -4292,6 +4331,48 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
         return b;
     }
 
+    private AbstractWidget stackedMessageColorSettingButton(int x, int y, int w, int h) {
+        AbstractWidget b =
+                new AbstractWidget(x, y, w, h, Component.empty()) {
+                    @Override
+                    public void onClick(MouseButtonEvent event, boolean dbl) {
+                        ChatUtilitiesRootScreen.this.clearPendingChatHighlightPickState();
+                        ChatUtilitiesRootScreen.this.modColorPickerOverlay =
+                                ModPrimaryColorPickerOverlay.createStackedMessageRgb();
+                    }
+
+                    @Override
+                    protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                        boolean hov = this.isHovered();
+                        boolean act = this.active;
+                        int bg = !act ? 0x25000000 : hov ? 0x55FFFFFF : 0x35000000;
+                        int outline = !act ? 0x25FFFFFF : hov ? 0x70FFFFFF : 0x40FFFFFF;
+                        g.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), bg);
+                        g.renderOutline(getX(), getY(), getWidth(), getHeight(), outline);
+                        int rgb = ChatUtilitiesClientOptions.getStackedMessageColorRgb() | 0xFF000000;
+                        int sx = getX() + 6;
+                        int sy = getY() + (getHeight() - 14) / 2;
+                        g.fill(sx, sy, sx + 14, sy + 14, rgb);
+                        g.renderOutline(sx, sy, 14, 14, 0xFFAAAAAA);
+                        String cap = I18n.get("chat-utilities.settings.stacked_message.color.change");
+                        g.drawString(
+                                Minecraft.getInstance().font,
+                                cap,
+                                sx + 18,
+                                getY() + (getHeight() - 8) / 2,
+                                0xFFBBBBCC,
+                                false);
+                    }
+
+                    @Override
+                    public void updateWidgetNarration(NarrationElementOutput n) {
+                        defaultButtonNarrationText(n);
+                    }
+                };
+        b.setTooltip(Tooltip.create(Component.translatable("chat-utilities.settings.stacked_message.color.tooltip")));
+        return b;
+    }
+
     private AbstractWidget flatButtonClickToCopy(int x, int y, int w, int h) {
         AbstractWidget c =
                 new AbstractWidget(x, y, w, h, Component.empty()) {
@@ -4570,8 +4651,28 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
         return settingsLongerChatHistoryRowY() + 28;
     }
 
+    private int settingsMessageStackingSectionTitleY() {
+        return settingsChatHistoryLimitRowY() + 28 + SETTINGS_SECTION_GAP;
+    }
+
+    private int settingsMessageStackingFormY() {
+        return settingsMessageStackingSectionTitleY() + settingsSectionHeaderH() + 6;
+    }
+
+    private int settingsStackRepeatedMessagesRowY() {
+        return settingsMessageStackingFormY();
+    }
+
+    private int settingsStackedMessageColorRowY() {
+        return settingsStackRepeatedMessagesRowY() + 28;
+    }
+
+    private int settingsStackedMessageFormatRowY() {
+        return settingsStackedMessageColorRowY() + 28;
+    }
+
     private int settingsTimestampSectionTitleY() {
-        return settingsChatHistoryLimitRowY() + 28 + 12;
+        return settingsStackedMessageFormatRowY() + 28 + SETTINGS_SECTION_GAP;
     }
 
     private int settingsTimestampFormY() {
@@ -4651,7 +4752,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
     }
 
     private int settingsChatPanelBackgroundRowY() {
-        return settingsOtherSectionFormY();
+        return settingsModPrimaryColorRowY() + 28;
     }
 
     private int settingsChatPanelBackgroundFocusedRowY() {
@@ -4666,20 +4767,16 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
         return settingsChatBarBackgroundRowY() + 28;
     }
 
-    private int settingsStackRepeatedMessagesRowY() {
+    private int settingsChatBarMenuButtonRowY() {
         return settingsShadowRowY() + 28;
     }
 
-    private int settingsChatBarMenuButtonRowY() {
-        return settingsStackRepeatedMessagesRowY() + 28;
-    }
-
     private int settingsModPrimaryColorRowY() {
-        return settingsChatBarMenuButtonRowY() + 28;
+        return settingsOtherSectionFormY();
     }
 
     private int settingsTabUnreadBadgesRowY() {
-        return settingsModPrimaryColorRowY() + 28;
+        return settingsChatBarMenuButtonRowY() + 28;
     }
 
     private int settingsAlwaysShowUnreadTabsRowY() {
@@ -4971,6 +5068,44 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     g,
                     fx,
                     fr,
+                    settingsScrolledY(settingsMessageStackingSectionTitleY()),
+                    I18n.get("chat-utilities.settings.section.message_stacking"));
+            g.drawString(
+                    this.font,
+                    Component.translatable("chat-utilities.settings.stack_repeated_messages"),
+                    fx,
+                    settingsScrolledY(settingsStackRepeatedMessagesRowY()) + 7,
+                    ChatUtilitiesScreenLayout.TEXT_LABEL,
+                    false);
+            g.drawString(
+                    this.font,
+                    Component.translatable("chat-utilities.settings.stacked_message.color"),
+                    fx,
+                    settingsScrolledY(settingsStackedMessageColorRowY()) + 7,
+                    ChatUtilitiesScreenLayout.TEXT_LABEL,
+                    false);
+            g.drawString(
+                    this.font,
+                    Component.translatable("chat-utilities.settings.stacked_message.format"),
+                    fx,
+                    settingsScrolledY(settingsStackedMessageFormatRowY()) + 7,
+                    ChatUtilitiesScreenLayout.TEXT_LABEL,
+                    false);
+            if (settingsStackedMessageFormatField != null) {
+                String pv = settingsStackedMessageFormatField.getValue().replace("%amount%", "3");
+                int pRgb = ChatUtilitiesClientOptions.getStackedMessageColorRgb() | 0xFF000000;
+                int rowY = settingsScrolledY(settingsStackedMessageFormatRowY()) + 6;
+                int fmtGap = 4;
+                int slotLeft =
+                        settingsStackedMessageFormatField.getX() - settingsStackedMessagePreviewSlotW - fmtGap;
+                int tx = slotLeft + settingsStackedMessagePreviewSlotW - this.font.width(pv);
+                g.drawString(this.font, pv, Math.max(slotLeft, tx), rowY, pRgb, false);
+            }
+
+            drawSettingsSectionHeader(
+                    g,
+                    fx,
+                    fr,
                     settingsScrolledY(settingsChatSearchSectionTitleY()),
                     I18n.get("chat-utilities.settings.section.chat_search"));
             g.drawString(
@@ -5045,6 +5180,13 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     I18n.get("chat-utilities.settings.section.other"));
             g.drawString(
                     this.font,
+                    Component.translatable("chat-utilities.settings.mod_primary_color"),
+                    fx,
+                    settingsScrolledY(settingsModPrimaryColorRowY()) + 7,
+                    ChatUtilitiesScreenLayout.TEXT_LABEL,
+                    false);
+            g.drawString(
+                    this.font,
                     Component.translatable("chat-utilities.settings.chat_panel_background_opacity.unfocused"),
                     fx,
                     settingsScrolledY(settingsChatPanelBackgroundRowY()) + 7,
@@ -5073,23 +5215,9 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     false);
             g.drawString(
                     this.font,
-                    Component.translatable("chat-utilities.settings.stack_repeated_messages"),
-                    fx,
-                    settingsScrolledY(settingsStackRepeatedMessagesRowY()) + 7,
-                    ChatUtilitiesScreenLayout.TEXT_LABEL,
-                    false);
-            g.drawString(
-                    this.font,
                     Component.translatable("chat-utilities.settings.chat_bar_menu_button"),
                     fx,
                     settingsScrolledY(settingsChatBarMenuButtonRowY()) + 7,
-                    ChatUtilitiesScreenLayout.TEXT_LABEL,
-                    false);
-            g.drawString(
-                    this.font,
-                    Component.translatable("chat-utilities.settings.mod_primary_color"),
-                    fx,
-                    settingsScrolledY(settingsModPrimaryColorRowY()) + 7,
                     ChatUtilitiesScreenLayout.TEXT_LABEL,
                     false);
             g.drawString(

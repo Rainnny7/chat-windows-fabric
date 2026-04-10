@@ -63,7 +63,7 @@ public final class ChatSymbolPalette {
     /** Total width of the symbols panel (right block), matching the previous single-panel body width. */
     private static final int MAIN_PANEL_WIDTH = 220;
     /** Space between the legacy-code strip and the symbols panel (kept small so the two read as one block). */
-    private static final int STRIP_GAP = 1;
+    private static final int STRIP_GAP = 0;
     /** Left inset of the symbol grid inside the main panel (title/divider keep {@link #PANEL_PAD}). */
     private static final int SYMBOL_WELL_PAD_LEFT = 2;
     private static final int STACK_HEIGHT = 200;
@@ -612,10 +612,9 @@ public final class ChatSymbolPalette {
         int st = stackTop(screenHeight);
         int sb = stackBottom(screenHeight);
 
-        // No single background behind the format strip; each cell paints its own background.
+        // Fill both panels so the left strip aligns with the main panel at the top edge.
+        graphics.fill(sl, st, sr, sb, PALETTE_SIDEBAR_BG);
         graphics.fill(ml, st, mr, sb, PALETTE_PANEL_BG);
-
-        graphics.fill(sr - 1, st, sr, sb, PALETTE_SIDEBAR_SEP);
 
         // Outline the main panel only (strip is cell-painted; the old shared background border is intentionally gone).
         graphics.renderOutline(ml, st, mr - ml, sb - st, PALETTE_PANEL_EDGE);

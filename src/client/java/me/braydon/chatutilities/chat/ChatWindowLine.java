@@ -2,6 +2,8 @@ package me.braydon.chatutilities.chat;
 
 import me.braydon.chatutilities.client.ChatUtilitiesClientOptions;
 import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.TextColor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 
@@ -21,7 +23,7 @@ public record ChatWindowLine(Component baseContent, int addedGuiTick, int stackC
                         ? baseContent
                         : Component.empty()
                                 .append(baseContent)
-                                .append(Component.literal(" (x" + stackCount + ")").withStyle(ChatFormatting.GRAY));
+                                .append(stackedSuffixComponent(stackCount));
         if (!ChatUtilitiesClientOptions.isChatTimestampsEnabled()) {
             return body;
         }
@@ -30,6 +32,17 @@ public record ChatWindowLine(Component baseContent, int addedGuiTick, int stackC
             return body;
         }
         return Component.empty().append(ts).append(body);
+    }
+
+    private static Component stackedSuffixComponent(int amount) {
+        String raw = ChatUtilitiesClientOptions.getStackedMessageFormat();
+        String suffix = raw.replace("%amount%", Integer.toString(Math.max(1, amount)));
+        if (!suffix.isEmpty() && !Character.isWhitespace(suffix.charAt(0))) {
+            suffix = " " + suffix;
+        }
+        int rgb = ChatUtilitiesClientOptions.getStackedMessageColorRgb() & 0xFFFFFF;
+        return Component.literal(suffix)
+                .setStyle(Style.EMPTY.withColor(TextColor.fromRgb(rgb)));
     }
 
     boolean sameStackAs(ChatWindowLine incoming) {

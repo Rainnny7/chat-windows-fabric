@@ -119,6 +119,15 @@ public final class ChatUtilitiesClientOptions {
 
     private static boolean stackRepeatedMessages;
 
+    /** Default suffix shown for stacked repeats. */
+    public static final String STACKED_MESSAGE_FORMAT_DEFAULT = "(x%amount%)";
+
+    /** RGB only (no alpha); default matches {@link net.minecraft.ChatFormatting#GRAY} (§7). */
+    public static final int STACKED_MESSAGE_COLOR_RGB_DEFAULT = 0xAAAAAA;
+
+    private static String stackedMessageFormat = STACKED_MESSAGE_FORMAT_DEFAULT;
+    private static int stackedMessageColorRgb = STACKED_MESSAGE_COLOR_RGB_DEFAULT;
+
     private static boolean chatTimestampsEnabled;
 
     /** Default {@link java.time.format.DateTimeFormatter} pattern (US locale, 12-hour with AM/PM). */
@@ -507,6 +516,30 @@ public final class ChatUtilitiesClientOptions {
         setStackRepeatedMessages(!stackRepeatedMessages);
     }
 
+    public static String getStackedMessageFormat() {
+        return stackedMessageFormat == null || stackedMessageFormat.isBlank()
+                ? STACKED_MESSAGE_FORMAT_DEFAULT
+                : stackedMessageFormat;
+    }
+
+    public static void setStackedMessageFormat(String format) {
+        String f = format == null ? "" : format.strip();
+        if (f.length() > 96) {
+            f = f.substring(0, 96);
+        }
+        stackedMessageFormat = f.isEmpty() ? STACKED_MESSAGE_FORMAT_DEFAULT : f;
+        save();
+    }
+
+    public static int getStackedMessageColorRgb() {
+        return stackedMessageColorRgb & 0xFFFFFF;
+    }
+
+    public static void setStackedMessageColorRgb(int rgb) {
+        stackedMessageColorRgb = rgb & 0xFFFFFF;
+        save();
+    }
+
     public static boolean isChatTimestampsEnabled() {
         return chatTimestampsEnabled;
     }
@@ -778,6 +811,8 @@ public final class ChatUtilitiesClientOptions {
         longerChatHistory = false;
         chatHistoryLimitLines = CHAT_HISTORY_LIMIT_DEFAULT;
         stackRepeatedMessages = false;
+        stackedMessageFormat = STACKED_MESSAGE_FORMAT_DEFAULT;
+        stackedMessageColorRgb = STACKED_MESSAGE_COLOR_RGB_DEFAULT;
         chatTimestampsEnabled = false;
         chatTimestampFormatPattern = CHAT_TIMESTAMP_FORMAT_DEFAULT;
         chatTimestampColorRgb = CHAT_TIMESTAMP_COLOR_RGB_DEFAULT;
@@ -867,6 +902,12 @@ public final class ChatUtilitiesClientOptions {
                             Mth.clamp(d.chatHistoryLimitLines, CHAT_HISTORY_LIMIT_MIN, CHAT_HISTORY_LIMIT_MAX);
                 }
                 stackRepeatedMessages = d.stackRepeatedMessages;
+                if (d.stackedMessageFormat != null && !d.stackedMessageFormat.isBlank()) {
+                    stackedMessageFormat = d.stackedMessageFormat.strip();
+                }
+                if (d.stackedMessageColorRgb != null) {
+                    stackedMessageColorRgb = d.stackedMessageColorRgb & 0xFFFFFF;
+                }
                 if (d.chatTimestampsEnabled != null) {
                     chatTimestampsEnabled = d.chatTimestampsEnabled;
                 }
@@ -1031,6 +1072,8 @@ public final class ChatUtilitiesClientOptions {
         d.longerChatHistory = longerChatHistory;
         d.chatHistoryLimitLines = getChatHistoryLimitLines();
         d.stackRepeatedMessages = stackRepeatedMessages;
+        d.stackedMessageFormat = getStackedMessageFormat();
+        d.stackedMessageColorRgb = getStackedMessageColorRgb();
         d.chatTimestampsEnabled = chatTimestampsEnabled;
         d.chatTimestampFormatPattern = getChatTimestampFormatPattern();
         d.chatTimestampColorRgb = getChatTimestampColorRgb();
@@ -1152,6 +1195,8 @@ public final class ChatUtilitiesClientOptions {
         boolean longerChatHistory;
         int chatHistoryLimitLines = CHAT_HISTORY_LIMIT_DEFAULT;
         boolean stackRepeatedMessages;
+        String stackedMessageFormat;
+        Integer stackedMessageColorRgb;
         Boolean chatTimestampsEnabled;
         String chatTimestampFormatPattern;
         Integer chatTimestampColorRgb;

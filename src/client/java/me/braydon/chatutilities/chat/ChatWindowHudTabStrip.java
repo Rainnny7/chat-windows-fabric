@@ -83,49 +83,24 @@ public final class ChatWindowHudTabStrip {
             return new Placement(Edge.TOP, x, y - H_STRIP, w, H_STRIP);
         }
 
-        if (fitsTop(y, horizontalStripHeight(font, window, Math.max(MIN_TAB_W, Math.min(w, gw - x - MARGIN))))) {
-            int sw = Math.min(w, gw - x - MARGIN);
-            sw = Mth.clamp(sw, MIN_TAB_W, Math.min(w, gw - x - MARGIN));
-            int sh = horizontalStripHeight(font, window, sw);
-            Placement p = new Placement(Edge.TOP, x, y - sh, sw, sh);
-            if (!intersectsAny(p, occupiedRects)) {
-                return p;
-            }
-        }
-        if (fitsBottom(
-                y,
-                h,
-                gh,
-                horizontalStripHeight(font, window, Math.max(MIN_TAB_W, Math.min(w, gw - x - MARGIN))))) {
-            int sw = Math.min(w, gw - x - MARGIN);
-            sw = Mth.clamp(sw, MIN_TAB_W, Math.min(w, gw - x - MARGIN));
-            int sh = horizontalStripHeight(font, window, sw);
-            Placement p = new Placement(Edge.BOTTOM, x, y + h, sw, sh);
-            if (!intersectsAny(p, occupiedRects)) {
-                return p;
-            }
-        }
-        if (fitsRight(x, w, gw)) {
-            int sh = h;
-            int sw = Math.min(V_STRIP_W, verticalStripWidth(font, window, sh - 4));
-            sw = Mth.clamp(sw, MIN_TAB_W, V_STRIP_W);
-            Placement p = new Placement(Edge.RIGHT, x + w, y, sw, sh);
-            if (!intersectsAny(p, occupiedRects)) {
-                return p;
-            }
-        }
-        if (fitsLeft(x)) {
-            int sh = h;
-            int sw = Math.min(V_STRIP_W, verticalStripWidth(font, window, sh - 4));
-            sw = Mth.clamp(sw, MIN_TAB_W, V_STRIP_W);
-            Placement p = new Placement(Edge.LEFT, x - sw, y, sw, sh);
-            if (!intersectsAny(p, occupiedRects)) {
-                return p;
-            }
-        }
+        // User expectation: tabs should stay on TOP unless that exact top strip region is unavailable.
+        // Only fall back to BOTTOM when TOP truly cannot be used (off-screen or overlapping another window).
         int sw = Math.min(w, gw - x - MARGIN);
         sw = Mth.clamp(sw, MIN_TAB_W, Math.min(w, gw - x - MARGIN));
         int sh = horizontalStripHeight(font, window, sw);
+
+        if (fitsTop(y, sh)) {
+            Placement pTop = new Placement(Edge.TOP, x, y - sh, sw, sh);
+            if (!intersectsAny(pTop, occupiedRects)) {
+                return pTop;
+            }
+        }
+        if (fitsBottom(y, h, gh, sh)) {
+            Placement pBottom = new Placement(Edge.BOTTOM, x, y + h, sw, sh);
+            if (!intersectsAny(pBottom, occupiedRects)) {
+                return pBottom;
+            }
+        }
         int sy = Math.max(MARGIN, y - sh);
         return new Placement(Edge.TOP, x, sy, sw, sh);
     }
@@ -381,6 +356,8 @@ public final class ChatWindowHudTabStrip {
                         bx = Math.min(bx, rightLimit - badge.w);
                         bx = Math.max(bx, lx + 2);
                         int by = ly + (rh - badge.h) / 2;
+                        // Keep the rounded badge fully inside the tab rect (avoid bleed above/below at some GUI scales).
+                        by = Mth.clamp(by, ly + 1, (ly + rh) - badge.h - 1);
                         renderUnreadBadgeAt(g, font, bx, by, badge);
                     }
 
@@ -430,6 +407,7 @@ public final class ChatWindowHudTabStrip {
                         bx = Math.min(bx, rightLimit - badge.w);
                         bx = Math.max(bx, p.sx() + 2);
                         int by = ly + (rh - badge.h) / 2;
+                        by = Mth.clamp(by, ly + 1, (ly + rh) - badge.h - 1);
                         renderUnreadBadgeAt(g, font, bx, by, badge);
                     }
 
@@ -511,6 +489,7 @@ public final class ChatWindowHudTabStrip {
                 bx = Math.min(bx, rightLimit - badge.w);
                 bx = Math.max(bx, lx + 2);
                 int by = ly + (rh - badge.h) / 2;
+                by = Mth.clamp(by, ly + 1, (ly + rh) - badge.h - 1);
                 renderUnreadBadgeAt(g, font, bx, by, badge);
             }
         }

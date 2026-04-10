@@ -30,6 +30,7 @@ public final class ModPrimaryColorPickerOverlay {
     public enum OverlayMode {
         ACCENT,
         TIMESTAMP_RGB,
+        STACKED_MESSAGE_RGB,
         /** Same HSV UI as timestamp; {@link #applyAndPersist} invokes highlight consumer with RGB + formats. */
         CHAT_HIGHLIGHT_RGB
     }
@@ -111,6 +112,12 @@ public final class ModPrimaryColorPickerOverlay {
         return o;
     }
 
+    public static ModPrimaryColorPickerOverlay createStackedMessageRgb() {
+        ModPrimaryColorPickerOverlay o = new ModPrimaryColorPickerOverlay(OverlayMode.STACKED_MESSAGE_RGB, null);
+        o.loadStackedMessageRgbFromOptions();
+        return o;
+    }
+
     /**
      * HSV editor for chat highlight; {@link #applyAndPersist} calls {@code onChosen} with RGB and format toggles.
      */
@@ -147,6 +154,20 @@ public final class ModPrimaryColorPickerOverlay {
 
     private void loadTimestampRgbFromOptions() {
         int rgb = ChatUtilitiesClientOptions.getChatTimestampColorRgb() & 0xFFFFFF;
+        int r = (rgb >> 16) & 0xFF;
+        int g = (rgb >> 8) & 0xFF;
+        int b = rgb & 0xFF;
+        float[] hsv = ModPrimaryColorUtils.rgbToHsv(r, g, b);
+        this.hue = hsv[0];
+        this.sat = hsv[1];
+        this.val = hsv[2];
+        this.alpha = 255;
+        this.chroma = false;
+        this.chromaSpeed = ChatUtilitiesClientOptions.getModPrimaryChromaSpeed();
+    }
+
+    private void loadStackedMessageRgbFromOptions() {
+        int rgb = ChatUtilitiesClientOptions.getStackedMessageColorRgb() & 0xFFFFFF;
         int r = (rgb >> 16) & 0xFF;
         int g = (rgb >> 8) & 0xFF;
         int b = rgb & 0xFF;
@@ -713,6 +734,9 @@ public final class ModPrimaryColorPickerOverlay {
             int rgb = ModPrimaryColorUtils.hsvToArgb(hue, sat, val, 255) & 0xFFFFFF;
             ChatUtilitiesClientOptions.setChatTimestampColorRgb(rgb);
             ChatUtilitiesClientOptions.pushChatTimestampRecent(rgb);
+        } else if (mode == OverlayMode.STACKED_MESSAGE_RGB) {
+            int rgb = ModPrimaryColorUtils.hsvToArgb(hue, sat, val, 255) & 0xFFFFFF;
+            ChatUtilitiesClientOptions.setStackedMessageColorRgb(rgb);
         } else if (mode == OverlayMode.CHAT_HIGHLIGHT_RGB) {
             int rgb = ModPrimaryColorUtils.hsvToArgb(hue, sat, val, 255) & 0xFFFFFF;
             ChatUtilitiesClientOptions.pushModPrimaryRecent(0xFF000000 | rgb);
