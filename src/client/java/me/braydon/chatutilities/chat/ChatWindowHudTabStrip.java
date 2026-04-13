@@ -27,7 +27,8 @@ public final class ChatWindowHudTabStrip {
     private static final int TAB_PAD_H = 2;
     private static final int MIN_TAB_W = 22;
     private static final int BADGE_GAP = 4;
-    private static final int BADGE_RADIUS = 5;
+    private static final int BADGE_RADIUS = 4;
+    private static final int BADGE_H = 8;
 
     /** Height of the horizontal tab strip (matches {@link #H_STRIP}). */
     public static int stripHeight() {
@@ -476,7 +477,10 @@ public final class ChatWindowHudTabStrip {
             g.renderOutline(lx, ly, rw, rh, packRgba(0x55, 0x55, 0x5A, stripA));
 
             int unreadCount = tab.getUnreadCount();
-            UnreadBadgeSpec badge = unreadCount > 0 ? unreadBadgeSpecForce(font, unreadCount) : null;
+            UnreadBadgeSpec badge =
+                    unreadCount > 0 && ChatUtilitiesClientOptions.isChatWindowTabUnreadBadgesEnabled()
+                            ? unreadBadgeSpecForce(font, unreadCount)
+                            : null;
             int reserve = badge == null ? 0 : badge.w + BADGE_GAP;
             String label = truncate(font, tab.getDisplayName(), Math.max(0, rw - 4 - reserve));
             int tw = font.width(label);
@@ -501,21 +505,24 @@ public final class ChatWindowHudTabStrip {
         if (!ChatUtilitiesClientOptions.isChatWindowTabUnreadBadgesEnabled() || unreadCount <= 0) {
             return null;
         }
-        String text = unreadCount > 999 ? "1k+" : Integer.toString(unreadCount);
-        int padX = text.length() >= 3 ? 1 : text.length() == 2 ? 2 : 3;
-        int w = Math.max(10, font.width(text) + padX * 2);
-        int h = 10;
-        return new UnreadBadgeSpec(text, w, h);
+        return unreadBadgeSpecInner(font, unreadCount);
     }
 
     private static UnreadBadgeSpec unreadBadgeSpecForce(Font font, int unreadCount) {
         if (unreadCount <= 0) {
             return null;
         }
+        return unreadBadgeSpecInner(font, unreadCount);
+    }
+
+    private static final float BADGE_TEXT_SCALE = 0.72f;
+
+    private static UnreadBadgeSpec unreadBadgeSpecInner(Font font, int unreadCount) {
         String text = unreadCount > 999 ? "1k+" : Integer.toString(unreadCount);
-        int padX = text.length() >= 3 ? 1 : text.length() == 2 ? 2 : 3;
-        int w = Math.max(10, font.width(text) + padX * 2);
-        int h = 10;
+        int tw = Math.round(font.width(text) * BADGE_TEXT_SCALE);
+        int innerPad = text.length() >= 3 ? 3 : text.length() == 2 ? 4 : 5;
+        int w = Math.max(11, tw + innerPad);
+        int h = BADGE_H;
         return new UnreadBadgeSpec(text, w, h);
     }
 
@@ -523,17 +530,41 @@ public final class ChatWindowHudTabStrip {
         if (badge == null) {
             return;
         }
-        RoundedPanelRenderer.fillRoundedRect(g, bx, by, badge.w, badge.h, BADGE_RADIUS, 0xFFD93025);
-        float scale = 0.8f;
-        float tw = font.width(badge.text) * scale;
-        float th = 8f * scale;
-        float tx = bx + (badge.w - tw) / 2f;
-        float ty = by + (badge.h - th) / 2f;
-        g.pose().pushMatrix();
-        g.pose().translate(tx, ty);
-        g.pose().scale(scale, scale);
-        g.drawString(font, badge.text, 0, 0, 0xFFFFFFFF, false);
-        g.pose().popMatrix();
+        int rgb = ChatUtilitiesClientOptions.getTabUnreadBadgeColorRgb() & 0xFFFFFF;
+        int fill = 0xFF000000 | rgb;
+        if (ChatUtilitiesClientOptions.getTabUnreadBadgeStyle() == ChatUtilitiesClientOptions.TabUnreadBadgeStyle.HEART) {
+            fillHeartBadgeBackground(g, bx, by, badge.w, badge.h, fill);
+        } else {
+            RoundedPanelRenderer.fillRoundedRect(g, bx, by, badge.w, badge.h, BADGE_RADIUS, fill);
+        }
+        float cx = bx + badge.w * 0.5f;
+        float cy = by + badge.h * 0.5f;
+        var pose = g.pose();
+        pose.pushMatrix();
+        pose.translate(cx, cy);
+        pose.scale(BADGE_TEXT_SCALE, BADGE_TEXT_SCALE);
+        int tw = font.width(badge.text);
+        int th = font.lineHeight;
+        g.drawString(font, badge.text, -tw / 2, -th / 2, 0xFFFFFFFF, false);
+        pose.popMatrix();
+    }
+
+    /** Filled heart shape inside {@code [x,y,w,h]} (scanline silhouette). */
+    private static void fillHeartBadgeBackground(GuiGraphics g, int x, int y, int w, int h, int color) {
+        if (w <= 0 || h <= 0) {
+            return;
+        }
+        int cx = x + w / 2;
+        for (int row = 0; row < h; row++) {
+            float ny = (row + 0.5f) / h;
+            float halfNorm =
+                    ny < 0.32f
+                            ? 0.42f + 0.22f * Mth.sin(ny / 0.32f * Mth.PI)
+                            : 0.64f * (1f - (ny - 0.32f) / 0.68f);
+            int half = Math.max(1, Math.round(0.5f * w * halfNorm));
+            int yy = y + row;
+            g.fill(cx - half, yy, cx + half, yy + 1, color);
+        }
     }
 
     private static int packRgba(int r, int g, int b, float a) {

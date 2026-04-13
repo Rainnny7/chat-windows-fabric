@@ -19,6 +19,7 @@ import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -66,6 +67,60 @@ public final class VanillaChatLinePicker {
     }
 
     private VanillaChatLinePicker() {}
+
+    @FunctionalInterface
+    private interface DrawnViewportLineSink {
+        void onLine(GuiMessage.Line line, int lineIndex, float opacity);
+    }
+
+    /**
+     * Invokes {@link ChatComponent}'s line iterator with full opacity so each {@code accept} matches expanded-chat
+     * rendering (including open-chat search filtering). {@code lineIndex} is vanilla’s viewport slot (same as draw).
+     */
+    private static void visitDrawnViewportLines(ChatComponent chat, DrawnViewportLineSink sink) {
+        ChatComponent.AlphaCalculator alpha = ChatComponent.AlphaCalculator.FULLY_VISIBLE;
+        Object consumer =
+                Proxy.newProxyInstance(
+                        ChatComponent.LineConsumer.class.getClassLoader(),
+                        new Class<?>[] {ChatComponent.LineConsumer.class},
+                        new ViewportWalkHandler(sink));
+        try {
+            FOR_EACH_LINE.invoke(chat, alpha, consumer);
+        } catch (ReflectiveOperationException ignored) {
+        }
+    }
+
+    private static final class ViewportWalkHandler implements InvocationHandler {
+        private final DrawnViewportLineSink sink;
+
+        ViewportWalkHandler(DrawnViewportLineSink sink) {
+            this.sink = sink;
+        }
+
+        @Override
+        public @Nullable Object invoke(Object proxy, Method method, @Nullable Object[] args) {
+            if (method.getDeclaringClass() == Object.class) {
+                return switch (method.getName()) {
+                    case "equals" ->
+                            args != null && args.length == 1 && proxy == args[0];
+                    case "hashCode" -> System.identityHashCode(proxy);
+                    case "toString" -> "VanillaChatLinePicker$ViewportWalkHandler";
+                    default -> null;
+                };
+            }
+            if ("accept".equals(method.getName())
+                    && args != null
+                    && args.length >= 3
+                    && args[0] instanceof GuiMessage.Line ln) {
+                float op = ((Number) args[2]).floatValue();
+                int idx = (Integer) args[1];
+                if (op > 0.01f) {
+                    sink.onLine(ln, idx, op);
+                }
+            }
+            return null;
+        }
+    }
 
     /**
      * While true, {@link me.braydon.chatutilities.mixin.client.ChatComponentMixin} skips smooth-chat fade on line
@@ -148,6 +203,53 @@ public final class VanillaChatLinePicker {
         } catch (ReflectiveOperationException ignored) {
         }
         return out;
+    }
+
+    /**
+     * Plain text of the whole logical chat entry (all wrapped rows) for the block containing {@code hit}, in
+     * on-screen order, concatenated without line breaks so search can match across wraps.
+     */
+    public static String entryPlainTextForMatching(ChatComponent chat, GuiMessage.Line hit) {
+        if (hit == null) {
+            return "";
+        }
+        @SuppressWarnings("unchecked")
+        List<GuiMessage.Line> lines = (List<GuiMessage.Line>) chat.trimmedMessages;
+        int i = indexOfLine(lines, hit);
+        if (i < 0) {
+            return ChatUtilitiesManager.plainTextForMatching(hit.content());
+        }
+        int blockStart = i;
+        while (blockStart > 0 && !lines.get(blockStart).endOfEntry()) {
+            blockStart--;
+        }
+        int blockEnd = i;
+        while (blockEnd < lines.size() - 1 && !lines.get(blockEnd + 1).endOfEntry()) {
+            blockEnd++;
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int k = blockEnd; k >= blockStart; k--) {
+            FormattedCharSequence seq = lines.get(k).content();
+            if (seq != null && !FormattedCharSequence.EMPTY.equals(seq)) {
+                sb.append(ChatUtilitiesManager.plainTextForMatching(seq));
+            }
+        }
+        return sb.toString();
+    }
+
+    /** Whether this trimmed row’s logical message matches the open-chat search (full entry, not one wrap row). */
+    public static boolean vanillaTrimmedLineMatchesOpenChatSearch(ChatComponent chat, GuiMessage.Line line) {
+        if (!ChatSearchState.isFiltering()) {
+            return true;
+        }
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null || !(mc.screen instanceof ChatScreen)) {
+            return true;
+        }
+        if (!ChatUtilitiesClientOptions.isChatSearchBarEnabled()) {
+            return true;
+        }
+        return ChatSearchState.matchesPlain(entryPlainTextForMatching(chat, line));
     }
 
     /** No-op consumer; real work happens in {@link #notifyLineDuringPick} via mixin redirect. */
@@ -366,9 +468,19 @@ public final class VanillaChatLinePicker {
         int gh = guiScaledHeight(mc);
         int chatBottomLocal = Mth.floor((gh - 40) / sf);
         int rowBottomLocal = chatBottomLocal;
-        List<GuiMessage.Line> vis = collectVisibleGuiLines(chat);
-        if (!vis.isEmpty()) {
-            int slide = vanillaLineSlideY(vis.get(0));
+        AtomicReference<GuiMessage.Line> bottom = new AtomicReference<>();
+        AtomicInteger minIdx = new AtomicInteger(Integer.MAX_VALUE);
+        visitDrawnViewportLines(
+                chat,
+                (ln, idx, op) -> {
+                    if (idx < minIdx.get()) {
+                        minIdx.set(idx);
+                        bottom.set(ln);
+                    }
+                });
+        GuiMessage.Line bl = bottom.get();
+        if (bl != null) {
+            int slide = vanillaLineSlideY(bl);
             rowBottomLocal = chatBottomLocal + slide;
         }
         var pose = new Matrix3x2f();
@@ -408,12 +520,21 @@ public final class VanillaChatLinePicker {
         if (chat.isChatHidden()) {
             return expandedChatHighestLineTopScreenY(mc);
         }
-        List<GuiMessage.Line> vis = collectVisibleGuiLines(chat);
-        if (vis.isEmpty()) {
+        AtomicReference<GuiMessage.Line> top = new AtomicReference<>();
+        AtomicInteger maxIdx = new AtomicInteger(-1);
+        visitDrawnViewportLines(
+                chat,
+                (ln, idx, op) -> {
+                    if (idx > maxIdx.get()) {
+                        maxIdx.set(idx);
+                        top.set(ln);
+                    }
+                });
+        GuiMessage.Line topLine = top.get();
+        if (topLine == null) {
             return expandedChatHighestLineTopScreenY(mc);
         }
-        GuiMessage.Line topLine = vis.get(vis.size() - 1);
-        int idx = vis.size() - 1;
+        int idx = maxIdx.get();
         double scale = chat.getScale();
         float sf = (float) scale;
         int gh = guiScaledHeight(mc);
@@ -430,17 +551,24 @@ public final class VanillaChatLinePicker {
     }
 
     /**
-     * Screen-space Y (gui px) at the vertical center of the row for {@code line}, using the same layout as chat
-     * rendering after search filtering (only matching rows are laid out contiguously).
+     * Screen-space Y (gui px) at the vertical center of the row for {@code line}, using the same viewport slot index
+     * as vanilla chat rendering (including open-chat search: non-matching rows are skipped but slots stay in send
+     * order).
      */
     public static Optional<Float> guiScreenCenterYForGuiLine(Minecraft mc, GuiMessage.Line line) {
         ChatComponent chat = mc.gui.getChat();
         if (chat.isChatHidden()) {
             return Optional.empty();
         }
-        List<GuiMessage.Line> vis = collectVisibleGuiLines(chat);
-        int idx = vis.indexOf(line);
-        if (idx < 0) {
+        AtomicInteger idx = new AtomicInteger(-1);
+        visitDrawnViewportLines(
+                chat,
+                (ln, i, op) -> {
+                    if (ln == line) {
+                        idx.set(i);
+                    }
+                });
+        if (idx.get() < 0) {
             return Optional.empty();
         }
         double scale = chat.getScale();
@@ -449,7 +577,7 @@ public final class VanillaChatLinePicker {
         int chatBottom = Mth.floor((gh - 40) / sf);
         int entryHeight = Math.max(1, chat.getLineHeight());
         int slide = vanillaLineSlideY(line);
-        int rowBottom = chatBottom - idx * entryHeight + slide;
+        int rowBottom = chatBottom - idx.get() * entryHeight + slide;
         int rowTop = rowBottom - entryHeight;
         float midLocalY = (rowTop + rowBottom) * 0.5f;
         var pose = new Matrix3x2f();
@@ -469,9 +597,15 @@ public final class VanillaChatLinePicker {
         if (chat.isChatHidden()) {
             return Optional.empty();
         }
-        List<GuiMessage.Line> vis = collectVisibleGuiLines(chat);
-        int idx = vis.indexOf(line);
-        if (idx < 0) {
+        AtomicInteger idx = new AtomicInteger(-1);
+        visitDrawnViewportLines(
+                chat,
+                (ln, i, op) -> {
+                    if (ln == line) {
+                        idx.set(i);
+                    }
+                });
+        if (idx.get() < 0) {
             return Optional.empty();
         }
         double scale = chat.getScale();
@@ -480,7 +614,7 @@ public final class VanillaChatLinePicker {
         int chatBottom = Mth.floor((gh - 40) / sf);
         int entryHeight = Math.max(1, chat.getLineHeight());
         int slide = vanillaLineSlideY(line);
-        int rowBottom = chatBottom - idx * entryHeight + slide;
+        int rowBottom = chatBottom - idx.get() * entryHeight + slide;
         int rowTop = rowBottom - entryHeight;
         var pose = new Matrix3x2f();
         pose.scale(sf, sf);

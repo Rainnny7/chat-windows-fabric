@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParseException;
 import me.braydon.chatutilities.client.ChatUtilitiesClientOptions;
+import me.braydon.chatutilities.mixin.client.ChatComponentAccess;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.GuiMessage;
@@ -18,6 +19,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.Connection;
  
 import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.util.Mth;
 import net.minecraft.resources.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -101,6 +103,25 @@ public final class ChatUtilitiesManager {
     private int vanillaSmoothSuppressGuiTick = -1;
     private String vanillaSmoothSuppressPlain = "";
 
+    /** Leading chat timestamp (same idea as {@link VanillaChatRepeatStacker}) for smooth-suppress plain matching. */
+    private static final Pattern VANILLA_SMOOTH_SUPPRESS_TS_PREFIX =
+            Pattern.compile("^\\s*\\[\\d{1,2}:\\d{2}(?::\\d{2})?\\]\\s*");
+
+    /**
+     * After a vanilla stack merge, briefly boost opacity for that logical line when chat is unfocused so {@code (xN)}
+     * updates stay readable without changing {@code addedTime} (no smooth-chat re-entry).
+     */
+    private int vanillaStackPulseGuiTick = Integer.MIN_VALUE;
+    private long vanillaStackPulseUntilMs = 0L;
+
+    /** {@link GuiMessage.Line#addedTime()} of the last stack merge; smooth-chat is suppressed until this tick. */
+    private int vanillaStackSmoothSuppressMergeTick = Integer.MIN_VALUE;
+
+    private int vanillaStackSmoothSuppressEndTick = Integer.MIN_VALUE;
+
+    /** Snapshot of vanilla chat lines when leaving a world (oldest-first replay order). */
+    private final List<Component> preservedVanillaChatSnapshot = new ArrayList<>();
+
     /** Compiled ignore patterns per profile id (rebuilt when ignores change). */
     private final Map<String, List<Pattern>> compiledIgnoresByProfile = new HashMap<>();
 
@@ -153,6 +174,8 @@ public final class ChatUtilitiesManager {
      * even if per-window flags were lost on the same frame as opening chat.
      */
     private String layoutAdjustProfileId;
+
+    private boolean layoutAdjustPointerDown;
 
     private ChatUtilitiesManager() {}
 
@@ -335,7 +358,23 @@ public final class ChatUtilitiesManager {
         if (p != null) {
             return p;
         }
+        String uiPreferred = ChatUtilitiesClientOptions.getLastMenuProfileId();
+        if (uiPreferred != null) {
+            ServerProfile byUi = profilesById.get(uiPreferred);
+            if (byUi != null) {
+                return byUi;
+            }
+        }
+        if (lastKnownActiveProfileId != null) {
+            ServerProfile stale = profilesById.get(lastKnownActiveProfileId);
+            if (stale != null) {
+                return stale;
+            }
+        }
         if (profiles.size() == 1) {
+            return profiles.get(0);
+        }
+        if (!profiles.isEmpty()) {
             return profiles.get(0);
         }
         return null;
@@ -1029,6 +1068,35 @@ public final class ChatUtilitiesManager {
         return false;
     }
 
+    /**
+     * True while the user is actively dragging or resizing a window in adjust-layout mode (hides on-screen help that
+     * would sit under the pointer).
+     */
+    public boolean isLayoutAdjustPointerDown() {
+        return layoutAdjustPointerDown;
+    }
+
+    void setLayoutAdjustPointerDown(boolean layoutAdjustPointerDown) {
+        this.layoutAdjustPointerDown = layoutAdjustPointerDown;
+    }
+
+    /** Vertical lines (gui X) drawn while resizing chat windows in adjust-layout when a snap target is hit. */
+    private final List<Integer> layoutSnapGuideVerticalXs = new ArrayList<>();
+
+    public void clearLayoutSnapGuides() {
+        layoutSnapGuideVerticalXs.clear();
+    }
+
+    public void noteLayoutSnapGuideVertical(int x) {
+        if (!layoutSnapGuideVerticalXs.contains(x)) {
+            layoutSnapGuideVerticalXs.add(x);
+        }
+    }
+
+    public List<Integer> layoutSnapGuideVerticalXs() {
+        return layoutSnapGuideVerticalXs;
+    }
+
     public void clearAllPositioningModes() {
         layoutAdjustProfileId = null;
         for (ServerProfile p : profiles) {
@@ -1114,21 +1182,127 @@ public final class ChatUtilitiesManager {
     }
 
     public void markVanillaSmoothSuppressForWindowOnlyChat(String plain, int guiTick) {
-        vanillaSmoothSuppressPlain = plain == null ? "" : plain;
+        vanillaSmoothSuppressPlain = plainNormalizedForVanillaSmoothSuppress(plain == null ? "" : plain);
         vanillaSmoothSuppressGuiTick = guiTick;
+    }
+
+    private static String plainNormalizedForVanillaSmoothSuppress(String plain) {
+        Matcher m = VANILLA_SMOOTH_SUPPRESS_TS_PREFIX.matcher(plain);
+        if (m.find()) {
+            plain = plain.substring(m.end());
+        }
+        return plain.strip();
     }
 
     public boolean shouldSuppressVanillaSmoothForLine(GuiMessage.Line line) {
         if (!ChatUtilitiesClientOptions.isSmoothChat()) {
             return false;
         }
+        // Stack merge: no smooth slide/fade replay for the merged row until the normal fade window has passed.
+        if (line.addedTime() == vanillaStackSmoothSuppressMergeTick) {
+            Minecraft mc = Minecraft.getInstance();
+            int now = mc != null ? mc.gui.getGuiTicks() : Integer.MAX_VALUE;
+            if (now <= vanillaStackSmoothSuppressEndTick) {
+                return true;
+            }
+        }
+        // Optional short opacity bump (same tick id as merge).
+        if (line.addedTime() == vanillaStackPulseGuiTick
+                && System.currentTimeMillis() <= vanillaStackPulseUntilMs) {
+            return true;
+        }
         if (vanillaSmoothSuppressGuiTick < 0) {
+            return false;
+        }
+        Minecraft mc = Minecraft.getInstance();
+        int nowTick = mc != null ? mc.gui.getGuiTicks() : vanillaSmoothSuppressGuiTick;
+        if (nowTick > vanillaSmoothSuppressGuiTick + 3) {
+            vanillaSmoothSuppressGuiTick = -1;
             return false;
         }
         if (line.addedTime() != vanillaSmoothSuppressGuiTick) {
             return false;
         }
-        return vanillaSmoothSuppressPlain.equals(plainTextForMatching(line.content()));
+        String linePlain =
+                plainNormalizedForVanillaSmoothSuppress(plainTextForMatching(line.content()));
+        return vanillaSmoothSuppressPlain.equals(linePlain);
+    }
+
+    /**
+     * Called after the repeat stacker replaces two lines with one. {@code mergeGuiTick} is the new line's
+     * {@link GuiMessage#addedTime()} (current GUI tick).
+     */
+    public void noteVanillaStackMergeForHud(int mergeGuiTick) {
+        vanillaStackPulseGuiTick = mergeGuiTick;
+        vanillaStackPulseUntilMs = System.currentTimeMillis() + 220L;
+        vanillaStackSmoothSuppressMergeTick = mergeGuiTick;
+        int fadeMs = ChatUtilitiesClientOptions.getSmoothChatFadeMs();
+        int durTicks = Math.max(1, Mth.ceil(fadeMs / (1000f / 20f)));
+        vanillaStackSmoothSuppressEndTick = mergeGuiTick + durTicks + 2;
+    }
+
+    /** Extra opacity (0–1) for the merged vanilla line while the pulse is active. */
+    public float vanillaStackPulseOpacityBoost(int lineAddedTime) {
+        if (System.currentTimeMillis() > vanillaStackPulseUntilMs) {
+            return 0f;
+        }
+        if (lineAddedTime != vanillaStackPulseGuiTick) {
+            return 0f;
+        }
+        float u =
+                (vanillaStackPulseUntilMs - System.currentTimeMillis()) / 220f;
+        float w = Mth.clamp(u, 0f, 1f);
+        return 0.35f * w * w;
+    }
+
+    /**
+     * Copies vanilla chat into {@link #preservedVanillaChatSnapshot} when the option is on and the log is non-empty.
+     * Does not replace an existing snapshot with an empty log (so a later hook does not wipe a good capture).
+     */
+    public void snapshotVanillaChatIfPreserving(Minecraft mc) {
+        if (!ChatUtilitiesClientOptions.isPreserveVanillaChatOnDisconnect()) {
+            preservedVanillaChatSnapshot.clear();
+            return;
+        }
+        if (mc == null || mc.gui == null) {
+            return;
+        }
+        ChatComponentAccess access = (ChatComponentAccess) mc.gui.getChat();
+        List<GuiMessage> all = access.chatUtilities$getAllMessages();
+        if (all.isEmpty()) {
+            return;
+        }
+        preservedVanillaChatSnapshot.clear();
+        for (int i = all.size() - 1; i >= 0; i--) {
+            GuiMessage gm = all.get(i);
+            if (gm != null && gm.content() != null) {
+                preservedVanillaChatSnapshot.add(gm.content());
+            }
+        }
+    }
+
+    /** Replays {@link #preservedVanillaChatSnapshot} into vanilla chat if the log is still empty (main thread). */
+    public void restoreVanillaChatSnapshotIfPreserving() {
+        if (!ChatUtilitiesClientOptions.isPreserveVanillaChatOnDisconnect()) {
+            preservedVanillaChatSnapshot.clear();
+            return;
+        }
+        if (preservedVanillaChatSnapshot.isEmpty()) {
+            return;
+        }
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null || mc.gui == null) {
+            return;
+        }
+        ChatComponentAccess access = (ChatComponentAccess) mc.gui.getChat();
+        if (!access.chatUtilities$getAllMessages().isEmpty()) {
+            return;
+        }
+        List<Component> lines = new ArrayList<>(preservedVanillaChatSnapshot);
+        preservedVanillaChatSnapshot.clear();
+        for (Component c : lines) {
+            mc.gui.getChat().addMessage(c);
+        }
     }
 
     /**
@@ -1248,6 +1422,7 @@ public final class ChatUtilitiesManager {
         // MOTD-style chat packets sent during the login sequence).  Now that cachedJoinServerHost
         // is set the correct profile will be used for routing.
         replayEarlyMessages();
+        restoreVanillaChatSnapshotIfPreserving();
     }
 
     /**
@@ -1255,10 +1430,19 @@ public final class ChatUtilitiesManager {
      * previous server do not leak into the next connection.
      */
     public void onPlayDisconnect() {
+        snapshotVanillaChatIfPreserving(Minecraft.getInstance());
         loginPending = false;
         lastKnownActiveProfileId = null;
         cachedJoinServerHost = null;
         earlyMessageBuffer.clear();
+        vanillaSmoothSuppressGuiTick = -1;
+        vanillaStackPulseGuiTick = Integer.MIN_VALUE;
+        vanillaStackPulseUntilMs = 0L;
+        vanillaStackSmoothSuppressMergeTick = Integer.MIN_VALUE;
+        vanillaStackSmoothSuppressEndTick = Integer.MIN_VALUE;
+        if (!ChatUtilitiesClientOptions.isPreserveVanillaChatOnDisconnect()) {
+            preservedVanillaChatSnapshot.clear();
+        }
     }
 
     /**
@@ -1291,8 +1475,11 @@ public final class ChatUtilitiesManager {
             if (p != null) {
                 return p;
             }
+            // Connected to a server whose address does not match any profile — do not keep routing under a stale
+            // menu-selected profile from a previous session.
+            return null;
         }
-        // Fallback to the last UI-selected profile (or last-known match) even when the host doesn't match any list.
+        // Offline / no resolved host: keep fallbacks so a single profile still works without server entries.
         String uiPreferred = ChatUtilitiesClientOptions.getLastMenuProfileId();
         if (uiPreferred != null) {
             ServerProfile p = profilesById.get(uiPreferred);
@@ -1860,6 +2047,7 @@ public final class ChatUtilitiesManager {
                 pw.visible = w.isVisible();
                 pw.widthFrac = w.getWidthFrac();
                 pw.maxVisibleLines = w.getMaxVisibleLines();
+                pw.textScale = w.getTextScale();
                 pp.windows.add(pw);
             }
             for (CommandAlias ca : sp.getCommandAliases()) {
@@ -1975,6 +2163,9 @@ public final class ChatUtilitiesManager {
         }
         if (pw.maxVisibleLines > 0) {
             cw.setMaxVisibleLines(pw.maxVisibleLines);
+        }
+        if (pw.textScale > 0f) {
+            cw.setTextScale(pw.textScale);
         }
     }
 
@@ -2152,6 +2343,9 @@ public final class ChatUtilitiesManager {
                 if (pw.maxVisibleLines > 0) {
                     cw.setMaxVisibleLines(pw.maxVisibleLines);
                 }
+                if (pw.textScale > 0f) {
+                    cw.setTextScale(pw.textScale);
+                }
                 sp.getWindows().put(pw.id, cw);
             } catch (PatternSyntaxException e) {
                 LOGGER.warn("Skipping migrated window {}: bad pattern", pw.id, e);
@@ -2295,5 +2489,6 @@ public final class ChatUtilitiesManager {
         boolean visible = true;
         float widthFrac = ChatWindow.DEFAULT_WIDTH_FRAC;
         int maxVisibleLines = ChatWindow.DEFAULT_MAX_VISIBLE_LINES;
+        float textScale = ChatWindow.DEFAULT_TEXT_SCALE;
     }
 }

@@ -19,6 +19,7 @@ import net.minecraft.client.gui.components.ChatComponent;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MessageSignature;
+import net.minecraft.util.Mth;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -33,10 +34,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(ChatComponent.class)
 public class ChatComponentMixin {
 
-    /** Visible row index (0 = bottom) while filtering; reset each {@code forEachLine} pass. */
-    @Unique
-    private static int chatUtilities$searchEmitIndex;
-
     /** True only when this {@code addMessage} call will run vanilla’s append (not window-only / dropped). */
     @Unique
     private boolean chatUtilities$stackVanillaAfterAdd;
@@ -45,14 +42,6 @@ public class ChatComponentMixin {
     @Unique
     private static final ThreadLocal<Boolean> chatUtilities$vanillaTimestampRecursing =
             ThreadLocal.withInitial(() -> false);
-
-    @Inject(
-            method =
-                    "forEachLine(Lnet/minecraft/client/gui/components/ChatComponent$AlphaCalculator;Lnet/minecraft/client/gui/components/ChatComponent$LineConsumer;)I",
-            at = @At("HEAD"))
-    private void chatUtilities$forEachLineHead(CallbackInfoReturnable<Integer> cir) {
-        chatUtilities$searchEmitIndex = 0;
-    }
 
     /**
      * 1.21+ moves the history cap into {@code addMessageToQueue} / {@code addMessageToDisplayQueue} (literal
@@ -369,7 +358,19 @@ public class ChatComponentMixin {
         VanillaChatRepeatStacker.afterAddMessage((ChatComponent) (Object) this, message);
     }
 
-    @Inject(method = "clearMessages", at = @At("TAIL"))
+    @Inject(method = "clearMessages(Z)V", at = @At("HEAD"), cancellable = true)
+    private void chatUtilities$preserveVanillaChatOnSoftClear(boolean clearSentChatHistory, CallbackInfo ci) {
+        if (!ChatUtilitiesClientOptions.isPreserveVanillaChatOnDisconnect()) {
+            return;
+        }
+        // Leaving a world/server typically clears the HUD log with {@code false}; full clears (including sent
+        // history) use {@code true}. Only skip the soft clear so manual “clear chat” flows can still wipe history.
+        if (!clearSentChatHistory) {
+            ci.cancel();
+        }
+    }
+
+    @Inject(method = "clearMessages(Z)V", at = @At("TAIL"))
     private void chatUtilities$clearCustomWindowsOnChatClear(boolean clearSentMsgHistory, CallbackInfo ci) {
         Minecraft mc = Minecraft.getInstance();
         if (mc == null || mc.level == null || mc.player == null) {
@@ -390,11 +391,13 @@ public class ChatComponentMixin {
     private void chatUtilities$vanillaPickOnLineAccept(
             ChatComponent.LineConsumer consumer, GuiMessage.Line line, int lineIndex, float opacity) {
         Minecraft mc = Minecraft.getInstance();
+        ChatComponent self = (ChatComponent) (Object) this;
         boolean filter =
-                mc.screen instanceof ChatScreen
+                mc != null
+                        && mc.screen instanceof ChatScreen
                         && ChatUtilitiesClientOptions.isChatSearchBarEnabled()
                         && ChatSearchState.isFiltering();
-        if (filter && !ChatSearchState.matchesLine(line)) {
+        if (filter && !VanillaChatLinePicker.vanillaTrimmedLineMatchesOpenChatSearch(self, line)) {
             return;
         }
         boolean suppressSmooth =
@@ -405,14 +408,14 @@ public class ChatComponentMixin {
                         : suppressSmooth
                                 ? 1f
                                 : ChatSmoothAppearance.fadeInMultiplier(line.addedTime());
-        float outOpacity = opacity * smooth;
-        int emitIndex = filter ? chatUtilities$searchEmitIndex++ : lineIndex;
-        VanillaChatLinePicker.notifyLineDuringPick(line, emitIndex, outOpacity);
+        float pulse = ChatUtilitiesManager.get().vanillaStackPulseOpacityBoost(line.addedTime());
+        float outOpacity = Mth.clamp(opacity * smooth + pulse, 0f, 1f);
+        VanillaChatLinePicker.notifyLineDuringPick(line, lineIndex, outOpacity);
         int slideY =
                 suppressSmooth ? 0 : ChatSmoothAppearance.fadeSlideOffsetYPixels(line.addedTime());
         ChatSmoothAppearance.setVanillaChatLineSlideYPixels(slideY);
         try {
-            consumer.accept(line, emitIndex, outOpacity);
+            consumer.accept(line, lineIndex, outOpacity);
         } finally {
             ChatSmoothAppearance.clearVanillaChatLineSlideYPixels();
         }

@@ -49,7 +49,7 @@ public final class CommandOutgoingAliases {
         List<CommandAlias> sorted = new ArrayList<>(profile.getCommandAliases());
         sorted.sort(Comparator.comparingInt((CommandAlias a) -> a.from().length()).reversed());
         for (CommandAlias a : sorted) {
-            if (firstToken.equals(a.from())) {
+            if (firstToken.equalsIgnoreCase(a.from())) {
                 return a.to() + rest;
             }
         }

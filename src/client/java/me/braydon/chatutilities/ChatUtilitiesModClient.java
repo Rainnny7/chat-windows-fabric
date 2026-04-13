@@ -9,6 +9,7 @@ import me.braydon.chatutilities.client.ChatUtilitiesClientOptions;
 import me.braydon.chatutilities.command.ChatUtilitiesCommands;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientLoginConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.minecraft.client.KeyMapping;
@@ -80,5 +81,12 @@ public class ChatUtilitiesModClient implements ClientModInitializer {
         // profile resolution rather than inheriting the previous server's cached selection.
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) ->
                 ChatUtilitiesManager.get().onPlayDisconnect());
+
+        // When the client level is torn down (e.g. disconnect to title), capture chat before it is replaced/cleared.
+        ClientWorldEvents.AFTER_CLIENT_WORLD_CHANGE.register((client, world) -> {
+            if (world == null) {
+                ChatUtilitiesManager.get().snapshotVanillaChatIfPreserving(client);
+            }
+        });
     }
 }

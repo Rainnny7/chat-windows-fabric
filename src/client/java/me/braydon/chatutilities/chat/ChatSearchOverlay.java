@@ -106,7 +106,8 @@ public final class ChatSearchOverlay {
                                 mc, vanillaStickyLine, mouseX, mouseY, screenW, screenH);
 
         Optional<GuiMessage.Line> pick = VanillaChatLinePicker.pickGuiLineAt(mc, mouseX, mouseY);
-        if (pick.isPresent() && ChatSearchState.matchesLine(pick.get())) {
+        if (pick.isPresent()
+                && VanillaChatLinePicker.vanillaTrimmedLineMatchesOpenChatSearch(mc.gui.getChat(), pick.get())) {
             vanillaStickyLine = pick.get();
         } else if (!onPersistJump && !onStickyRowBand) {
             vanillaStickyLine = null;

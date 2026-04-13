@@ -1,20 +1,39 @@
 package me.braydon.chatutilities.mixin.client;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.mojang.brigadier.ParseResults;
+import com.mojang.brigadier.suggestion.Suggestions;
+import java.util.concurrent.CompletableFuture;
+import me.braydon.chatutilities.chat.CommandAliasChatSuggestions;
 import me.braydon.chatutilities.chat.CommandOutgoingAliases;
 import me.braydon.chatutilities.chat.ChatUtilitiesManager;
 import me.braydon.chatutilities.chat.ServerProfile;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.components.CommandSuggestions;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.multiplayer.ClientSuggestionProvider;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
+import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(CommandSuggestions.class)
 public class CommandSuggestionsMixin {
+
+    @Shadow @Final EditBox input;
+
+    @Unique
+    private static final ThreadLocal<Boolean> chatUtilities$insideFormatTextRecursion = new ThreadLocal<>();
 
     @Unique
     private static final ThreadLocal<String> chatUtilities$resolvedSuggestionsInput = new ThreadLocal<>();
@@ -88,6 +107,91 @@ public class CommandSuggestionsMixin {
     private void chatUtilities$clearSuggestionsThreadLocal(CallbackInfo ci) {
         chatUtilities$resolvedSuggestionsInput.remove();
         chatUtilities$adjustedCursor.remove();
+    }
+
+    @WrapOperation(
+            method = "showSuggestions(Z)V",
+            at =
+                    @At(
+                            value = "INVOKE",
+                            target = "Ljava/util/concurrent/CompletableFuture;join()Ljava/lang/Object;"))
+    private Object chatUtilities$mergeAliasJoinShow(
+            CompletableFuture<?> pending, Operation<Object> original, boolean showSuggestions) {
+        return chatUtilities$mergeJoinedSuggestions(original, pending);
+    }
+
+    @WrapOperation(
+            method = "updateUsageInfo()V",
+            at =
+                    @At(
+                            value = "INVOKE",
+                            target = "Ljava/util/concurrent/CompletableFuture;join()Ljava/lang/Object;"))
+    private Object chatUtilities$mergeAliasJoinUsage(
+            CompletableFuture<?> pending, Operation<Object> original) {
+        return chatUtilities$mergeJoinedSuggestions(original, pending);
+    }
+
+    @Unique
+    private Object chatUtilities$mergeJoinedSuggestions(Operation<Object> original, CompletableFuture<?> pending) {
+        Object joined = original.call(pending);
+        if (!(joined instanceof Suggestions s)) {
+            return joined;
+        }
+        return CommandAliasChatSuggestions.mergeVanilla(this.input, s);
+    }
+
+    /**
+     * {@link #updateCommandInfo} parses an alias-expanded command, but the render path still passed the raw box text
+     * into {@code formatText}, so Brigadier indices did not match and the whole line looked invalid (red).
+     * Intercept {@code formatText} (refmapped reliably) to run it on the expanded string, then restyle the displayed text.
+     */
+    @Inject(method = "formatText", at = @At("HEAD"), cancellable = true)
+    private static void chatUtilities$aliasAwareFormatText(
+            ParseResults<ClientSuggestionProvider> parse,
+            String original,
+            int firstCharacterIndex,
+            CallbackInfoReturnable<FormattedCharSequence> cir) {
+        if (Boolean.TRUE.equals(chatUtilities$insideFormatTextRecursion.get())) {
+            return;
+        }
+        if (original == null || original.isBlank() || !original.stripLeading().startsWith("/")) {
+            return;
+        }
+        ServerProfile p = ChatUtilitiesManager.get().getEffectiveProfileForOutgoingCommands();
+        if (p == null || p.getCommandAliases().isEmpty()) {
+            return;
+        }
+        String expanded = CommandOutgoingAliases.modifySlashChatMessage(original, p);
+        if (expanded == null || expanded.equals(original)) {
+            return;
+        }
+        int adj = adjustCursorForAliasExpansion(original, expanded, firstCharacterIndex);
+        chatUtilities$insideFormatTextRecursion.set(true);
+        try {
+            FormattedCharSequence expandedFmt =
+                    CommandSuggestionsFormatTextInvoker.chatutilities$invokeFormatText(
+                            parse, expanded, adj);
+            boolean parseComplains = parse != null && !parse.getExceptions().isEmpty();
+            Style style =
+                    parseComplains
+                            ? Style.EMPTY.withColor(ChatFormatting.RED)
+                            : chatUtilities$dominantStyle(expandedFmt);
+            cir.setReturnValue(Component.literal(original).withStyle(style).getVisualOrderText());
+            cir.cancel();
+        } finally {
+            chatUtilities$insideFormatTextRecursion.remove();
+        }
+    }
+
+    @Unique
+    private static Style chatUtilities$dominantStyle(FormattedCharSequence seq) {
+        final Style[] first = {Style.EMPTY};
+        seq.accept(
+                (int index, Style style, int codePoint) -> {
+                    first[0] = style;
+                    return false;
+                });
+        return first[0];
     }
 }
 

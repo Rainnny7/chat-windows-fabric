@@ -56,6 +56,58 @@ public final class ChatSymbolPalette {
     private static final String[] SYMBOLS = buildSymbols();
     private static final @Nullable String[] SYMBOL_UNICODE_NAMES = buildUnicodeNames();
 
+    /** Multi-character entries shown under the Kaomoji section (search filters by substring). */
+    private static final String[] KAOMOJI = {
+        "(◕‿◕)",
+        "(╯°□°）╯︵ ┻━┻",
+        "¯\\_(ツ)_/¯",
+        "(ಠ_ಠ)",
+        "(づ｡◕‿‿◕｡)づ",
+        "(・ω・)",
+        "( ﾟ▽ﾟ)/",
+        "(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧",
+        "ヽ(>∀<☆)ノ",
+        "(っ˘ω˘ς )",
+        "(ง'̀-'́)ง",
+        "(｡♥‿♥｡)",
+        "(ᵔᴥᵔ)",
+        "(☞ﾟヮﾟ)☞",
+        "(ノಠ益ಠ)ノ彡┻━┻",
+        "( ͡° ͜ʖ ͡°)",
+        "(￣▽￣)/♫",
+        "(－‿◕)",
+        "ヽ(・∀・)ﾉ",
+        "(´･ω･`)",
+        "(｡•̀ᴗ-)✧",
+        "༼ つ ◕_◕ ༽つ",
+        "(ノ´ヮ`)ノ*: ・゚",
+        "(✿◠‿◠)",
+        "ಥ_ಥ",
+        "(╥﹏╥)",
+        "(☉_☉)",
+        "(͡⚆ ͜ʖ ͡⚆)",
+        "(๑•̀ㅂ•́)و✧",
+        "(╬ ã﹏ã)",
+        "(ᵟຶ︵ ᵟຶ)",
+        "ヽ(°〇°)ﾉ",
+        "(づ￣ ³￣)づ",
+        "（￣︶￣）",
+        "(ง︡'-'︠)ง",
+        "(｡>ω<｡)",
+        "(っ´ω`c)",
+        "(・_・ヾ",
+        "¯\\_(⊙_ʖ⊙)_/¯",
+        "(ﾉ´ з `)ノ",
+        "(＾▽＾)",
+        "(・`ω´・)",
+        "（；´д｀）ゞ"
+    };
+
+    private static final int SYMBOL_SECTION_GAP = 10;
+    private static final int KAOMOJI_ROW_H = 16;
+    private static final int KAOMOJI_CELL_PAD_X = 6;
+    private static final int KAOMOJI_GAP_X = 3;
+
     private static final int CELL = 14;
     private static final int SYMBOL_CELL = 14;
     private static final int PANEL_PAD = 4;
@@ -85,6 +137,19 @@ public final class ChatSymbolPalette {
 
     private @Nullable List<Integer> cachedFilteredIndices;
     private @Nullable String cachedFilteredQuery;
+    private @Nullable List<String> cachedKaomojiFiltered;
+    private @Nullable String cachedKaomojiQuery;
+
+    /** Thin-scrollbar thumb drag (see {@link ThinScrollbar.Metrics}). */
+    private boolean symbolsScrollbarDragging;
+    private int symbolsScrollDragAnchorMy;
+    private double symbolsScrollDragAnchorScroll;
+    private int symbolsScrollDragMaxTravel;
+    private double symbolsScrollDragMaxScroll;
+
+    private record KaomojiBox(int ki, int relX, int relY, int w, int rowH) {}
+
+    private record KaomojiLayout(int totalHeight, List<KaomojiBox> boxes) {}
 
     public boolean isOpen() {
         return open;
@@ -99,6 +164,7 @@ public final class ChatSymbolPalette {
             searchSelEnd = -1;
             searchBlinkLastMs = 0L;
             searchBlinkOn = true;
+            symbolsScrollbarDragging = false;
         }
     }
 
@@ -239,10 +305,6 @@ public final class ChatSymbolPalette {
         return Math.max(1, symbolsAreaWidth / SYMBOL_CELL);
     }
 
-    private static int symbolRowCount(int cols) {
-        return (SYMBOLS.length + cols - 1) / cols;
-    }
-
     private static int closeButtonX(int screenWidth) {
         return mainPanelRight(screenWidth) - PANEL_PAD - CLOSE_SIZE;
     }
@@ -260,6 +322,39 @@ public final class ChatSymbolPalette {
         int st = stackTop(screenHeight);
         int sb = stackBottom(screenHeight);
         return mx >= sl && mx < mr && my >= st && my < sb;
+    }
+
+    private boolean tryClickSymbolsScrollbar(
+            double mx, double my, int screenWidth, int screenHeight, Font font) {
+        int symTop = symbolsTop(screenHeight, font);
+        int symH = symbolsAreaHeight(screenHeight, font);
+        int barX = symbolsAreaRight(screenWidth);
+        int hitL = barX + ThinScrollbar.W - ThinScrollbar.HIT_W;
+        int hitR = barX + ThinScrollbar.W;
+        int ix = (int) mx;
+        int iy = (int) my;
+        int contentH = symbolsScrollContentHeight(screenWidth, screenHeight, font);
+        if (contentH <= symH) {
+            return false;
+        }
+        if (!(ix >= hitL && ix < hitR && iy >= symTop && iy < symTop + symH)) {
+            return false;
+        }
+        ThinScrollbar.Metrics m = ThinScrollbar.Metrics.compute(symTop, symH, contentH, scrollPixels);
+        if (m == null) {
+            return false;
+        }
+        if (m.thumbContainsY(iy)) {
+            symbolsScrollbarDragging = true;
+            symbolsScrollDragAnchorScroll = scrollPixels;
+            symbolsScrollDragAnchorMy = iy;
+            symbolsScrollDragMaxTravel = m.maxTravel;
+            symbolsScrollDragMaxScroll = m.maxScroll;
+        } else {
+            scrollPixels = Mth.clamp(m.scrollPixelsForTrackClickY(symTop, iy), 0, Math.max(0, contentH - symH));
+        }
+        playClick();
+        return true;
     }
 
     /** @return true if the click was used by the palette (caller should swallow the event). */
@@ -289,20 +384,47 @@ public final class ChatSymbolPalette {
         int areaW = symRight - symLeft;
         int cols = symbolColumnCount(areaW);
         if (my >= symTop && my < symTop + symH && mx >= symLeft && mx < symRight) {
-            if (mx >= symLeft + cols * SYMBOL_CELL) {
-                return false;
-            }
-            int col = (int) ((mx - symLeft) / SYMBOL_CELL);
-            int row = (int) ((my - symTop + scrollPixels) / SYMBOL_CELL);
-            if (col < 0 || col >= cols || row < 0) {
-                return false;
-            }
-            int index = row * cols + col;
-            List<Integer> filtered = filteredIndices();
-            if (index >= 0 && index < filtered.size()) {
-                insertRaw(input, SYMBOLS[filtered.get(index)]);
-                playClick();
+            if (tryClickSymbolsScrollbar(mx, my, screenWidth, screenHeight, font)) {
                 return true;
+            }
+            List<Integer> filtered = filteredIndices();
+            List<String> kao = filteredKaomojiStrings();
+            int hGenLabel = sectionLabelH(font);
+            int genRows = Math.max(1, (filtered.size() + cols - 1) / cols);
+            int genGridH = genRows * SYMBOL_CELL;
+            int hKaoHead = kao.isEmpty() ? 0 : sectionLabelH(font);
+            KaomojiLayout kaoLayout = kao.isEmpty() ? new KaomojiLayout(0, List.of()) : layoutKaomojiFlow(font, kao, areaW);
+            float contentTop = symTop - (float) scrollPixels;
+            float gridTop = contentTop + hGenLabel;
+            double relGridY = my - gridTop;
+            if (relGridY >= 0 && relGridY < genGridH && mx < symLeft + cols * SYMBOL_CELL) {
+                int col = (int) ((mx - symLeft) / SYMBOL_CELL);
+                int row = (int) (relGridY / SYMBOL_CELL);
+                if (col >= 0 && col < cols && row >= 0) {
+                    int index = row * cols + col;
+                    if (index < filtered.size()) {
+                        insertRaw(input, SYMBOLS[filtered.get(index)]);
+                        playClick();
+                        return true;
+                    }
+                }
+            }
+            if (!kao.isEmpty()) {
+                float kaoText0 = gridTop + genGridH + SYMBOL_SECTION_GAP + hKaoHead;
+                double relKy = my - kaoText0;
+                double relKx = mx - symLeft;
+                if (relKy >= 0) {
+                    for (KaomojiBox box : kaoLayout.boxes()) {
+                        if (relKx >= box.relX()
+                                && relKx < box.relX() + box.w()
+                                && relKy >= box.relY()
+                                && relKy < box.relY() + box.rowH()) {
+                            insertRaw(input, kao.get(box.ki()));
+                            playClick();
+                            return true;
+                        }
+                    }
+                }
             }
         }
         return false;
@@ -486,7 +608,104 @@ public final class ChatSymbolPalette {
     private void invalidateFilterCache() {
         cachedFilteredIndices = null;
         cachedFilteredQuery = null;
+        cachedKaomojiFiltered = null;
+        cachedKaomojiQuery = null;
         scrollPixels = 0;
+        symbolsScrollbarDragging = false;
+    }
+
+    private static int sectionLabelH(Font font) {
+        return font.lineHeight + 2;
+    }
+
+    /**
+     * Flow-wrap kaomoji inside {@code areaW}: each entry gets a cell as wide as its rendered text (capped to
+     * {@code areaW}), then wraps to the next row. {@link KaomojiBox#relX}/{@code relY} are relative to the kaomoji text
+     * block origin (below the “Kaomoji” section label).
+     */
+    private static KaomojiLayout layoutKaomojiFlow(Font font, List<String> kao, int areaW) {
+        if (kao.isEmpty()) {
+            return new KaomojiLayout(0, List.of());
+        }
+        int rowH = Math.max(KAOMOJI_ROW_H, font.lineHeight + 4);
+        int x = 0;
+        int y = 0;
+        List<KaomojiBox> boxes = new ArrayList<>();
+        for (int ki = 0; ki < kao.size(); ki++) {
+            String s = kao.get(ki);
+            int inner = Math.max(1, font.width(s) + KAOMOJI_CELL_PAD_X * 2);
+            int w = Math.min(areaW, inner);
+            if (x > 0 && x + w > areaW) {
+                x = 0;
+                y += rowH + 1;
+            }
+            boxes.add(new KaomojiBox(ki, x, y, w, rowH));
+            x += w + KAOMOJI_GAP_X;
+        }
+        int bottom = 0;
+        for (KaomojiBox b : boxes) {
+            bottom = Math.max(bottom, b.relY() + b.rowH());
+        }
+        return new KaomojiLayout(bottom, boxes);
+    }
+
+    /**
+     * Call each frame while the palette is open (from {@link ChatScreenMixin}) so the symbols scrollbar thumb can be
+     * dragged like Settings / Chat Utilities lists.
+     */
+    public void tickScrollbarDrag(Minecraft mc, int screenWidth, int screenHeight) {
+        if (!open || !symbolsScrollbarDragging) {
+            return;
+        }
+        long h = mc.getWindow().handle();
+        if (GLFW.glfwGetMouseButton(h, GLFW.GLFW_MOUSE_BUTTON_LEFT) != GLFW.GLFW_PRESS) {
+            symbolsScrollbarDragging = false;
+            return;
+        }
+        Font font = mc.font;
+        int symTop = symbolsTop(screenHeight, font);
+        int symH = symbolsAreaHeight(screenHeight, font);
+        int contentHScroll = symbolsScrollContentHeight(screenWidth, screenHeight, font);
+        ThinScrollbar.Metrics m =
+                ThinScrollbar.Metrics.compute(symTop, symH, contentHScroll, scrollPixels);
+        if (m == null) {
+            symbolsScrollbarDragging = false;
+            return;
+        }
+        int my = (int) Math.round(mc.mouseHandler.getScaledYPos(mc.getWindow()));
+        double next =
+                symbolsScrollDragAnchorScroll
+                        + (my - symbolsScrollDragAnchorMy) * symbolsScrollDragMaxScroll / (double) symbolsScrollDragMaxTravel;
+        scrollPixels = Mth.clamp(next, 0, Math.max(0, contentHScroll - symH));
+    }
+
+    private List<String> filteredKaomojiStrings() {
+        String q = searchQuery == null ? "" : searchQuery.strip();
+        if (cachedKaomojiFiltered != null && q.equals(cachedKaomojiQuery)) {
+            return cachedKaomojiFiltered;
+        }
+        List<String> out = new ArrayList<>();
+        String qLower = q.toLowerCase(Locale.ROOT);
+        for (String s : KAOMOJI) {
+            if (q.isEmpty() || s.toLowerCase(Locale.ROOT).contains(qLower)) {
+                out.add(s);
+            }
+        }
+        cachedKaomojiFiltered = out;
+        cachedKaomojiQuery = q;
+        return out;
+    }
+
+    private int symbolsScrollContentHeight(int screenWidth, int screenHeight, Font font) {
+        int areaW = symbolsAreaRight(screenWidth) - symbolsAreaLeft(screenWidth);
+        int cols = symbolColumnCount(areaW);
+        List<Integer> gen = filteredIndices();
+        int genRows = Math.max(1, (gen.size() + cols - 1) / cols);
+        int genGridH = genRows * SYMBOL_CELL;
+        List<String> kao = filteredKaomojiStrings();
+        int kaoHead = kao.isEmpty() ? 0 : sectionLabelH(font);
+        int kaoBody = kao.isEmpty() ? 0 : layoutKaomojiFlow(font, kao, areaW).totalHeight();
+        return sectionLabelH(font) + genGridH + SYMBOL_SECTION_GAP + kaoHead + kaoBody;
     }
 
     private List<Integer> filteredIndices() {
@@ -592,11 +811,8 @@ public final class ChatSymbolPalette {
     }
 
     private void nudgeScroll(double delta, int screenWidth, int screenHeight, Font font) {
-        int areaW = symbolsAreaRight(screenWidth) - symbolsAreaLeft(screenWidth);
-        int cols = symbolColumnCount(areaW);
-        int rows = Math.max(1, (filteredIndices().size() + cols - 1) / cols);
         int symH = symbolsAreaHeight(screenHeight, font);
-        int contentH = rows * SYMBOL_CELL;
+        int contentH = symbolsScrollContentHeight(screenWidth, screenHeight, font);
         double maxScroll = Math.max(0, contentH - symH);
         scrollPixels = Mth.clamp(scrollPixels + delta, 0, maxScroll);
     }
@@ -653,25 +869,41 @@ public final class ChatSymbolPalette {
         int areaW = symRight - symLeft;
         int cols = symbolColumnCount(areaW);
         List<Integer> filtered = filteredIndices();
-        int rowsTotal = Math.max(1, (filtered.size() + cols - 1) / cols);
-        int contentHScroll = rowsTotal * SYMBOL_CELL;
+        List<String> kao = filteredKaomojiStrings();
+        int hGenLabel = sectionLabelH(font);
+        int genRows = Math.max(1, (filtered.size() + cols - 1) / cols);
+        int genGridH = genRows * SYMBOL_CELL;
+        int hKaoHead = kao.isEmpty() ? 0 : sectionLabelH(font);
+        KaomojiLayout kaoLayout = kao.isEmpty() ? new KaomojiLayout(0, List.of()) : layoutKaomojiFlow(font, kao, areaW);
+        int kaoBodyH = kaoLayout.totalHeight();
+        int contentHScroll = hGenLabel + genGridH + SYMBOL_SECTION_GAP + hKaoHead + kaoBodyH;
         scrollPixels = Mth.clamp(scrollPixels, 0, Math.max(0, contentHScroll - symH));
 
         graphics.fill(symLeft, symTop, symRight, symTop + symH, PALETTE_SYMBOL_WELL);
 
-        int firstRow = (int) (scrollPixels / SYMBOL_CELL);
-        double yOff = scrollPixels % SYMBOL_CELL;
         graphics.enableScissor(symLeft, symTop, symRight, symTop + symH);
         try {
-            for (int row = 0; row <= symH / SYMBOL_CELL + 1; row++) {
-                int r = firstRow + row;
+            float contentTop = symTop - (float) scrollPixels;
+            int lx = symLeft;
+            graphics.drawString(
+                    font,
+                    Component.literal("General").withStyle(ChatFormatting.GRAY),
+                    lx,
+                    (int) contentTop,
+                    ChatUtilitiesScreenLayout.TEXT_LABEL,
+                    false);
+            float gridTop = contentTop + hGenLabel;
+            int r0 = Mth.floor((symTop - gridTop) / (float) SYMBOL_CELL) - 1;
+            r0 = Math.max(0, r0);
+            int r1 = Mth.ceil((symTop + symH - gridTop) / (float) SYMBOL_CELL) + 1;
+            for (int r = r0; r < r1; r++) {
                 for (int c = 0; c < cols; c++) {
                     int idx = r * cols + c;
                     if (idx >= filtered.size()) {
                         break;
                     }
                     int sx = symLeft + c * SYMBOL_CELL;
-                    int sy = (int) (symTop + row * SYMBOL_CELL - yOff);
+                    float sy = gridTop + r * SYMBOL_CELL;
                     if (sy + SYMBOL_CELL < symTop || sy > symTop + symH) {
                         continue;
                     }
@@ -683,26 +915,63 @@ public final class ChatSymbolPalette {
                     if (hovered) {
                         graphics.fill(
                                 sx,
-                                Math.max(symTop, sy),
+                                (int) Math.max(symTop, sy),
                                 sx + SYMBOL_CELL,
-                                Math.min(symTop + symH, sy + SYMBOL_CELL),
+                                (int) Math.min(symTop + symH, sy + SYMBOL_CELL),
                                 PALETTE_HOVER_CELL);
                     }
                     String sym = SYMBOLS[filtered.get(idx)];
                     int sw = font.width(sym);
                     int sh = font.lineHeight;
-                    int drawY = sy + (SYMBOL_CELL - sh) / 2;
+                    int drawY = (int) (sy + (SYMBOL_CELL - sh) / 2);
                     if (drawY + sh >= symTop && drawY < symTop + symH) {
                         graphics.drawString(font, sym, sx + (SYMBOL_CELL - sw) / 2, drawY, 0xFFFFFFFF, false);
                     }
+                }
+            }
+            float kaoLabelY = gridTop + genGridH + SYMBOL_SECTION_GAP;
+            if (!kao.isEmpty()) {
+                graphics.drawString(
+                        font,
+                        Component.literal("Kaomoji").withStyle(ChatFormatting.GRAY),
+                        lx,
+                        (int) kaoLabelY,
+                        ChatUtilitiesScreenLayout.TEXT_LABEL,
+                        false);
+                float kaoText0 = kaoLabelY + hKaoHead;
+                for (KaomojiBox box : kaoLayout.boxes()) {
+                    float ry = kaoText0 + box.relY();
+                    float ryBottom = ry + box.rowH();
+                    if (ryBottom < symTop || ry > symTop + symH) {
+                        continue;
+                    }
+                    int cellX = symLeft + box.relX();
+                    int cellWi = box.w();
+                    String full = kao.get(box.ki());
+                    int tw = font.width(full);
+                    boolean hov =
+                            mouseX >= cellX
+                                    && mouseX < cellX + cellWi
+                                    && mouseY >= Math.max(symTop, ry)
+                                    && mouseY < Math.min(symTop + symH, ryBottom);
+                    if (hov) {
+                        graphics.fill(
+                                cellX,
+                                (int) Math.max(symTop, ry),
+                                cellX + cellWi,
+                                (int) Math.min(symTop + symH, ryBottom),
+                                PALETTE_HOVER_CELL);
+                    }
+                    int ty = (int) (ry + (box.rowH() - font.lineHeight) / 2);
+                    int tx = cellX + (cellWi - tw) / 2;
+                    graphics.drawString(font, full, tx, ty, 0xFFFFFFFF, false);
                 }
             }
         } finally {
             graphics.disableScissor();
         }
 
-        int contentH = rowsTotal * SYMBOL_CELL;
-        ThinScrollbar.render(graphics, symRight, symTop, symH, contentH, scrollPixels, 1f);
+        ThinScrollbar.render(graphics, symRight, symTop, symH, contentHScroll, scrollPixels, 1f);
     }
 
     private void renderSearchBar(

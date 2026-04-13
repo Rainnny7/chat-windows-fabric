@@ -8,6 +8,7 @@ import me.braydon.chatutilities.client.ChatUtilitiesClientOptions;
 import me.braydon.chatutilities.mixin.client.ChatComponentAccess;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.GuiMessage;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.ChatComponent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -16,11 +17,19 @@ import net.minecraft.network.chat.MutableComponent;
  * Merges consecutive duplicate chat lines in the vanilla HUD into one line with a gray {@code (xN)} suffix.
  */
 public final class VanillaChatRepeatStacker {
-    /** Plain text after formatting strip; matches a trailing repeat suffix from this mod. */
-    private static final Pattern PLAIN_STACK_SUFFIX = Pattern.compile(" \\(x(\\d+)\\)$");
+    /**
+     * Plain text after formatting strip; matches a trailing repeat suffix from this mod.
+     * Uses {@code (?:^| )} so it also matches when the base is empty and
+     * {@link ChatUtilitiesManager#plainTextForMatching} has stripped the leading space
+     * (e.g. {@code "(x2)"} rather than {@code " (x2)"}).
+     */
+    private static final Pattern PLAIN_STACK_SUFFIX = Pattern.compile("(?:^| )\\(x(\\d+)\\)$");
 
     /** Last sibling is only {@code (xN)} (stack counter). */
     private static final Pattern LITERAL_COUNTER_ONLY = Pattern.compile("^\\(x\\d+\\)$");
+
+    /** Plain after optional timestamp is only {@code (xN)} — must not join empty-key stacks. */
+    private static final Pattern PLAIN_BODY_COUNTER_ONLY = Pattern.compile("^\\s*\\(x\\d+\\)\\s*$");
 
     /**
      * Leading timestamp injected by {@link ChatTimestampFormatter} — e.g. {@code [12:34] } or
@@ -48,21 +57,20 @@ public final class VanillaChatRepeatStacker {
         }
         int next = parseDisplayedCount(older.content()) + 1;
         Component base = stackBaseContent(newest.content(), older.content());
-        // If the resolved base collapses to an empty key, refuse to merge — merging would produce
-        // a suffix-only line like "(x2)" that then self-matches with any other empty-key line.
-        if (plainStackKey(base).isEmpty()) {
-            return;
-        }
+        Minecraft mc = Minecraft.getInstance();
+        int mergeTick = mc != null ? mc.gui.getGuiTicks() : older.addedTime();
         GuiMessage merged =
                 new GuiMessage(
-                        // Preserve the original line's time so smooth-chat doesn't re-animate when it becomes (xN).
-                        older.addedTime(),
+                        // Current tick so the merged line is treated like a fresh HUD row (visible when chat is
+                        // closed). Smooth-chat slide/fade for this line is suppressed for one fade window — see manager.
+                        mergeTick,
                         withStackSuffix(base, next),
                         newest.signature(),
                         newest.tag());
         msgs.remove(0);
         msgs.remove(0);
         msgs.add(0, merged);
+        ChatUtilitiesManager.get().noteVanillaStackMergeForHud(mergeTick);
         ChatMessageRebuildGuard.enter();
         try {
             access.chatUtilities$refreshTrimmedMessages();
@@ -119,12 +127,63 @@ public final class VanillaChatRepeatStacker {
 
     private static boolean plainStackKeysEqual(Component a, Component b) {
         String ka = plainStackKey(a);
-        // An empty key means the text collapses to nothing (e.g. a bare suffix like "(x2)").
-        // Never treat two empty keys as matching — that would stack suffix-only lines endlessly.
-        if (ka.isEmpty()) {
+        String kb = plainStackKey(b);
+        // Both keys are empty — both are empty messages or stacks of empty messages; allow merging.
+        // Checking this before the artifact guard is intentional: the guard fires on stacked-empty
+        // lines (plain text is only "(xN)"), which would otherwise prevent further stacking.
+        if (ka.isEmpty() && kb.isEmpty()) {
+            return true;
+        }
+        if (isCounterSuffixOnlyArtifact(a) || isCounterSuffixOnlyArtifact(b)) {
             return false;
         }
-        return ka.equals(plainStackKey(b));
+        return ka.equals(kb);
+    }
+
+    /**
+     * True when the line’s plain body (ignoring leading chat timestamps) is only {@code (xN)}, so it must not
+     * participate in empty-key stacking.
+     */
+    private static boolean isCounterSuffixOnlyArtifact(Component c) {
+        String p = ChatUtilitiesManager.plainTextForMatching(c);
+        Matcher ts = TIMESTAMP_PREFIX.matcher(p);
+        if (ts.find()) {
+            p = p.substring(ts.end());
+        }
+        p = stripInvisibleEverywhere(p).replaceAll("\\s+", " ").strip();
+        return !p.isEmpty() && PLAIN_BODY_COUNTER_ONLY.matcher(p).matches();
+    }
+
+    /**
+     * Whether two stored window lines (no leading timestamp in {@code baseContent}) should merge into one stack.
+     */
+    public static boolean chatWindowPlainStackEqual(String plainA, String plainB) {
+        String pa = windowPlainStackKey(plainA);
+        String pb = windowPlainStackKey(plainB);
+        if (isPlainBodyCounterOnly(pa) || isPlainBodyCounterOnly(pb)) {
+            return false;
+        }
+        if (!pa.isEmpty()) {
+            return pa.equals(pb);
+        }
+        return pb.isEmpty();
+    }
+
+    private static String windowPlainStackKey(String plain) {
+        if (plain == null) {
+            return "";
+        }
+        String p = stripInvisibleEverywhere(plain).replaceAll("\\s+", " ").strip();
+        Matcher m = PLAIN_STACK_SUFFIX.matcher(p);
+        if (m.find()) {
+            p = p.substring(0, m.start());
+        }
+        return p.replaceAll("\\s+", " ").strip();
+    }
+
+    private static boolean isPlainBodyCounterOnly(String pAfterSuffixStrip) {
+        String s = pAfterSuffixStrip == null ? "" : pAfterSuffixStrip.strip();
+        return !s.isEmpty() && PLAIN_BODY_COUNTER_ONLY.matcher(s).matches();
     }
 
     private static String plainStackKey(Component c) {

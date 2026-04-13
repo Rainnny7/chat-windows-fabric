@@ -9,6 +9,7 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 
 import me.braydon.chatutilities.client.ChatUtilitiesClientOptions;
+import net.minecraft.client.Minecraft;
 
 /** One filter tab inside a {@link ChatWindow}: patterns and isolated message history. */
 public final class ChatWindowTab {
@@ -123,7 +124,9 @@ public final class ChatWindowTab {
             ChatWindowLine last = lines.peekLast();
             if (last != null && last.sameStackAs(line)) {
                 lines.removeLast();
-                toAdd = last.mergedWithRepeat();
+                Minecraft mc = Minecraft.getInstance();
+                int mergeTick = mc != null ? mc.gui.getGuiTicks() : line.addedGuiTick();
+                toAdd = last.mergedWithRepeat(mergeTick);
             }
         }
         int cap = ChatUtilitiesClientOptions.getEffectiveChatHistoryLimit();

@@ -12,6 +12,7 @@
 		"ChatPanelBackgroundAlphaUnfocusedMixin",
 		"ChatComponentMixin",
 		"GuiRenderChatPeekMixin",
+		"CommandSuggestionsFormatTextInvoker",
 		"CommandSuggestionsMixin",
 		"ChatScreenMixin",
 		"ChatScreenInputAccess",

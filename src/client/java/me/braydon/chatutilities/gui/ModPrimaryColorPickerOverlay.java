@@ -6,6 +6,9 @@ import me.braydon.chatutilities.client.ModChromaClock;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import org.lwjgl.glfw.GLFW;
@@ -31,13 +34,14 @@ public final class ModPrimaryColorPickerOverlay {
         ACCENT,
         TIMESTAMP_RGB,
         STACKED_MESSAGE_RGB,
+        UNREAD_BADGE_RGB,
         /** Same HSV UI as timestamp; {@link #applyAndPersist} invokes highlight consumer with RGB + formats. */
         CHAT_HIGHLIGHT_RGB
     }
 
     private static final int PANEL_W = 292;
-    private static final int PANEL_H = 200;
-    private static final int PANEL_H_HIGHLIGHT = 248;
+    private static final int PANEL_H = 218;
+    private static final int PANEL_H_HIGHLIGHT = 266;
     private static final int SB_SIZE = 64;
     private static final int STRIP_W = 8;
     private static final int STRIP_H = SB_SIZE;
@@ -95,6 +99,9 @@ public final class ModPrimaryColorPickerOverlay {
 
     private Drag drag = Drag.NONE;
 
+    private EditBox hexField;
+    private boolean hexResponderSuppress;
+
     private ModPrimaryColorPickerOverlay(OverlayMode mode, Consumer<ChatHighlightPick> chatHighlightConsumer) {
         this.mode = mode;
         this.chatHighlightConsumer = chatHighlightConsumer;
@@ -115,6 +122,12 @@ public final class ModPrimaryColorPickerOverlay {
     public static ModPrimaryColorPickerOverlay createStackedMessageRgb() {
         ModPrimaryColorPickerOverlay o = new ModPrimaryColorPickerOverlay(OverlayMode.STACKED_MESSAGE_RGB, null);
         o.loadStackedMessageRgbFromOptions();
+        return o;
+    }
+
+    public static ModPrimaryColorPickerOverlay createUnreadBadgeRgb() {
+        ModPrimaryColorPickerOverlay o = new ModPrimaryColorPickerOverlay(OverlayMode.UNREAD_BADGE_RGB, null);
+        o.loadUnreadBadgeRgbFromOptions();
         return o;
     }
 
@@ -150,6 +163,7 @@ public final class ModPrimaryColorPickerOverlay {
         this.alpha = 255;
         this.chroma = false;
         this.chromaSpeed = ChatUtilitiesClientOptions.getModPrimaryChromaSpeed();
+        refreshHexFieldText();
     }
 
     private void loadTimestampRgbFromOptions() {
@@ -164,6 +178,7 @@ public final class ModPrimaryColorPickerOverlay {
         this.alpha = 255;
         this.chroma = false;
         this.chromaSpeed = ChatUtilitiesClientOptions.getModPrimaryChromaSpeed();
+        refreshHexFieldText();
     }
 
     private void loadStackedMessageRgbFromOptions() {
@@ -178,6 +193,22 @@ public final class ModPrimaryColorPickerOverlay {
         this.alpha = 255;
         this.chroma = false;
         this.chromaSpeed = ChatUtilitiesClientOptions.getModPrimaryChromaSpeed();
+        refreshHexFieldText();
+    }
+
+    private void loadUnreadBadgeRgbFromOptions() {
+        int rgb = ChatUtilitiesClientOptions.getTabUnreadBadgeColorRgb() & 0xFFFFFF;
+        int r = (rgb >> 16) & 0xFF;
+        int g = (rgb >> 8) & 0xFF;
+        int b = rgb & 0xFF;
+        float[] hsv = ModPrimaryColorUtils.rgbToHsv(r, g, b);
+        this.hue = hsv[0];
+        this.sat = hsv[1];
+        this.val = hsv[2];
+        this.alpha = 255;
+        this.chroma = false;
+        this.chromaSpeed = ChatUtilitiesClientOptions.getModPrimaryChromaSpeed();
+        refreshHexFieldText();
     }
 
     private void loadFromOptions() {
@@ -192,6 +223,47 @@ public final class ModPrimaryColorPickerOverlay {
         this.alpha = (base >>> 24) & 0xFF;
         this.chroma = ChatUtilitiesClientOptions.isModPrimaryChroma();
         this.chromaSpeed = ChatUtilitiesClientOptions.getModPrimaryChromaSpeed();
+        refreshHexFieldText();
+    }
+
+    private void refreshHexFieldText() {
+        if (hexField == null) {
+            return;
+        }
+        int rgbOnly = ModPrimaryColorUtils.hsvToArgb(hue, sat, val, 255) & 0xFFFFFF;
+        hexResponderSuppress = true;
+        try {
+            hexField.setValue(String.format("#%06X", rgbOnly));
+        } finally {
+            hexResponderSuppress = false;
+        }
+    }
+
+    private void onHexFieldChanged(String raw) {
+        if (hexResponderSuppress) {
+            return;
+        }
+        String s = raw == null ? "" : raw.strip();
+        if (s.startsWith("#")) {
+            s = s.substring(1);
+        }
+        if (s.length() != 6) {
+            return;
+        }
+        int rgb;
+        try {
+            rgb = Integer.parseUnsignedInt(s, 16);
+        } catch (NumberFormatException e) {
+            return;
+        }
+        rgb &= 0xFFFFFF;
+        int r = (rgb >> 16) & 0xFF;
+        int g = (rgb >> 8) & 0xFF;
+        int b = rgb & 0xFF;
+        float[] hsv = ModPrimaryColorUtils.rgbToHsv(r, g, b);
+        this.hue = hsv[0];
+        this.sat = hsv[1];
+        this.val = hsv[2];
     }
 
     public void layout(int screenW, int screenH) {
@@ -211,23 +283,52 @@ public final class ModPrimaryColorPickerOverlay {
         alphaTop = sbTop;
 
         int rightCol =
-                mode == OverlayMode.TIMESTAMP_RGB || mode == OverlayMode.CHAT_HIGHLIGHT_RGB
+                mode == OverlayMode.TIMESTAMP_RGB
+                                || mode == OverlayMode.CHAT_HIGHLIGHT_RGB
+                                || mode == OverlayMode.UNREAD_BADGE_RGB
                         ? hueLeft + STRIP_W + 10
                         : alphaLeft + STRIP_W + 10;
         previewLeft = rightCol;
         previewTop = innerY;
         chromaCbLeft = rightCol;
-        chromaCbTop = innerY + 18;
+        chromaCbTop = mode == OverlayMode.ACCENT ? previewTop + 34 : innerY + 18;
 
         speedLeft = rightCol;
-        speedTop = innerY + 56;
+        speedTop = mode == OverlayMode.ACCENT ? chromaCbTop + 38 : innerY + 56;
         speedW = pw - (rightCol - panelX) - 10;
         speedH = 12;
 
-        hlFmtTop = innerY + 34;
+        hlFmtTop = mode == OverlayMode.CHAT_HIGHLIGHT_RGB ? previewTop + 34 : innerY + 34;
 
         recentLeft = innerX;
         recentTop = panelY + ph - 44;
+
+        int hexW = 96;
+        int hexX = previewLeft;
+        int hexY = previewTop + 12;
+        if (hexField == null) {
+            hexField =
+                    new EditBox(
+                            Minecraft.getInstance().font,
+                            hexX,
+                            hexY,
+                            hexW,
+                            18,
+                            Component.literal("hex"));
+            hexField.setMaxLength(9);
+            hexField.setHint(Component.literal("#RRGGBB"));
+            hexField.setResponder(this::onHexFieldChanged);
+            refreshHexFieldText();
+        } else {
+            hexField.setX(hexX);
+            hexField.setY(hexY);
+            hexField.setWidth(hexW);
+            hexField.setHeight(18);
+            // Do not overwrite user input every frame from {@link ChatUtilitiesRootScreen#renderModPrimaryColorPickerOnTop}.
+            if (!hexField.isFocused()) {
+                refreshHexFieldText();
+            }
+        }
 
         int doneY = panelY + ph - 26;
         btnW = 72;
@@ -262,7 +363,10 @@ public final class ModPrimaryColorPickerOverlay {
     }
 
     private int previewArgbUi() {
-        if (mode == OverlayMode.TIMESTAMP_RGB || mode == OverlayMode.CHAT_HIGHLIGHT_RGB || !chroma) {
+        if (mode == OverlayMode.TIMESTAMP_RGB
+                || mode == OverlayMode.CHAT_HIGHLIGHT_RGB
+                || mode == OverlayMode.UNREAD_BADGE_RGB
+                || !chroma) {
             return ModPrimaryColorUtils.hsvToArgb(hue, sat, val, alpha);
         }
         float t = ModChromaClock.phaseSeconds();
@@ -299,7 +403,10 @@ public final class ModPrimaryColorPickerOverlay {
                         ? Component.translatable("chat-utilities.settings.chat_timestamp.color_picker_title")
                         : mode == OverlayMode.CHAT_HIGHLIGHT_RGB
                                 ? Component.translatable("chat-utilities.chat_actions.color_highlight.picker_title")
-                                : Component.translatable("chat-utilities.settings.mod_primary_color.picker.title");
+                                : mode == OverlayMode.UNREAD_BADGE_RGB
+                                        ? Component.translatable(
+                                                "chat-utilities.settings.unread_badge.color_picker_title")
+                                        : Component.translatable("chat-utilities.settings.mod_primary_color.picker.title");
         g.drawString(font, title, panelX + 8, panelY + 8, ChatUtilitiesScreenLayout.TEXT_WHITE, false);
 
         g.drawString(
@@ -320,9 +427,9 @@ public final class ModPrimaryColorPickerOverlay {
         int pr = 14;
         g.fill(previewLeft, previewTop, previewLeft + pr, previewTop + pr, pv);
         g.renderOutline(previewLeft, previewTop, pr, pr, 0xFFAAAAAA);
-        int rgbOnly = ModPrimaryColorUtils.hsvToArgb(hue, sat, val, 255) & 0xFFFFFF;
-        String hex = String.format("#%06X", rgbOnly);
-        g.drawString(font, hex, previewLeft + pr + 4, previewTop + 3, 0xFFCCCCDD, false);
+        if (hexField != null) {
+            hexField.render(g, mouseX, mouseY, partialTick);
+        }
 
         if (mode == OverlayMode.CHAT_HIGHLIGHT_RGB) {
             drawHighlightFormatToggles(g, font);
@@ -466,6 +573,26 @@ public final class ModPrimaryColorPickerOverlay {
         g.fill(x, y, x + btnW, y + btnH, bg);
         g.renderOutline(x, y, btnW, btnH, outline);
         g.drawCenteredString(font, label, x + btnW / 2, y + (btnH - 8) / 2, tc);
+    }
+
+    public EditBox getHexField() {
+        return hexField;
+    }
+
+    /** Hit test for the hex {@link EditBox} after {@link #layout}. */
+    public boolean isHexFieldMouseOver(double mouseX, double mouseY) {
+        if (hexField == null) {
+            return false;
+        }
+        return hexField.isMouseOver(mouseX, mouseY);
+    }
+
+    public boolean keyPressed(KeyEvent event) {
+        return hexField != null && hexField.isFocused() && hexField.keyPressed(event);
+    }
+
+    public boolean charTyped(CharacterEvent event) {
+        return hexField != null && hexField.isFocused() && hexField.charTyped(event);
     }
 
     public boolean contains(int x, int y) {
@@ -693,6 +820,7 @@ public final class ModPrimaryColorPickerOverlay {
         } else {
             alpha = 255;
         }
+        refreshHexFieldText();
     }
 
     private void applyDrag(int mx, int my) {
@@ -710,16 +838,19 @@ public final class ModPrimaryColorPickerOverlay {
         float v = 1f - (y - sbTop) / (float) SB_SIZE;
         sat = Mth.clamp(s, 0f, 1f);
         val = Mth.clamp(v, 0f, 1f);
+        refreshHexFieldText();
     }
 
     private void applyHue(int y) {
         float h = (y - hueTop) / (float) STRIP_H;
         hue = Mth.clamp(h, 0f, 0.9999f);
+        refreshHexFieldText();
     }
 
     private void applyAlpha(int y) {
         float t = 1f - (y - alphaTop) / (float) STRIP_H;
         alpha = Mth.clamp(Math.round(t * 255f), 0, 255);
+        refreshHexFieldText();
     }
 
     private void applySpeed(int x) {
@@ -737,6 +868,9 @@ public final class ModPrimaryColorPickerOverlay {
         } else if (mode == OverlayMode.STACKED_MESSAGE_RGB) {
             int rgb = ModPrimaryColorUtils.hsvToArgb(hue, sat, val, 255) & 0xFFFFFF;
             ChatUtilitiesClientOptions.setStackedMessageColorRgb(rgb);
+        } else if (mode == OverlayMode.UNREAD_BADGE_RGB) {
+            int rgb = ModPrimaryColorUtils.hsvToArgb(hue, sat, val, 255) & 0xFFFFFF;
+            ChatUtilitiesClientOptions.setTabUnreadBadgeColorRgb(rgb);
         } else if (mode == OverlayMode.CHAT_HIGHLIGHT_RGB) {
             int rgb = ModPrimaryColorUtils.hsvToArgb(hue, sat, val, 255) & 0xFFFFFF;
             ChatUtilitiesClientOptions.pushModPrimaryRecent(0xFF000000 | rgb);

@@ -19,6 +19,11 @@ public final class ChatWindow {
     public static final int MIN_VISIBLE_LINES = 2;
     public static final int MAX_VISIBLE_LINES_CAP = 512;
 
+    /** Per-window chat text scale in the HUD (1 = match vanilla chat line height). */
+    public static final float DEFAULT_TEXT_SCALE = 1f;
+    public static final float MIN_TEXT_SCALE = 0.55f;
+    public static final float MAX_TEXT_SCALE = 1.75f;
+
     public static final String DEFAULT_TAB_NAME = "Default";
 
     private final String id;
@@ -29,6 +34,7 @@ public final class ChatWindow {
     private float anchorY = 0.85f;
     private float widthFrac = DEFAULT_WIDTH_FRAC;
     private int maxVisibleLines = DEFAULT_MAX_VISIBLE_LINES;
+    private float textScale = DEFAULT_TEXT_SCALE;
     private boolean visible = true;
     private boolean positioningMode;
 
@@ -109,6 +115,7 @@ public final class ChatWindow {
         nw.anchorY = this.anchorY;
         nw.widthFrac = this.widthFrac;
         nw.maxVisibleLines = this.maxVisibleLines;
+        nw.textScale = this.textScale;
         nw.visible = this.visible;
         nw.positioningMode = this.positioningMode;
         return nw;
@@ -270,6 +277,14 @@ public final class ChatWindow {
 
     public void setMaxVisibleLines(int maxVisibleLines) {
         this.maxVisibleLines = Math.max(MIN_VISIBLE_LINES, Math.min(MAX_VISIBLE_LINES_CAP, maxVisibleLines));
+    }
+
+    public float getTextScale() {
+        return textScale;
+    }
+
+    public void setTextScale(float textScale) {
+        this.textScale = Mth.clamp(textScale, MIN_TEXT_SCALE, MAX_TEXT_SCALE);
     }
 
     public boolean isVisible() {

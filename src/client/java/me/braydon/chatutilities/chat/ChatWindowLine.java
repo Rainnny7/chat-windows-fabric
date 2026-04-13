@@ -2,18 +2,29 @@ package me.braydon.chatutilities.chat;
 
 import me.braydon.chatutilities.client.ChatUtilitiesClientOptions;
 import net.minecraft.ChatFormatting;
-import net.minecraft.network.chat.Style;
-import net.minecraft.network.chat.TextColor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.TextColor;
+import net.minecraft.util.Mth;
 
-public record ChatWindowLine(Component baseContent, int addedGuiTick, int stackCount, long addedWallTimeMs) {
+public record ChatWindowLine(
+        Component baseContent,
+        int addedGuiTick,
+        int stackCount,
+        long addedWallTimeMs,
+        long stackPulseUntilMs,
+        /**
+         * While {@code guiTick <=} this value, smooth-chat fade/slide is skipped for this line (same idea as vanilla
+         * stack merge suppress) so repeat-stack updates do not replay the intro animation every merge.
+         */
+        int stackFadeSuppressUntilTick) {
     public ChatWindowLine {
         stackCount = Math.max(1, stackCount);
     }
 
     public static ChatWindowLine single(Component message, int tick, long wallTimeMs) {
-        return new ChatWindowLine(message, tick, 1, wallTimeMs);
+        return new ChatWindowLine(message, tick, 1, wallTimeMs, 0L, -1);
     }
 
     /** Full line for rendering and hit-testing (includes gray {@code (xN)} when stacked). */
@@ -48,13 +59,15 @@ public record ChatWindowLine(Component baseContent, int addedGuiTick, int stackC
     boolean sameStackAs(ChatWindowLine incoming) {
         String a = ChatUtilitiesManager.plainTextForMatching(baseContent);
         String b = ChatUtilitiesManager.plainTextForMatching(incoming.baseContent);
-        if (a.isBlank() || b.isBlank()) {
-            return false;
-        }
-        return a.equals(b);
+        return VanillaChatRepeatStacker.chatWindowPlainStackEqual(a, b);
     }
 
-    ChatWindowLine mergedWithRepeat() {
-        return new ChatWindowLine(baseContent, addedGuiTick, stackCount + 1, addedWallTimeMs);
+    ChatWindowLine mergedWithRepeat(int mergeGuiTick) {
+        long pulseEnd = System.currentTimeMillis() + 450;
+        long pulse = Math.max(stackPulseUntilMs, pulseEnd);
+        int fadeMs = ChatUtilitiesClientOptions.getSmoothChatFadeMs();
+        int durTicks = Math.max(1, Mth.ceil(fadeMs / (1000f / 20f)));
+        int suppressUntil = mergeGuiTick + durTicks + 2;
+        return new ChatWindowLine(baseContent, mergeGuiTick, stackCount + 1, addedWallTimeMs, pulse, suppressUntil);
     }
 }

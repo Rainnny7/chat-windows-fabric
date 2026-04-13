@@ -67,6 +67,12 @@ public final class ChatUtilitiesClientOptions {
     /** Skip chat action sounds/highlights on your own chat lines. */
     private static boolean ignoreSelfInChatActions = true;
 
+    /**
+     * When true, the client does not clear the main (vanilla) chat log when leaving a server/world (soft clear).
+     * Full clears that include sent-command history still run when the game requests them.
+     */
+    private static boolean preserveVanillaChatOnDisconnect = true;
+
     /** When true, the image preview domain whitelist is bypassed (extension check still applies). */
     private static boolean allowUntrustedImagePreviewDomains;
 
@@ -183,24 +189,34 @@ public final class ChatUtilitiesClientOptions {
     /** When chat is closed, show unread-only tabs on the HUD. */
     private static boolean alwaysShowUnreadTabs = true;
 
+    /** RGB only (no alpha); default matches legacy unread badge red. */
+    public static final int TAB_UNREAD_BADGE_COLOR_RGB_DEFAULT = 0xD93025;
+
+    private static int tabUnreadBadgeColorRgb = TAB_UNREAD_BADGE_COLOR_RGB_DEFAULT;
+
+    private static TabUnreadBadgeStyle tabUnreadBadgeStyle = TabUnreadBadgeStyle.CIRCLE;
+
+    private static boolean checkForUpdatesEnabled = true;
+
+    private static final List<String> BUILTIN_IMAGE_PREVIEW_HOSTS =
+            List.of(
+                    "cdn.rainnny.club",
+                    "cdn.fascinated.cc",
+                    "imgur.com",
+                    "i.imgur.com",
+                    "gyazo.com",
+                    "i.gyazo.com",
+                    "prnt.sc",
+                    "image.prntscr.com",
+                    "cdn.discordapp.com",
+                    "media.discordapp.net",
+                    "i.redd.it",
+                    "preview.redd.it",
+                    "i.ibb.co",
+                    "i.postimg.cc");
+
     /** Host suffixes allowed for image preview (e.g. {@code imgur.com} matches {@code i.imgur.com}). */
-    private static final List<String> imagePreviewWhitelistHosts =
-            new ArrayList<>(
-                    List.of(
-                            "cdn.rainnny.club",
-                            "cdn.fascinated.cc",
-                            "imgur.com",
-                            "i.imgur.com",
-                            "gyazo.com",
-                            "i.gyazo.com",
-                            "prnt.sc",
-                            "image.prntscr.com",
-                            "cdn.discordapp.com",
-                            "media.discordapp.net",
-                            "i.redd.it",
-                            "preview.redd.it",
-                            "i.ibb.co",
-                            "i.postimg.cc"));
+    private static final List<String> imagePreviewWhitelistHosts = new ArrayList<>(BUILTIN_IMAGE_PREVIEW_HOSTS);
 
     private ChatUtilitiesClientOptions() {}
 
@@ -210,6 +226,11 @@ public final class ChatUtilitiesClientOptions {
         /** {@code §} legacy codes (Java Edition section sign). */
         SECTION_SYMBOL,
         MINIMESSAGE
+    }
+
+    public enum TabUnreadBadgeStyle {
+        CIRCLE,
+        HEART
     }
 
     public static void init() {
@@ -283,6 +304,19 @@ public final class ChatUtilitiesClientOptions {
 
     public static void toggleIgnoreSelfInChatActions() {
         setIgnoreSelfInChatActions(!ignoreSelfInChatActions);
+    }
+
+    public static boolean isPreserveVanillaChatOnDisconnect() {
+        return preserveVanillaChatOnDisconnect;
+    }
+
+    public static void setPreserveVanillaChatOnDisconnect(boolean value) {
+        preserveVanillaChatOnDisconnect = value;
+        save();
+    }
+
+    public static void togglePreserveVanillaChatOnDisconnect() {
+        setPreserveVanillaChatOnDisconnect(!preserveVanillaChatOnDisconnect);
     }
 
     public static boolean isAllowUntrustedImagePreviewDomains() {
@@ -694,6 +728,27 @@ public final class ChatUtilitiesClientOptions {
         save();
     }
 
+    /** Clears the accent color picker “recent” swatches (used by row reset). */
+    public static void clearModPrimaryRecentColors() {
+        modPrimaryRecent.clear();
+        save();
+    }
+
+    /** Clears the timestamp color picker “recent” swatches (used by row reset). */
+    public static void clearChatTimestampRecentColors() {
+        chatTimestampRecent.clear();
+        save();
+    }
+
+    /** Restores the built-in image preview hostname list from a fresh install. */
+    public static void resetImagePreviewWhitelistToBuiltInDefaults() {
+        synchronized (imagePreviewWhitelistHosts) {
+            imagePreviewWhitelistHosts.clear();
+            imagePreviewWhitelistHosts.addAll(BUILTIN_IMAGE_PREVIEW_HOSTS);
+        }
+        save();
+    }
+
     public static List<Integer> getChatTimestampRecent() {
         return List.copyOf(chatTimestampRecent);
     }
@@ -737,6 +792,61 @@ public final class ChatUtilitiesClientOptions {
         setAlwaysShowUnreadTabs(!alwaysShowUnreadTabs);
     }
 
+    public static int getTabUnreadBadgeColorRgb() {
+        return tabUnreadBadgeColorRgb & 0xFFFFFF;
+    }
+
+    public static void setTabUnreadBadgeColorRgb(int rgb) {
+        tabUnreadBadgeColorRgb = rgb & 0xFFFFFF;
+        save();
+    }
+
+    public static TabUnreadBadgeStyle getTabUnreadBadgeStyle() {
+        return tabUnreadBadgeStyle;
+    }
+
+    public static void setTabUnreadBadgeStyle(TabUnreadBadgeStyle value) {
+        tabUnreadBadgeStyle = value != null ? value : TabUnreadBadgeStyle.CIRCLE;
+        save();
+    }
+
+    public static boolean isCheckForUpdatesEnabled() {
+        return checkForUpdatesEnabled;
+    }
+
+    public static void setCheckForUpdatesEnabled(boolean value) {
+        checkForUpdatesEnabled = value;
+        if (!value) {
+            ModUpdateChecker.clearResult();
+        } else {
+            ModUpdateChecker.forceRecheckSoon();
+        }
+        save();
+    }
+
+    public static void toggleCheckForUpdatesEnabled() {
+        setCheckForUpdatesEnabled(!checkForUpdatesEnabled);
+    }
+
+    /** Whether the whitelist matches the built-in default host list (order-insensitive). */
+    public static boolean isImagePreviewWhitelistAtBuiltInDefaults() {
+        synchronized (imagePreviewWhitelistHosts) {
+            if (imagePreviewWhitelistHosts.size() != BUILTIN_IMAGE_PREVIEW_HOSTS.size()) {
+                return false;
+            }
+            List<String> a = new ArrayList<>(imagePreviewWhitelistHosts);
+            List<String> b = new ArrayList<>(BUILTIN_IMAGE_PREVIEW_HOSTS);
+            a.sort(String.CASE_INSENSITIVE_ORDER);
+            b.sort(String.CASE_INSENSITIVE_ORDER);
+            for (int i = 0; i < a.size(); i++) {
+                if (!a.get(i).equalsIgnoreCase(b.get(i))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+
     public static List<String> getImagePreviewWhitelistHosts() {
         synchronized (imagePreviewWhitelistHosts) {
             return List.copyOf(imagePreviewWhitelistHosts);
@@ -754,22 +864,7 @@ public final class ChatUtilitiesClientOptions {
                 }
             }
             if (imagePreviewWhitelistHosts.isEmpty()) {
-                imagePreviewWhitelistHosts.addAll(
-                        List.of(
-                                "cdn.rainnny.club",
-                                "cdn.fascinated.cc",
-                                "imgur.com",
-                                "i.imgur.com",
-                                "gyazo.com",
-                                "i.gyazo.com",
-                                "prnt.sc",
-                                "image.prntscr.com",
-                                "cdn.discordapp.com",
-                                "media.discordapp.net",
-                                "i.redd.it",
-                                "preview.redd.it",
-                                "i.ibb.co",
-                                "i.postimg.cc"));
+                imagePreviewWhitelistHosts.addAll(BUILTIN_IMAGE_PREVIEW_HOSTS);
             }
         }
         save();
@@ -803,6 +898,7 @@ public final class ChatUtilitiesClientOptions {
         copyFormattedBinding = ClickMouseBinding.defaultFormatted();
         fullscreenImagePreviewClickBinding = ClickMouseBinding.defaultFullscreenImagePreview();
         ignoreSelfInChatActions = true;
+        preserveVanillaChatOnDisconnect = true;
         lastMenuProfileId = null;
         lastMenuPanel = null;
         smoothChat = false;
@@ -827,24 +923,12 @@ public final class ChatUtilitiesClientOptions {
         imageChatPreviewEnabled = true;
         chatWindowTabUnreadBadgesEnabled = true;
         alwaysShowUnreadTabs = true;
+        tabUnreadBadgeColorRgb = TAB_UNREAD_BADGE_COLOR_RGB_DEFAULT;
+        tabUnreadBadgeStyle = TabUnreadBadgeStyle.CIRCLE;
+        checkForUpdatesEnabled = true;
         synchronized (imagePreviewWhitelistHosts) {
             imagePreviewWhitelistHosts.clear();
-            imagePreviewWhitelistHosts.addAll(
-                    List.of(
-                            "cdn.rainnny.club",
-                            "cdn.fascinated.cc",
-                            "imgur.com",
-                            "i.imgur.com",
-                            "gyazo.com",
-                            "i.gyazo.com",
-                            "prnt.sc",
-                            "image.prntscr.com",
-                            "cdn.discordapp.com",
-                            "media.discordapp.net",
-                            "i.redd.it",
-                            "preview.redd.it",
-                            "i.ibb.co",
-                            "i.postimg.cc"));
+            imagePreviewWhitelistHosts.addAll(BUILTIN_IMAGE_PREVIEW_HOSTS);
         }
         save();
     }
@@ -869,6 +953,9 @@ public final class ChatUtilitiesClientOptions {
                 }
                 if (d.ignoreSelfInChatActions != null) {
                     ignoreSelfInChatActions = d.ignoreSelfInChatActions;
+                }
+                if (d.preserveVanillaChatOnDisconnect != null) {
+                    preserveVanillaChatOnDisconnect = d.preserveVanillaChatOnDisconnect;
                 }
                 chatTextShadow = d.chatTextShadow;
                 clickToCopyEnabled = d.clickToCopyEnabled;
@@ -985,6 +1072,15 @@ public final class ChatUtilitiesClientOptions {
                 if (d.alwaysShowUnreadTabs != null) {
                     alwaysShowUnreadTabs = d.alwaysShowUnreadTabs;
                 }
+                if (d.tabUnreadBadgeColorRgb != null) {
+                    tabUnreadBadgeColorRgb = d.tabUnreadBadgeColorRgb & 0xFFFFFF;
+                }
+                if (d.tabUnreadBadgeStyle != null) {
+                    tabUnreadBadgeStyle = parseTabUnreadBadgeStyle(d.tabUnreadBadgeStyle);
+                }
+                if (d.checkForUpdatesEnabled != null) {
+                    checkForUpdatesEnabled = d.checkForUpdatesEnabled;
+                }
                 if (d.imagePreviewWhitelistHosts != null && !d.imagePreviewWhitelistHosts.isEmpty()) {
                     synchronized (imagePreviewWhitelistHosts) {
                         imagePreviewWhitelistHosts.clear();
@@ -997,6 +1093,9 @@ public final class ChatUtilitiesClientOptions {
                 }
                 if (d.allowUntrustedImagePreviewDomains != null) {
                     allowUntrustedImagePreviewDomains = d.allowUntrustedImagePreviewDomains;
+                }
+                if (!checkForUpdatesEnabled) {
+                    ModUpdateChecker.clearResult();
                 }
             }
         } catch (IOException ignored) {
@@ -1022,6 +1121,7 @@ public final class ChatUtilitiesClientOptions {
             d.copyFormattedBinding = copyFormattedBinding;
             d.fullscreenImagePreviewClickBinding = fullscreenImagePreviewClickBinding;
             d.ignoreSelfInChatActions = ignoreSelfInChatActions;
+            d.preserveVanillaChatOnDisconnect = preserveVanillaChatOnDisconnect;
             d.smoothChat = smoothChat;
             d.smoothChatFadeMs = smoothChatFadeMs;
             d.smoothChatBarOpenMs = smoothChatBarOpenMs;
@@ -1042,6 +1142,9 @@ public final class ChatUtilitiesClientOptions {
             d.imageChatPreviewEnabled = imageChatPreviewEnabled;
             d.chatWindowTabUnreadBadgesEnabled = chatWindowTabUnreadBadgesEnabled;
             d.alwaysShowUnreadTabs = alwaysShowUnreadTabs;
+            d.tabUnreadBadgeColorRgb = getTabUnreadBadgeColorRgb();
+            d.tabUnreadBadgeStyle = tabUnreadBadgeStyle.name();
+            d.checkForUpdatesEnabled = checkForUpdatesEnabled;
             d.allowUntrustedImagePreviewDomains = allowUntrustedImagePreviewDomains;
             synchronized (imagePreviewWhitelistHosts) {
                 d.imagePreviewWhitelistHosts = new ArrayList<>(imagePreviewWhitelistHosts);
@@ -1066,6 +1169,7 @@ public final class ChatUtilitiesClientOptions {
         d.copyFormattedBinding = copyFormattedBinding;
         d.fullscreenImagePreviewClickBinding = fullscreenImagePreviewClickBinding;
         d.ignoreSelfInChatActions = ignoreSelfInChatActions;
+        d.preserveVanillaChatOnDisconnect = preserveVanillaChatOnDisconnect;
         d.smoothChat = smoothChat;
         d.smoothChatFadeMs = smoothChatFadeMs;
         d.smoothChatBarOpenMs = smoothChatBarOpenMs;
@@ -1088,6 +1192,9 @@ public final class ChatUtilitiesClientOptions {
         d.imageChatPreviewEnabled = imageChatPreviewEnabled;
         d.chatWindowTabUnreadBadgesEnabled = chatWindowTabUnreadBadgesEnabled;
         d.alwaysShowUnreadTabs = alwaysShowUnreadTabs;
+        d.tabUnreadBadgeColorRgb = getTabUnreadBadgeColorRgb();
+        d.tabUnreadBadgeStyle = tabUnreadBadgeStyle.name();
+        d.checkForUpdatesEnabled = checkForUpdatesEnabled;
         d.allowUntrustedImagePreviewDomains = allowUntrustedImagePreviewDomains;
         synchronized (imagePreviewWhitelistHosts) {
             d.imagePreviewWhitelistHosts = new ArrayList<>(imagePreviewWhitelistHosts);
@@ -1154,6 +1261,17 @@ public final class ChatUtilitiesClientOptions {
         }
     }
 
+    private static TabUnreadBadgeStyle parseTabUnreadBadgeStyle(String raw) {
+        if (raw == null || raw.isEmpty()) {
+            return TabUnreadBadgeStyle.CIRCLE;
+        }
+        try {
+            return TabUnreadBadgeStyle.valueOf(raw.trim());
+        } catch (IllegalArgumentException e) {
+            return TabUnreadBadgeStyle.CIRCLE;
+        }
+    }
+
     private static CopyFormattedStyle parseCopyFormattedStyle(String raw) {
         if (raw == null || raw.isEmpty()) {
             return CopyFormattedStyle.VANILLA;
@@ -1189,6 +1307,8 @@ public final class ChatUtilitiesClientOptions {
         ClickMouseBinding copyFormattedBinding;
         ClickMouseBinding fullscreenImagePreviewClickBinding;
         Boolean ignoreSelfInChatActions;
+        /** {@code null} in older configs — default {@code true}. */
+        Boolean preserveVanillaChatOnDisconnect;
         boolean smoothChat;
         int smoothChatFadeMs = 200;
         int smoothChatBarOpenMs = 200;
@@ -1213,6 +1333,12 @@ public final class ChatUtilitiesClientOptions {
         Boolean imageChatPreviewEnabled;
         Boolean chatWindowTabUnreadBadgesEnabled;
         Boolean alwaysShowUnreadTabs;
+        /** {@code null} in older configs — defaults to {@link #TAB_UNREAD_BADGE_COLOR_RGB_DEFAULT}. */
+        Integer tabUnreadBadgeColorRgb;
+        /** {@link TabUnreadBadgeStyle#name()}; {@code null} defaults to {@code CIRCLE}. */
+        String tabUnreadBadgeStyle;
+        /** {@code null} in older configs — default {@code true}. */
+        Boolean checkForUpdatesEnabled;
         Boolean allowUntrustedImagePreviewDomains;
         List<String> imagePreviewWhitelistHosts;
     }

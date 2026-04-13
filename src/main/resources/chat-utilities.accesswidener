@@ -14,3 +14,6 @@ accessible field net/minecraft/client/gui/components/ChatComponent trimmedMessag
 
 # Mixin @Redirect on LineConsumer.accept needs the nested type visible outside the components package
 accessible class net/minecraft/client/gui/components/ChatComponent$LineConsumer
+
+# SettingsBooleanToggleWidget: tooltip + hover use full widget bounds unless we override coordinate hit-test
+extendable method net/minecraft/client/gui/components/AbstractWidget areCoordinatesInRectangle (DD)Z

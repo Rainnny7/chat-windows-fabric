@@ -548,8 +548,19 @@ public abstract class ChatScreenMixin {
 
     @Inject(method = "render(Lnet/minecraft/client/gui/GuiGraphics;IIF)V", at = @At("HEAD"))
     private void chatUtilities$renderHeadBarSlide(GuiGraphics graphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
-        chatUtilities$refreshBarSlide((ChatScreen) (Object) this);
+        ChatScreen self = (ChatScreen) (Object) this;
+        chatUtilities$refreshBarSlide(self);
+        if (chatUtilities$searchField != null && ChatUtilitiesClientOptions.isChatSearchBarEnabled()) {
+            chatUtilities$searchField.setEditable(!ChatUtilitiesManager.get().isPositioning());
+            if (chatUtilities$searchField.isFocused() && input != null && input.isFocused()) {
+                input.setFocused(false);
+            }
+        }
         Minecraft mc = Minecraft.getInstance();
+        ChatSymbolPalette palette = chatUtilities$requirePalette();
+        if (palette.isOpen()) {
+            palette.tickScrollbarDrag(mc, self.width, self.height);
+        }
         // ChatScreen doesn't reliably expose mouseDragged/mouseReleased hooks in 1.21.11; poll mouse state here
         // to drive tab drag-to-reorder.
         Window win = mc.getWindow();
@@ -615,6 +626,11 @@ public abstract class ChatScreenMixin {
         boolean inMag = mx >= magLeft && mx < magRight && my >= magTop && my < magBottom;
         if (!inField && !inMag) {
             chatUtilities$searchField.setFocused(false);
+            ChatScreen self = (ChatScreen) (Object) this;
+            if (input != null) {
+                input.setFocused(true);
+                self.setFocused(input);
+            }
         }
     }
 

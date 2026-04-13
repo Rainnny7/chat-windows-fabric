@@ -293,7 +293,7 @@ public abstract class AbstractWidget implements Renderable, GuiEventListener, La
 		return LayoutElement.super.getRectangle();
 	}
 
-	private boolean areCoordinatesInRectangle(double d, double e) {
+	protected boolean areCoordinatesInRectangle(double d, double e) {
 		return d >= this.getX() && e >= this.getY() && d < this.getRight() && e < this.getBottom();
 	}
 

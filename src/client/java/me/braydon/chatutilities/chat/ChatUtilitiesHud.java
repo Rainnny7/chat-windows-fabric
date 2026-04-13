@@ -17,7 +17,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.util.ARGB;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
-import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,13 +34,6 @@ public final class ChatUtilitiesHud {
         // Only suppress when the full F3 overlay is open — not for lines/charts set to "always" in debug settings.
         if (mc.options.hideGui || mc.debugEntries.isOverlayVisible()) {
             return;
-        }
-        // Vanilla player list overlay (Tab) should render above our HUD windows.
-        if (mc.screen == null) {
-            long wh = mc.getWindow().handle();
-            if (GLFW.glfwGetKey(wh, GLFW.GLFW_KEY_TAB) == GLFW.GLFW_PRESS) {
-                return;
-            }
         }
         // ChatScreen draws after the HUD pass; layout windows sit near the chat area and would be fully covered.
         // {@link me.braydon.chatutilities.mixin.client.ChatScreenMixin} paints them at render TAIL instead.
@@ -195,12 +187,10 @@ public final class ChatUtilitiesHud {
                     int innerB = y + boxH - geo.rowBottomInsetPx;
                     if (window.getTabCount() > 1) {
                         List<int[]> occupied =
-                                chatOpen
-                                        ? occupiedChatWindowBoxesForTabs(mgr, window, mc, gw, gh, guiTick, chatOpen, mx, my)
-                                        : List.of();
+                                tabOccupiedRectsForPlacement(mgr, chatOpen, window, mc, gw, gh, guiTick, mx, my);
                         ChatWindowHudTabStrip.Placement tabPl =
                                 ChatWindowHudTabStrip.resolve(geo, gw, gh, mc, window, occupied);
-                        ChatWindowHudTabStrip.render(graphics, mc, window, tabPl, chatOpacity, -1000, -1000);
+                        ChatWindowHudTabStrip.render(graphics, mc, window, tabPl, chatOpacity, mx, my);
                     }
                     if (innerR > innerL && innerB > innerT) {
                         graphics.enableScissor(innerL, innerT, innerR, innerB);
@@ -232,7 +222,7 @@ public final class ChatUtilitiesHud {
                 ChatWindowHudTabStrip.Placement tabPl = null;
                 if (chatExpandedForWindows && window.getTabCount() > 1) {
                     List<int[]> occupied =
-                            occupiedChatWindowBoxesForTabs(mgr, window, mc, gw, gh, guiTick, chatOpen, mx, my);
+                            tabOccupiedRectsForPlacement(mgr, chatOpen, window, mc, gw, gh, guiTick, mx, my);
                     tabPl = ChatWindowHudTabStrip.resolve(geo, gw, gh, mc, window, occupied);
                     if (tabPl.edge() == ChatWindowHudTabStrip.Edge.TOP) {
                         int ty0 = y + geo.contentRowOffsetY;
@@ -252,7 +242,7 @@ public final class ChatUtilitiesHud {
                 ChatWindowHudTabStrip.Placement tabPl = null;
                 if (chatExpandedForWindows && window.getTabCount() > 1) {
                     List<int[]> occupied =
-                            occupiedChatWindowBoxesForTabs(mgr, window, mc, gw, gh, guiTick, chatOpen, mx, my);
+                            tabOccupiedRectsForPlacement(mgr, chatOpen, window, mc, gw, gh, guiTick, mx, my);
                     tabPl = ChatWindowHudTabStrip.resolve(geo, gw, gh, mc, window, occupied);
                     if (tabPl.edge() == ChatWindowHudTabStrip.Edge.TOP) {
                         int ty0 = y + geo.contentRowOffsetY;
@@ -283,7 +273,12 @@ public final class ChatUtilitiesHud {
             int cy = gh / 2;
             graphics.fill(cx, 0, cx + 1, gh, 0x55FFFFFF);
             graphics.fill(0, cy, gw, cy + 1, 0x55FFFFFF);
-            renderLayoutModeHelp(graphics, mc, gw, gh);
+            for (int vx : mgr.layoutSnapGuideVerticalXs()) {
+                graphics.fill(vx, 0, vx + 1, gh, 0x88FFE08A);
+            }
+            if (!mgr.isLayoutAdjustPointerDown()) {
+                renderLayoutModeHelp(graphics, mc, gw, gh);
+            }
         }
 
         ChatWindowHover.hoverTooltipAt(mc, mx, my)
@@ -308,6 +303,26 @@ public final class ChatUtilitiesHud {
      */
     public static boolean shouldSuppressVanillaChatHud(Minecraft mc) {
         return false;
+    }
+
+    /**
+     * When chat is open for typing (not adjust-layout), tab strips ignore other windows so strips can overlap the
+     * expanded chat. In adjust-layout, other windows are considered so tabs tuck above/below correctly.
+     */
+    private static List<int[]> tabOccupiedRectsForPlacement(
+            ChatUtilitiesManager mgr,
+            boolean chatOpen,
+            ChatWindow self,
+            Minecraft mc,
+            int gw,
+            int gh,
+            int guiTick,
+            int mx,
+            int my) {
+        if (chatOpen && !mgr.isPositioning()) {
+            return List.of();
+        }
+        return occupiedChatWindowBoxesForTabs(mgr, self, mc, gw, gh, guiTick, chatOpen, mx, my);
     }
 
     private static List<int[]> occupiedChatWindowBoxesForTabs(
@@ -361,34 +376,27 @@ public final class ChatUtilitiesHud {
     }
 
     private static void renderLayoutModeHelp(GuiGraphics graphics, Minecraft mc, int gw, int gh) {
-        String[] keys = {
-            "chat-utilities.layout_mode.help.drag",
-            "chat-utilities.layout_mode.help.resize",
-            "chat-utilities.layout_mode.help.escape",
-            "chat-utilities.layout_mode.help.shift_resize",
-        };
+        String block = I18n.get("chat-utilities.layout_mode.help.compact");
+        String[] lines = block.split("\n");
         var font = mc.font;
         int lineH = font.lineHeight;
         int maxW = 0;
-        for (String k : keys) {
-            maxW = Math.max(maxW, font.width(I18n.get(k)));
+        for (String line : lines) {
+            maxW = Math.max(maxW, font.width(line));
         }
-        int padX = 12;
-        int padY = 10;
+        int padX = 8;
+        int padY = 6;
         int boxW = maxW + 2 * padX;
-        int boxH = keys.length * lineH + 2 * padY;
+        int gap = 1;
+        int boxH = lines.length * lineH + (lines.length - 1) * gap + 2 * padY;
         int bx = (gw - boxW) / 2;
         int by = (gh - boxH) / 2;
         graphics.fill(bx, by, bx + boxW, by + boxH, 0xC0101010);
         graphics.renderOutline(bx, by, boxW, boxH, 0xFF707088);
-        for (int i = 0; i < keys.length; i++) {
-            graphics.drawString(
-                    font,
-                    I18n.get(keys[i]),
-                    bx + padX,
-                    by + padY + i * lineH,
-                    0xFFE8EEF8,
-                    false);
+        int y = by + padY;
+        for (String line : lines) {
+            graphics.drawString(font, line, bx + padX, y, 0xFFE8EEF8, false);
+            y += lineH + gap;
         }
     }
 
@@ -434,6 +442,7 @@ public final class ChatUtilitiesHud {
             int tx = x + pad;
             int innerW = boxW - 2 * pad;
             int lh = geo.lineHeight();
+            float rowScale = geo.textScale;
             int ty = y + geo.contentRowOffsetY + layoutExtraTop;
             for (ChatWindowGeometry.RenderedRow row : geo.rows) {
                 int rowBottom = ty + lh;
@@ -443,7 +452,18 @@ public final class ChatUtilitiesHud {
                 float a = Mth.clamp(row.alpha * chatOpacity, 0f, 1f);
                 int color = ChatWindowGeometry.argbText(a, 0xFFFFFF);
                 int drawY = ty + row.slideYOffset + ChatWindowGeometry.ROW_TEXT_TOP_NUDGE;
-                graphics.drawString(mc.font, row.text, tx, drawY, color, ChatUtilitiesClientOptions.isChatTextShadow());
+                if (rowScale > 0.999f && rowScale < 1.001f) {
+                    graphics.drawString(
+                            mc.font, row.text, tx, drawY, color, ChatUtilitiesClientOptions.isChatTextShadow());
+                } else {
+                    var pose = graphics.pose();
+                    pose.pushMatrix();
+                    pose.translate(tx, drawY);
+                    pose.scale(rowScale, rowScale);
+                    graphics.drawString(
+                            mc.font, row.text, 0, 0, color, ChatUtilitiesClientOptions.isChatTextShadow());
+                    pose.popMatrix();
+                }
                 ty = rowBottom;
             }
         } finally {
@@ -474,6 +494,7 @@ public final class ChatUtilitiesHud {
             int tx = x + pad;
             int innerW = boxW - 2 * pad;
             int lh = geo.lineHeight();
+            float rowScale = geo.textScale;
             int ty = y + geo.contentRowOffsetY + layoutExtraTop;
             for (ChatWindowGeometry.RenderedRow row : geo.rows) {
                 int rowBottom = ty + lh;
@@ -483,13 +504,28 @@ public final class ChatUtilitiesHud {
                 float a = Mth.clamp(row.alpha * chatOpacity, 0f, 1f);
                 int color = ChatWindowGeometry.argbText(a, rgb);
                 int drawY = ty + row.slideYOffset + ChatWindowGeometry.ROW_TEXT_TOP_NUDGE;
-                graphics.drawString(
-                        mc.font,
-                        row.text,
-                        tx,
-                        drawY,
-                        color,
-                        ChatUtilitiesClientOptions.isChatTextShadow());
+                if (rowScale > 0.999f && rowScale < 1.001f) {
+                    graphics.drawString(
+                            mc.font,
+                            row.text,
+                            tx,
+                            drawY,
+                            color,
+                            ChatUtilitiesClientOptions.isChatTextShadow());
+                } else {
+                    var pose = graphics.pose();
+                    pose.pushMatrix();
+                    pose.translate(tx, drawY);
+                    pose.scale(rowScale, rowScale);
+                    graphics.drawString(
+                            mc.font,
+                            row.text,
+                            0,
+                            0,
+                            color,
+                            ChatUtilitiesClientOptions.isChatTextShadow());
+                    pose.popMatrix();
+                }
                 ty = rowBottom;
             }
         } finally {

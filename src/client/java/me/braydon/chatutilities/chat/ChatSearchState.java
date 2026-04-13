@@ -68,6 +68,10 @@ public final class ChatSearchState {
         return matchesPlain(ChatUtilitiesManager.plainTextForMatching(message));
     }
 
+    /**
+     * Single wrapped row only; for vanilla chat search use {@link
+     * VanillaChatLinePicker#vanillaTrimmedLineMatchesOpenChatSearch} so matches span full logical messages.
+     */
     public static boolean matchesLine(GuiMessage.Line line) {
         if (compiled == null) {
             return true;

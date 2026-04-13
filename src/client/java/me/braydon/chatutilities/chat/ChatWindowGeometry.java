@@ -43,6 +43,16 @@ public final class ChatWindowGeometry {
         RESIZE_SW
     }
 
+    private static float stackPulseBoostedAlpha(float base, ChatWindowLine line) {
+        long until = line.stackPulseUntilMs();
+        if (until <= System.currentTimeMillis()) {
+            return base;
+        }
+        float u = (until - System.currentTimeMillis()) / 450f;
+        float bump = 0.42f * Mth.clamp(u, 0f, 1f);
+        return Mth.clamp(base + bump, 0f, 1f);
+    }
+
     /**
      * Hit-test for layout mode: corners first (bottom-right uses a larger zone), then edges, then move.
      * Regions extend slightly outside the box so handles are easier to grab.
@@ -130,6 +140,9 @@ public final class ChatWindowGeometry {
     /** Same row pitch as vanilla HUD chat ({@link net.minecraft.client.gui.components.ChatComponent#getLineHeight()}). */
     public final int linePx;
 
+    /** Text scale used for this geometry (affects row height and wrap width). */
+    public final float textScale;
+
     private ChatWindowGeometry(
             int x,
             int y,
@@ -143,7 +156,8 @@ public final class ChatWindowGeometry {
             int contentTopInsetPx,
             int contentRowOffsetY,
             int rowBottomInsetPx,
-            int linePx) {
+            int linePx,
+            float textScale) {
         this.x = x;
         this.y = y;
         this.boxW = boxW;
@@ -157,6 +171,7 @@ public final class ChatWindowGeometry {
         this.contentRowOffsetY = contentRowOffsetY;
         this.rowBottomInsetPx = rowBottomInsetPx;
         this.linePx = linePx;
+        this.textScale = textScale;
     }
 
     /** Row height in gui pixels, matching vanilla chat for this client. */
@@ -172,7 +187,7 @@ public final class ChatWindowGeometry {
         if (target == null) {
             return;
         }
-        int maxLineWidth = Math.max(24, Math.round(window.getWidthFrac() * gw) - PADDING * 2);
+        int maxLineWidth = splitWidthForWindow(window, gw);
         int viewportRows = window.getMaxVisibleLines();
         List<ChatWindowLine> sources = new ArrayList<>();
         for (ChatWindowLine line : window.getLines()) {
@@ -218,6 +233,14 @@ public final class ChatWindowGeometry {
         return Math.max(1, mc.gui.getChat().getLineHeight());
     }
 
+    /** Wrap width passed to {@link net.minecraft.client.gui.Font#split} for a window at this GUI width. */
+    public static int splitWidthForWindow(ChatWindow window, int gw) {
+        float ts =
+                Mth.clamp(window.getTextScale(), ChatWindow.MIN_TEXT_SCALE, ChatWindow.MAX_TEXT_SCALE);
+        int innerPx = Math.max(24, Math.round(window.getWidthFrac() * gw) - PADDING * 2);
+        return Math.max(24, (int) Math.floor(innerPx / Math.max(0.2f, ts)));
+    }
+
     /**
      * Layout hit-test / snap geometry: configured frame ({@code anchor}, {@code widthFrac}, {@code maxVisibleLines})
      * matching the layout overlay and HUD positioning mode.
@@ -260,8 +283,11 @@ public final class ChatWindowGeometry {
             int mouseGuiY,
             boolean tightLayoutChrome,
             boolean compactLayoutChrome) {
-        int lh = vanillaChatLineHeight(mc);
-        int maxLineWidth = Math.max(24, Math.round(window.getWidthFrac() * gw) - PADDING * 2);
+        float textScale =
+                Mth.clamp(window.getTextScale(), ChatWindow.MIN_TEXT_SCALE, ChatWindow.MAX_TEXT_SCALE);
+        int baseLh = vanillaChatLineHeight(mc);
+        int lh = Math.max(1, Math.round(baseLh * textScale));
+        int maxLineWidth = splitWidthForWindow(window, gw);
 
         boolean chatUiPresent =
                 mc.screen instanceof ChatScreen
@@ -293,8 +319,9 @@ public final class ChatWindowGeometry {
                 if (!passesOpenChatSearch(mc, line)) {
                     continue;
                 }
-                float a = ChatSmoothAppearance.fadeInMultiplier(line.addedGuiTick());
-                int slide = ChatSmoothAppearance.fadeSlideOffsetYPixels(line.addedGuiTick());
+                float a = ChatWindowFade.chatWindowSmoothFadeMultiplier(line, guiTick);
+                a = stackPulseBoostedAlpha(a, line);
+                int slide = ChatWindowFade.chatWindowLineSlideY(line, guiTick);
                 List<FormattedCharSequence> split = mc.font.split(line.styled(), maxLineWidth);
                 wrappedCount += split.size();
                 for (int i = split.size() - 1; i >= 0 && rev.size() < need; i--) {
@@ -354,11 +381,15 @@ public final class ChatWindowGeometry {
                 if (!forceOpaque && !passesOpenChatSearch(mc, line)) {
                     continue;
                 }
-                float a = forceOpaque ? 1f : ChatWindowFade.lineAlpha(line.addedGuiTick(), guiTick);
+                float a = forceOpaque ? 1f : ChatWindowFade.chatWindowLineAlpha(line, guiTick);
+                if (!forceOpaque) {
+                    a = stackPulseBoostedAlpha(a, line);
+                }
                 if (!forceOpaque && a <= 0f) {
                     continue;
                 }
-                int slide = forceOpaque ? 0 : ChatSmoothAppearance.fadeSlideOffsetYPixels(line.addedGuiTick());
+                int slide =
+                        forceOpaque ? 0 : ChatWindowFade.chatWindowLineSlideY(line, guiTick);
                 List<FormattedCharSequence> split = mc.font.split(line.styled(), maxLineWidth);
                 for (int i = split.size() - 1; i >= 0 && rev.size() < need; i--) {
                     rev.add(new RenderedRow(split.get(i), a, slide));
@@ -455,7 +486,7 @@ public final class ChatWindowGeometry {
         int contentRowOffsetY;
         int rowBottomInsetPx;
         if (compactLayoutChrome) {
-            contentRowOffsetY = LAYOUT_MODE_CONTENT_INSET;
+            contentRowOffsetY = LAYOUT_MODE_CONTENT_INSET + contentStartYOffset;
             rowBottomInsetPx  = LAYOUT_MODE_CONTENT_INSET;
         } else {
             contentRowOffsetY = PADDING + topInset + contentStartYOffset;
@@ -475,7 +506,8 @@ public final class ChatWindowGeometry {
                 topInset,
                 contentRowOffsetY,
                 rowBottomInsetPx,
-                lh);
+                lh,
+                textScale);
     }
 
     /**
@@ -493,7 +525,7 @@ public final class ChatWindowGeometry {
         if (window.getLines().isEmpty() || rowIndex < 0 || rowIndex >= geo.rows.size()) {
             return Optional.empty();
         }
-        int maxLineWidth = Math.max(24, Math.round(window.getWidthFrac() * gw) - PADDING * 2);
+        int maxLineWidth = splitWidthForWindow(window, gw);
         boolean useChatHistory =
                 !forceOpaque && chatScreenOpen && mc.screen instanceof ChatScreen && !window.getLines().isEmpty();
 
@@ -519,7 +551,7 @@ public final class ChatWindowGeometry {
         } else {
             List<ChatWindowLine> alive = new ArrayList<>();
             for (ChatWindowLine e : window.getLines()) {
-                if (forceOpaque || ChatWindowFade.lineAlpha(e.addedGuiTick(), guiTick) > 0f) {
+                if (forceOpaque || ChatWindowFade.chatWindowLineAlpha(e, guiTick) > 0f) {
                     alive.add(e);
                 }
             }
@@ -571,7 +603,7 @@ public final class ChatWindowGeometry {
     }
 
     public static int[] historyScrollMetrics(ChatWindow window, Minecraft mc, int gw) {
-        int maxLineWidth = Math.max(24, Math.round(window.getWidthFrac() * gw) - PADDING * 2);
+        int maxLineWidth = splitWidthForWindow(window, gw);
         int total = countWrappedRows(window, mc, maxLineWidth);
         int viewportRows = window.getMaxVisibleLines();
         return new int[] {total, viewportRows};
