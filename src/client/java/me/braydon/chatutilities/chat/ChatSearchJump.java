@@ -1,9 +1,9 @@
 package me.braydon.chatutilities.chat;
 
 import me.braydon.chatutilities.mixin.client.ChatComponentAccess;
-import net.minecraft.client.GuiMessage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.ChatComponent;
+import net.minecraft.client.multiplayer.chat.GuiMessage;
 
 import java.util.List;
 

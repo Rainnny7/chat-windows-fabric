@@ -1,6 +1,6 @@
 package me.braydon.chatutilities.gui;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.util.Mth;
 
 /**
@@ -61,7 +61,7 @@ public final class ThinScrollbar {
      * @param viewportHeight visible track height in pixels
      */
     public static void render(
-            GuiGraphics g,
+            GuiGraphicsExtractor g,
             int barX,
             int trackTop,
             int viewportHeight,

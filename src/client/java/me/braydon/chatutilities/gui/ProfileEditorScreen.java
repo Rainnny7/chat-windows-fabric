@@ -3,7 +3,7 @@ package me.braydon.chatutilities.gui;
 import com.mojang.blaze3d.platform.InputConstants;
 import me.braydon.chatutilities.chat.ChatUtilitiesManager;
 import me.braydon.chatutilities.chat.ServerProfile;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
@@ -249,13 +249,13 @@ public class ProfileEditorScreen extends Screen implements ProfileWorkflowScreen
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        super.render(graphics, mouseX, mouseY, partialTick);
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
         int cx = this.width / 2;
         int margin = 30;
         int wrapW = Math.min(320, this.width - 40);
 
-        graphics.drawCenteredString(
+        graphics.centeredText(
                 this.font, this.title, cx, ChatUtilitiesScreenLayout.TITLE_Y, ChatUtilitiesScreenLayout.TEXT_WHITE);
 
         ChatUtilitiesScreenLayout.drawCenteredWrapped(
@@ -269,8 +269,8 @@ public class ProfileEditorScreen extends Screen implements ProfileWorkflowScreen
                 ChatUtilitiesScreenLayout.TEXT_GRAY,
                 10);
 
-        graphics.drawString(this.font, "Name", margin, labelNameY, ChatUtilitiesScreenLayout.TEXT_LABEL, false);
-        graphics.drawString(
+        graphics.text(this.font, "Name", margin, labelNameY, ChatUtilitiesScreenLayout.TEXT_LABEL, false);
+        graphics.text(
                 this.font, "Servers", margin, labelServersY, ChatUtilitiesScreenLayout.TEXT_LABEL, false);
     }
 }

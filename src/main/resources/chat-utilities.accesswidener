@@ -1,15 +1,14 @@
-accessWidener v2 named
+accessWidener v2 official
 
 # Match vanilla HUD chat fade: use ChatComponent.AlphaCalculator + GuiMessage.Line
 accessible class net/minecraft/client/gui/components/ChatComponent$AlphaCalculator
 accessible method net/minecraft/client/gui/components/ChatComponent$AlphaCalculator timeBased (I)Lnet/minecraft/client/gui/components/ChatComponent$AlphaCalculator;
-accessible method net/minecraft/client/gui/components/ChatComponent$AlphaCalculator calculate (Lnet/minecraft/client/GuiMessage$Line;)F
+accessible method net/minecraft/client/gui/components/ChatComponent$AlphaCalculator calculate (Lnet/minecraft/client/multiplayer/chat/GuiMessage$Line;)F
 
 # VanillaChatLinePicker hit-test matches ChatComponent layout (private in Mojmap 1.21+)
 accessible method net/minecraft/client/gui/components/ChatComponent getWidth ()I
 accessible method net/minecraft/client/gui/components/ChatComponent getLineHeight ()I
 accessible method net/minecraft/client/gui/components/ChatComponent getScale ()D
-accessible method net/minecraft/client/gui/components/ChatComponent isChatHidden ()Z
 accessible field net/minecraft/client/gui/components/ChatComponent trimmedMessages Ljava/util/List;
 
 # Mixin @Redirect on LineConsumer.accept needs the nested type visible outside the components package

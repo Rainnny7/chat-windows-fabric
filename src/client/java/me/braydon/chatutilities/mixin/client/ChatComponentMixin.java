@@ -12,11 +12,11 @@ import me.braydon.chatutilities.chat.VanillaChatLinePicker;
 import me.braydon.chatutilities.chat.VanillaChatRepeatStacker;
 import me.braydon.chatutilities.client.ChatUtilitiesClientOptions;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.GuiMessage;
-import net.minecraft.client.GuiMessageTag;
 import net.minecraft.client.gui.ActiveTextCollector;
 import net.minecraft.client.gui.components.ChatComponent;
 import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.multiplayer.chat.GuiMessage;
+import net.minecraft.client.multiplayer.chat.GuiMessageTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MessageSignature;
 import net.minecraft.util.Mth;
@@ -49,8 +49,8 @@ public class ChatComponentMixin {
      */
     @ModifyConstant(
             method = {
-                "addMessageToQueue(Lnet/minecraft/client/GuiMessage;)V",
-                "addMessageToDisplayQueue(Lnet/minecraft/client/GuiMessage;)V"
+                "addMessageToQueue(Lnet/minecraft/client/multiplayer/chat/GuiMessage;)V",
+                "addMessageToDisplayQueue(Lnet/minecraft/client/multiplayer/chat/GuiMessage;)V"
             },
             constant = @Constant(intValue = ChatUtilitiesClientOptions.VANILLA_CHAT_HISTORY_LINES))
     private int chatUtilities$modifyMaxChatHistory(int original) {
@@ -59,8 +59,8 @@ public class ChatComponentMixin {
 
     @Inject(
             method = {
-                "addMessageToQueue(Lnet/minecraft/client/GuiMessage;)V",
-                "addMessageToDisplayQueue(Lnet/minecraft/client/GuiMessage;)V"
+                "addMessageToQueue(Lnet/minecraft/client/multiplayer/chat/GuiMessage;)V",
+                "addMessageToDisplayQueue(Lnet/minecraft/client/multiplayer/chat/GuiMessage;)V"
             },
             at = @At("HEAD"),
             cancellable = true,
@@ -101,7 +101,7 @@ public class ChatComponentMixin {
 
     @Inject(
             method =
-                    "render(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/client/gui/Font;IIIZZ)V",
+                    "extractRenderState(Lnet/minecraft/client/gui/GuiGraphicsExtractor;Lnet/minecraft/client/gui/Font;IIILnet/minecraft/client/gui/components/ChatComponent$DisplayMode;Z)V",
             at = @At("HEAD"),
             cancellable = true)
     private void chatUtilities$suppressVanillaChatWhenUnreadTabsShown(CallbackInfo ci) {
@@ -112,7 +112,7 @@ public class ChatComponentMixin {
 
     @Inject(
             method =
-                    "render(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/client/gui/Font;IIIZZ)V",
+                    "extractRenderState(Lnet/minecraft/client/gui/GuiGraphicsExtractor;Lnet/minecraft/client/gui/Font;IIILnet/minecraft/client/gui/components/ChatComponent$DisplayMode;Z)V",
             at = @At("HEAD"))
     private void chatUtilities$shadowEnterMain(CallbackInfo ci) {
         ChatTextShadowRenderContext.enter();
@@ -120,7 +120,7 @@ public class ChatComponentMixin {
 
     @Inject(
             method =
-                    "render(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/client/gui/Font;IIIZZ)V",
+                    "extractRenderState(Lnet/minecraft/client/gui/GuiGraphicsExtractor;Lnet/minecraft/client/gui/Font;IIILnet/minecraft/client/gui/components/ChatComponent$DisplayMode;Z)V",
             at = @At("TAIL"))
     private void chatUtilities$shadowExitMain(CallbackInfo ci) {
         ChatTextShadowRenderContext.exit();
@@ -128,8 +128,9 @@ public class ChatComponentMixin {
 
     @ModifyVariable(
             method =
-                    "render(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/client/gui/Font;IIIZZ)V",
+                    "extractRenderState(Lnet/minecraft/client/gui/GuiGraphicsExtractor;Lnet/minecraft/client/gui/Font;IIILnet/minecraft/client/gui/components/ChatComponent$DisplayMode;Z)V",
             at = @At("HEAD"),
+            require = 0,
             ordinal = 0,
             argsOnly = true)
     private boolean chatUtilities$peekForcesVanillaRenderFlag0(boolean original) {
@@ -145,45 +146,27 @@ public class ChatComponentMixin {
         return false;
     }
 
-    @ModifyVariable(
-            method =
-                    "render(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/client/gui/Font;IIIZZ)V",
-            at = @At("HEAD"),
-            ordinal = 1,
-            argsOnly = true)
-    private boolean chatUtilities$peekForcesVanillaRenderFlag1(boolean original) {
-        if (original) {
-            return true;
-        }
-        if (ChatUtilitiesModClient.CHAT_PEEK_KEY != null && ChatUtilitiesModClient.CHAT_PEEK_KEY.isDown()) {
-            Minecraft mc = Minecraft.getInstance();
-            if (mc != null && !(mc.screen instanceof ChatScreen)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     @Inject(
-            method = "captureClickableText(Lnet/minecraft/client/gui/ActiveTextCollector;IIZ)V",
+            method = "captureClickableText(Lnet/minecraft/client/gui/ActiveTextCollector;IILnet/minecraft/client/gui/components/ChatComponent$DisplayMode;)V",
             at = @At("HEAD"))
     private void chatUtilities$shadowEnterCapture(
-            ActiveTextCollector collector, int windowHeight, int currentTick, boolean expanded, CallbackInfo ci) {
+            ActiveTextCollector collector, int x, int y, ChatComponent.DisplayMode displayMode, CallbackInfo ci) {
         ChatTextShadowRenderContext.enter();
     }
 
     @Inject(
-            method = "captureClickableText(Lnet/minecraft/client/gui/ActiveTextCollector;IIZ)V",
+            method = "captureClickableText(Lnet/minecraft/client/gui/ActiveTextCollector;IILnet/minecraft/client/gui/components/ChatComponent$DisplayMode;)V",
             at = @At("TAIL"))
     private void chatUtilities$shadowExitCapture(
-            ActiveTextCollector collector, int windowHeight, int currentTick, boolean expanded, CallbackInfo ci) {
+            ActiveTextCollector collector, int x, int y, ChatComponent.DisplayMode displayMode, CallbackInfo ci) {
         ChatTextShadowRenderContext.exit();
     }
 
     @Inject(
             method =
                     "render(Lnet/minecraft/client/gui/components/ChatComponent$ChatGraphicsAccess;IIZ)V",
-            at = @At("HEAD"))
+            at = @At("HEAD"),
+            require = 0)
     private void chatUtilities$shadowEnterAccess(CallbackInfo ci) {
         ChatTextShadowRenderContext.enter();
     }
@@ -191,7 +174,8 @@ public class ChatComponentMixin {
     @Inject(
             method =
                     "render(Lnet/minecraft/client/gui/components/ChatComponent$ChatGraphicsAccess;IIZ)V",
-            at = @At("TAIL"))
+            at = @At("TAIL"),
+            require = 0)
     private void chatUtilities$shadowExitAccess(CallbackInfo ci) {
         ChatTextShadowRenderContext.exit();
     }
@@ -200,6 +184,7 @@ public class ChatComponentMixin {
             method =
                     "render(Lnet/minecraft/client/gui/components/ChatComponent$ChatGraphicsAccess;IIZ)V",
             at = @At("HEAD"),
+            require = 0,
             ordinal = 0,
             argsOnly = true)
     private boolean chatUtilities$peekForcesVanillaExpandedArg(boolean expanded) {
@@ -217,7 +202,7 @@ public class ChatComponentMixin {
 
     @ModifyVariable(
             method =
-                    "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/GuiMessageTag;)V",
+                    "addPlayerMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;)V",
             at = @At("HEAD"),
             ordinal = 0,
             argsOnly = true)
@@ -227,7 +212,7 @@ public class ChatComponentMixin {
 
     @Inject(
             method =
-                    "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/GuiMessageTag;)V",
+                    "addPlayerMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;)V",
             at = @At("HEAD"),
             cancellable = true)
     private void chatUtilities$interceptAddMessage(
@@ -270,7 +255,7 @@ public class ChatComponentMixin {
                     chatUtilities$vanillaTimestampRecursing.set(true);
                     try {
                         ((ChatComponent) (Object) this)
-                                .addMessage(
+                                .addPlayerMessage(
                                         Component.empty()
                                                 .append(
                                                         ChatTimestampFormatter.componentAtMillis(receivedMs))
@@ -301,7 +286,7 @@ public class ChatComponentMixin {
     }
 
     @Inject(
-            method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/client/GuiMessageTag;)V",
+            method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;)V",
             at = @At("HEAD"),
             cancellable = true,
             require = 0)
@@ -347,7 +332,7 @@ public class ChatComponentMixin {
 
     @Inject(
             method =
-                    "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/GuiMessageTag;)V",
+                    "addPlayerMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;)V",
             at = @At("TAIL"))
     private void chatUtilities$stackRepeatedMessages(
             Component message, MessageSignature signature, GuiMessageTag tag, CallbackInfo ci) {
@@ -387,7 +372,7 @@ public class ChatComponentMixin {
                     @At(
                             value = "INVOKE",
                             target =
-                                    "Lnet/minecraft/client/gui/components/ChatComponent$LineConsumer;accept(Lnet/minecraft/client/GuiMessage$Line;IF)V"))
+                                    "Lnet/minecraft/client/gui/components/ChatComponent$LineConsumer;accept(Lnet/minecraft/client/multiplayer/chat/GuiMessage$Line;IF)V"))
     private void chatUtilities$vanillaPickOnLineAccept(
             ChatComponent.LineConsumer consumer, GuiMessage.Line line, int lineIndex, float opacity) {
         Minecraft mc = Minecraft.getInstance();

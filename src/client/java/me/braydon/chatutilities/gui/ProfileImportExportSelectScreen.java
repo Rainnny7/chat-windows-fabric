@@ -10,7 +10,7 @@ import me.braydon.chatutilities.chat.ServerProfile;
 import me.braydon.chatutilities.client.ChatUtilitiesClientOptions;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.client.input.KeyEvent;
@@ -134,16 +134,16 @@ public final class ProfileImportExportSelectScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        super.render(g, mouseX, mouseY, partialTick);
+    public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
+        super.extractRenderState(g, mouseX, mouseY, partialTick);
         int w = this.width;
         int h = this.height;
 
         g.fill(0, 0, w, h, 0xD0101010);
 
         int titleY = PAD;
-        g.drawString(this.font, this.title, PAD, titleY, 0xFFFFFFFF, false);
-        g.drawString(
+        g.text(this.font, this.title, PAD, titleY, 0xFFFFFFFF, false);
+        g.text(
                 this.font,
                 Component.literal("Click rows to toggle. Enter to confirm, Esc to cancel."),
                 PAD,
@@ -170,10 +170,10 @@ public final class ProfileImportExportSelectScreen extends Screen {
                                         : 0x60202028;
                 int edge = !r.enabled ? 0x50404048 : 0xFF50505A;
                 g.fill(x0, y0, x1, y1, bg);
-                g.renderOutline(x0, y0, x1 - x0, y1 - y0, edge);
+                g.outline(x0, y0, x1 - x0, y1 - y0, edge);
                 String mark = r.enabled ? (r.checked ? "[x] " : "[ ] ") : "[-] ";
                 int tc = r.enabled ? 0xFFE8EEF8 : 0xFF888890;
-                g.drawString(this.font, mark + r.label, x0 + 6, y0 + (ROW_H - 8) / 2, tc, false);
+                g.text(this.font, mark + r.label, x0 + 6, y0 + (ROW_H - 8) / 2, tc, false);
                 y += ROW_H + 4;
             }
         } finally {
@@ -182,7 +182,7 @@ public final class ProfileImportExportSelectScreen extends Screen {
 
         // Footer hint
         g.fill(0, h - FOOTER_H, w, h, 0xC0101010);
-        g.drawString(
+        g.text(
                 this.font,
                 Component.literal(mode == Mode.EXPORT ? "Export will also copy JSON to clipboard." : "Import uses the selected items only."),
                 PAD,

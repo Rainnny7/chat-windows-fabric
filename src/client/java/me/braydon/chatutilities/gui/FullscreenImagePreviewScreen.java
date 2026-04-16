@@ -2,7 +2,7 @@ package me.braydon.chatutilities.gui;
 
 import me.braydon.chatutilities.chat.ChatImagePreviewResources;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
@@ -32,13 +32,13 @@ public final class FullscreenImagePreviewScreen extends Screen {
      * {@code super.render} runs. Dimming is drawn in {@link #render} instead.
      */
     @Override
-    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         graphics.fill(0, 0, this.width, this.height, 0xD0101010);
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        super.render(graphics, mouseX, mouseY, partialTick);
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
         ChatImagePreviewResources.CachedTex e = ChatImagePreviewResources.getOrStartLoading(imageUrl);
         int sw = this.width;
         int sh = this.height;
@@ -67,14 +67,14 @@ public final class FullscreenImagePreviewScreen extends Screen {
                     ih);
             pose.popMatrix();
         } else if (e.state() == ChatImagePreviewResources.State.LOADING) {
-            graphics.drawCenteredString(
+            graphics.centeredText(
                     this.font,
                     Component.translatable("chat-utilities.image_preview.loading"),
                     sw / 2,
                     sh / 2,
                     0xFFFFFFFF);
         } else {
-            graphics.drawCenteredString(
+            graphics.centeredText(
                     this.font,
                     Component.translatable("chat-utilities.image_preview.failed"),
                     sw / 2,

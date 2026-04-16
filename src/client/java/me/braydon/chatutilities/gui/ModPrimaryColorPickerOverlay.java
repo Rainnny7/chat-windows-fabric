@@ -5,7 +5,7 @@ import me.braydon.chatutilities.client.ChatUtilitiesClientOptions;
 import me.braydon.chatutilities.client.ModChromaClock;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
@@ -379,7 +379,7 @@ public final class ModPrimaryColorPickerOverlay {
         return (baseHue + w * 0.35f) % 1f;
     }
 
-    public void render(GuiGraphics g, Font font, int mouseX, int mouseY, float partialTick) {
+    public void render(GuiGraphicsExtractor g, Font font, int mouseX, int mouseY, float partialTick) {
         Minecraft mc = Minecraft.getInstance();
         Window win = mc.getWindow();
         boolean leftDown = GLFW.glfwGetMouseButton(win.handle(), GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
@@ -396,7 +396,7 @@ public final class ModPrimaryColorPickerOverlay {
         int pw = panelW();
         int ph = panelH();
         g.fill(panelX, panelY, panelX + pw, panelY + ph, 0xF0101014);
-        g.renderOutline(panelX, panelY, pw, ph, 0xFF505060);
+        g.outline(panelX, panelY, pw, ph, 0xFF505060);
 
         Component title =
                 mode == OverlayMode.TIMESTAMP_RGB
@@ -407,9 +407,9 @@ public final class ModPrimaryColorPickerOverlay {
                                         ? Component.translatable(
                                                 "chat-utilities.settings.unread_badge.color_picker_title")
                                         : Component.translatable("chat-utilities.settings.mod_primary_color.picker.title");
-        g.drawString(font, title, panelX + 8, panelY + 8, ChatUtilitiesScreenLayout.TEXT_WHITE, false);
+        g.text(font, title, panelX + 8, panelY + 8, ChatUtilitiesScreenLayout.TEXT_WHITE, false);
 
-        g.drawString(
+        g.text(
                 font,
                 Component.translatable("chat-utilities.settings.mod_primary_color.picker.section_color"),
                 panelX + 8,
@@ -426,9 +426,9 @@ public final class ModPrimaryColorPickerOverlay {
         int pv = previewArgbUi();
         int pr = 14;
         g.fill(previewLeft, previewTop, previewLeft + pr, previewTop + pr, pv);
-        g.renderOutline(previewLeft, previewTop, pr, pr, 0xFFAAAAAA);
+        g.outline(previewLeft, previewTop, pr, pr, 0xFFAAAAAA);
         if (hexField != null) {
-            hexField.render(g, mouseX, mouseY, partialTick);
+            hexField.extractRenderState(g, mouseX, mouseY, partialTick);
         }
 
         if (mode == OverlayMode.CHAT_HIGHLIGHT_RGB) {
@@ -436,7 +436,7 @@ public final class ModPrimaryColorPickerOverlay {
         }
 
         if (mode == OverlayMode.ACCENT) {
-            g.drawString(
+            g.text(
                     font,
                     Component.translatable("chat-utilities.settings.mod_primary_color.picker.chroma"),
                     chromaCbLeft + 12,
@@ -445,12 +445,12 @@ public final class ModPrimaryColorPickerOverlay {
                     false);
             int cb = chroma ? 0xFF4488FF : 0xFF404048;
             g.fill(chromaCbLeft, chromaCbTop, chromaCbLeft + 10, chromaCbTop + 10, cb);
-            g.renderOutline(chromaCbLeft, chromaCbTop, 10, 10, 0xFF888888);
+            g.outline(chromaCbLeft, chromaCbTop, 10, 10, 0xFF888888);
             if (chroma) {
                 drawChromaCheckmark(g, chromaCbLeft, chromaCbTop);
             }
 
-            g.drawString(
+            g.text(
                     font,
                     Component.translatable(
                             "chat-utilities.settings.mod_primary_color.picker.speed",
@@ -497,8 +497,8 @@ public final class ModPrimaryColorPickerOverlay {
                 mouseY);
     }
 
-    private void drawHighlightFormatToggles(GuiGraphics g, Font font) {
-        g.drawString(
+    private void drawHighlightFormatToggles(GuiGraphicsExtractor g, Font font) {
+        g.text(
                 font,
                 Component.translatable("chat-utilities.chat_actions.color_highlight.format"),
                 previewLeft,
@@ -538,18 +538,18 @@ public final class ModPrimaryColorPickerOverlay {
                 hlObfuscated);
     }
 
-    private static void drawFmtToggleRow(GuiGraphics g, Font font, int left, int top, Component label, boolean on) {
+    private static void drawFmtToggleRow(GuiGraphicsExtractor g, Font font, int left, int top, Component label, boolean on) {
         int cb = on ? 0xFF4488FF : 0xFF404048;
         g.fill(left, top, left + 10, top + 10, cb);
-        g.renderOutline(left, top, 10, 10, 0xFF888888);
+        g.outline(left, top, 10, 10, 0xFF888888);
         if (on) {
             drawToggleCheckmark(g, left, top);
         }
-        g.drawString(font, label, left + 14, top + 1, 0xFFCCCCDD, false);
+        g.text(font, label, left + 14, top + 1, 0xFFCCCCDD, false);
     }
 
     /** Checkmark drawn in a 10×10 checkbox (two-stroke “✓” readable at 1× GUI scale). */
-    private static void drawToggleCheckmark(GuiGraphics g, int left, int top) {
+    private static void drawToggleCheckmark(GuiGraphicsExtractor g, int left, int top) {
         int c = 0xFFE8E8F0;
         g.fill(left + 2, top + 5, left + 3, top + 8, c);
         g.fill(left + 3, top + 6, left + 4, top + 8, c);
@@ -560,19 +560,19 @@ public final class ModPrimaryColorPickerOverlay {
         g.fill(left + 7, top + 3, left + 8, top + 4, c);
     }
 
-    private static void drawChromaCheckmark(GuiGraphics g, int left, int top) {
+    private static void drawChromaCheckmark(GuiGraphicsExtractor g, int left, int top) {
         drawToggleCheckmark(g, left, top);
     }
 
     private static void drawFlatButton(
-            GuiGraphics g, Font font, int x, int y, int btnW, int btnH, Component label, int mouseX, int mouseY) {
+            GuiGraphicsExtractor g, Font font, int x, int y, int btnW, int btnH, Component label, int mouseX, int mouseY) {
         boolean hov = mouseX >= x && mouseX < x + btnW && mouseY >= y && mouseY < y + btnH;
         int bg = hov ? 0x55FFFFFF : 0x35000000;
         int outline = hov ? 0x70FFFFFF : 0x40FFFFFF;
         int tc = hov ? 0xFFFFFFFF : 0xFFDDDDEE;
         g.fill(x, y, x + btnW, y + btnH, bg);
-        g.renderOutline(x, y, btnW, btnH, outline);
-        g.drawCenteredString(font, label, x + btnW / 2, y + (btnH - 8) / 2, tc);
+        g.outline(x, y, btnW, btnH, outline);
+        g.centeredText(font, label, x + btnW / 2, y + (btnH - 8) / 2, tc);
     }
 
     public EditBox getHexField() {
@@ -599,7 +599,7 @@ public final class ModPrimaryColorPickerOverlay {
         return x >= panelX && x < panelX + panelW() && y >= panelY && y < panelY + panelH();
     }
 
-    private void drawSbField(GuiGraphics g) {
+    private void drawSbField(GuiGraphicsExtractor g) {
         int step = 3;
         for (int py = 0; py < SB_SIZE; py += step) {
             for (int px = 0; px < SB_SIZE; px += step) {
@@ -611,29 +611,29 @@ public final class ModPrimaryColorPickerOverlay {
                 g.fill(x1, y1, Math.min(sbLeft + SB_SIZE, x1 + step), Math.min(sbTop + SB_SIZE, y1 + step), c);
             }
         }
-        g.renderOutline(sbLeft, sbTop, SB_SIZE, SB_SIZE, 0xFF666666);
+        g.outline(sbLeft, sbTop, SB_SIZE, SB_SIZE, 0xFF666666);
         int cx = sbLeft + (int) (sat * SB_SIZE);
         int cy = sbTop + (int) ((1f - val) * SB_SIZE);
         cx = Mth.clamp(cx, sbLeft + 2, sbLeft + SB_SIZE - 3);
         cy = Mth.clamp(cy, sbTop + 2, sbTop + SB_SIZE - 3);
         g.fill(cx - 2, cy - 2, cx + 3, cy + 3, 0xFFFFFFFF);
-        g.renderOutline(cx - 2, cy - 2, 5, 5, 0xFF222222);
+        g.outline(cx - 2, cy - 2, 5, 5, 0xFF222222);
     }
 
-    private void drawHueStrip(GuiGraphics g) {
+    private void drawHueStrip(GuiGraphicsExtractor g) {
         int step = 2;
         for (int i = 0; i < STRIP_H; i += step) {
             float h = i / (float) STRIP_H;
             int c = ModPrimaryColorUtils.hsvToArgb(h, 1f, 1f, 255);
             g.fill(hueLeft, hueTop + i, hueLeft + STRIP_W, hueTop + i + step, c);
         }
-        g.renderOutline(hueLeft, hueTop, STRIP_W, STRIP_H, 0xFF666666);
+        g.outline(hueLeft, hueTop, STRIP_W, STRIP_H, 0xFF666666);
         int hy = hueTop + (int) (hue * STRIP_H);
         hy = Mth.clamp(hy, hueTop, hueTop + STRIP_H - 3);
         g.fill(hueLeft - 1, hy - 1, hueLeft + STRIP_W + 1, hy + 3, 0xFFFFFFFF);
     }
 
-    private void drawAlphaStrip(GuiGraphics g) {
+    private void drawAlphaStrip(GuiGraphicsExtractor g) {
         int cs = 4;
         for (int py = 0; py < STRIP_H; py += cs) {
             for (int px = 0; px < STRIP_W; px += cs) {
@@ -650,14 +650,14 @@ public final class ModPrimaryColorPickerOverlay {
             int c = (a << 24) | rgb;
             g.fill(alphaLeft, alphaTop + i, alphaLeft + STRIP_W, alphaTop + i + step, c);
         }
-        g.renderOutline(alphaLeft, alphaTop, STRIP_W, STRIP_H, 0xFF666666);
+        g.outline(alphaLeft, alphaTop, STRIP_W, STRIP_H, 0xFF666666);
         int ay = alphaTop + STRIP_H - 1 - (int) (alpha / 255f * (STRIP_H - 4));
         ay = Mth.clamp(ay, alphaTop, alphaTop + STRIP_H - 4);
         g.fill(alphaLeft - 1, ay - 1, alphaLeft + STRIP_W + 1, ay + 3, 0xFFFFFFFF);
     }
 
-    private void drawRecent(GuiGraphics g, Font font) {
-        g.drawString(
+    private void drawRecent(GuiGraphicsExtractor g, Font font) {
+        g.text(
                 font,
                 Component.translatable("chat-utilities.settings.mod_primary_color.picker.recent"),
                 recentLeft,
@@ -672,7 +672,7 @@ public final class ModPrimaryColorPickerOverlay {
             int cx = recentLeft + (i % col) * (cell + gap);
             int cy = recentTop + (i / col) * (cell + gap);
             g.fill(cx, cy, cx + cell, cy + cell, c);
-            g.renderOutline(cx, cy, cell, cell, 0xFF666666);
+            g.outline(cx, cy, cell, cell, 0xFF666666);
             i++;
             if (i >= 8) {
                 break;

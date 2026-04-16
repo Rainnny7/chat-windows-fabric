@@ -6,6 +6,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.ChatComponent;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.player.ChatVisiblity;
 
 import java.util.List;
 
@@ -24,7 +25,7 @@ public final class ChatSearchVanillaScrollClamp {
             return;
         }
         ChatComponent chat = mc.gui.getChat();
-        if (chat.isChatHidden()) {
+        if (mc.options.chatVisibility().get() == ChatVisiblity.HIDDEN) {
             return;
         }
         ChatComponentAccess access = (ChatComponentAccess) chat;

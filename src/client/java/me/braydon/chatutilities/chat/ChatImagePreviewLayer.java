@@ -4,7 +4,7 @@ import com.mojang.blaze3d.platform.Window;
 import me.braydon.chatutilities.client.ChatUtilitiesClientOptions;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -20,7 +20,7 @@ public final class ChatImagePreviewLayer {
 
     private ChatImagePreviewLayer() {}
 
-    public static void render(GuiGraphics graphics, Font font, int screenW, int screenH, int mouseX, int mouseY) {
+    public static void render(GuiGraphicsExtractor graphics, Font font, int screenW, int screenH, int mouseX, int mouseY) {
         if (!ChatUtilitiesClientOptions.isImageChatPreviewEnabled()) {
             ChatImagePreviewState.setLastHoveredPreviewUrl(null);
             return;
@@ -53,7 +53,7 @@ public final class ChatImagePreviewLayer {
             int dw = Mth.ceil(iw * scale);
             int dh = Mth.ceil(ih * scale);
             graphics.fill(tipLeft - 2, tipTop - 2, tipLeft + dw + 2, tipTop + dh + 2, 0xE0101010);
-            graphics.renderOutline(tipLeft - 2, tipTop - 2, dw + 4, dh + 4, 0xFFFFFFFF);
+            graphics.outline(tipLeft - 2, tipTop - 2, dw + 4, dh + 4, 0xFFFFFFFF);
             var pose = graphics.pose();
             pose.pushMatrix();
             pose.translate(tipLeft, tipTop);
@@ -72,7 +72,7 @@ public final class ChatImagePreviewLayer {
             pose.popMatrix();
             int hintY = tipTop + dh + 6;
             if (hintY + font.lineHeight <= screenH - 2) {
-                graphics.drawString(
+                graphics.text(
                         font,
                         Component.literal("Click to view in fullscreen")
                                 .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC),
@@ -82,7 +82,7 @@ public final class ChatImagePreviewLayer {
                         false);
             }
         } else if (entry.state() == ChatImagePreviewResources.State.LOADING) {
-            graphics.drawString(
+            graphics.text(
                     font,
                     Component.translatable("chat-utilities.image_preview.loading"),
                     tipLeft,

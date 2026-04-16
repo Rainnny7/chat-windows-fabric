@@ -7,7 +7,7 @@ import java.util.regex.Pattern;
 import me.braydon.chatutilities.client.ChatUtilitiesClientOptions;
 import me.braydon.chatutilities.mixin.client.ChatComponentAccess;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.GuiMessage;
+import net.minecraft.client.multiplayer.chat.GuiMessage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.ChatComponent;
 import net.minecraft.network.chat.Component;
@@ -66,6 +66,7 @@ public final class VanillaChatRepeatStacker {
                         mergeTick,
                         withStackSuffix(base, next),
                         newest.signature(),
+                        newest.source(),
                         newest.tag());
         msgs.remove(0);
         msgs.remove(0);

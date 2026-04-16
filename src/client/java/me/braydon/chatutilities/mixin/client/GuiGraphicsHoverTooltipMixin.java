@@ -3,7 +3,7 @@ package me.braydon.chatutilities.mixin.client;
 import me.braydon.chatutilities.chat.ChatImagePreviewUrlResolver;
 import me.braydon.chatutilities.client.ChatUtilitiesClientOptions;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
@@ -14,10 +14,10 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Some versions route hover-tooltips through {@link GuiGraphics} instead of {@link net.minecraft.client.gui.screens.Screen}.
+ * Some versions route hover-tooltips through {@link GuiGraphicsExtractor} instead of {@link net.minecraft.client.gui.screens.Screen}.
  * We hook both, with {@code require=0}, so we don't crash when one signature doesn't exist.
  */
-@Mixin(GuiGraphics.class)
+@Mixin(GuiGraphicsExtractor.class)
 public class GuiGraphicsHoverTooltipMixin {
 
     @Inject(

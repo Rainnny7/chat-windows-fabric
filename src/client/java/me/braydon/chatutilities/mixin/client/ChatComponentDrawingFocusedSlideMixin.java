@@ -19,7 +19,8 @@ public class ChatComponentDrawingFocusedSlideMixin {
                     @At(
                             value = "INVOKE",
                             target = "Lnet/minecraft/client/gui/GuiGraphics;fill(IIIII)V"),
-            index = 1)
+            index = 1,
+            require = 0)
     private int chatUtilities$slideFocusedFillY1(int y) {
         return y + chatUtilities$slide();
     }
@@ -29,9 +30,36 @@ public class ChatComponentDrawingFocusedSlideMixin {
             at =
                     @At(
                             value = "INVOKE",
+                            target =
+                                    "Lnet/minecraft/client/gui/GuiGraphics;fill(Lnet/minecraft/client/renderer/RenderType;IIIII)V"),
+            index = 2,
+            require = 0)
+    private int chatUtilities$slideFocusedFillY1$renderType(int y) {
+        return y + chatUtilities$slide();
+    }
+
+    @ModifyArg(
+            method = "fill",
+            at =
+                    @At(
+                            value = "INVOKE",
                             target = "Lnet/minecraft/client/gui/GuiGraphics;fill(IIIII)V"),
-            index = 3)
+            index = 3,
+            require = 0)
     private int chatUtilities$slideFocusedFillY2(int y) {
+        return y + chatUtilities$slide();
+    }
+
+    @ModifyArg(
+            method = "fill",
+            at =
+                    @At(
+                            value = "INVOKE",
+                            target =
+                                    "Lnet/minecraft/client/gui/GuiGraphics;fill(Lnet/minecraft/client/renderer/RenderType;IIIII)V"),
+            index = 4,
+            require = 0)
+    private int chatUtilities$slideFocusedFillY2$renderType(int y) {
         return y + chatUtilities$slide();
     }
 
@@ -53,7 +81,8 @@ public class ChatComponentDrawingFocusedSlideMixin {
                     @At(
                             value = "INVOKE",
                             target = "Lnet/minecraft/client/gui/GuiGraphics;fill(IIIII)V"),
-            index = 1)
+            index = 1,
+            require = 0)
     private int chatUtilities$slideTagFillY1(int y) {
         return y + chatUtilities$slide();
     }
@@ -63,9 +92,36 @@ public class ChatComponentDrawingFocusedSlideMixin {
             at =
                     @At(
                             value = "INVOKE",
+                            target =
+                                    "Lnet/minecraft/client/gui/GuiGraphics;fill(Lnet/minecraft/client/renderer/RenderType;IIIII)V"),
+            index = 2,
+            require = 0)
+    private int chatUtilities$slideTagFillY1$renderType(int y) {
+        return y + chatUtilities$slide();
+    }
+
+    @ModifyArg(
+            method = "handleTag",
+            at =
+                    @At(
+                            value = "INVOKE",
                             target = "Lnet/minecraft/client/gui/GuiGraphics;fill(IIIII)V"),
-            index = 3)
+            index = 3,
+            require = 0)
     private int chatUtilities$slideTagFillY2(int y) {
+        return y + chatUtilities$slide();
+    }
+
+    @ModifyArg(
+            method = "handleTag",
+            at =
+                    @At(
+                            value = "INVOKE",
+                            target =
+                                    "Lnet/minecraft/client/gui/GuiGraphics;fill(Lnet/minecraft/client/renderer/RenderType;IIIII)V"),
+            index = 4,
+            require = 0)
+    private int chatUtilities$slideTagFillY2$renderType(int y) {
         return y + chatUtilities$slide();
     }
 
@@ -99,7 +155,7 @@ public class ChatComponentDrawingFocusedSlideMixin {
                     @At(
                             value = "INVOKE",
                             target =
-                                    "Lnet/minecraft/client/GuiMessageTag$Icon;draw(Lnet/minecraft/client/gui/GuiGraphics;II)V"),
+                                    "Lnet/minecraft/client/multiplayer/chat/GuiMessageTag$Icon;draw(Lnet/minecraft/client/gui/GuiGraphics;II)V"),
             index = 2)
     private int chatUtilities$slideTagIconY(int y) {
         return y + chatUtilities$slide();

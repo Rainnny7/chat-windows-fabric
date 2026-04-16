@@ -1,6 +1,6 @@
 package me.braydon.chatutilities.gui;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.util.Mth;
 
 /** Filled rounded rectangles for the main Chat Utilities shell (span-based corners, no per-pixel effects). */
@@ -16,7 +16,7 @@ public final class RoundedPanelRenderer {
         return (int) Math.sqrt(n);
     }
 
-    public static void fillRoundedRect(GuiGraphics g, int x, int y, int w, int h, int radius, int color) {
+    public static void fillRoundedRect(GuiGraphicsExtractor g, int x, int y, int w, int h, int radius, int color) {
         int r = Math.min(radius, Math.min(w, h) / 2);
         if (r <= 0) {
             g.fill(x, y, x + w, y + h, color);
@@ -36,7 +36,7 @@ public final class RoundedPanelRenderer {
      * with {@code fillArgb} using the full {@code w×h} rounded rect (no inset — content/hit area matches {@code x,y,w,h}).
      */
     public static void fillRoundedRectOutsideBorder(
-            GuiGraphics g,
+            GuiGraphicsExtractor g,
             int x,
             int y,
             int w,
@@ -59,7 +59,7 @@ public final class RoundedPanelRenderer {
      * (same geometry as {@link #fillRoundedRect}).
      */
     public static void fillRectIntersectRounded(
-            GuiGraphics g, int rx, int ry, int rw, int rh, int rr, int ax, int ay, int aw, int ah, int color) {
+            GuiGraphicsExtractor g, int rx, int ry, int rw, int rh, int rr, int ax, int ay, int aw, int ah, int color) {
         if (aw <= 0 || ah <= 0 || rw <= 0 || rh <= 0) {
             return;
         }
@@ -94,7 +94,7 @@ public final class RoundedPanelRenderer {
     }
 
     private static void fillSpanClip(
-            GuiGraphics g, int py, int spanX0, int spanX1, int clipX0, int clipX1, int color) {
+            GuiGraphicsExtractor g, int py, int spanX0, int spanX1, int clipX0, int clipX1, int color) {
         int f0 = Math.max(spanX0, clipX0);
         int f1 = Math.min(spanX1, clipX1);
         if (f0 < f1) {
@@ -103,7 +103,7 @@ public final class RoundedPanelRenderer {
     }
 
     private static void fillRowTopBandClip(
-            GuiGraphics g, int py, int x, int y, int w, int r, int r2, int c0, int c1, int color) {
+            GuiGraphicsExtractor g, int py, int x, int y, int w, int r, int r2, int c0, int c1, int color) {
         int cy = y + r;
         int dy = py - cy;
         int dy2 = dy * dy;
@@ -125,7 +125,7 @@ public final class RoundedPanelRenderer {
     }
 
     private static void fillRowBottomBandClip(
-            GuiGraphics g, int py, int x, int y, int w, int h, int r, int r2, int c0, int c1, int color) {
+            GuiGraphicsExtractor g, int py, int x, int y, int w, int h, int r, int r2, int c0, int c1, int color) {
         int cy = y + h - r;
         int dy = py - cy;
         int dy2 = dy * dy;
@@ -146,7 +146,7 @@ public final class RoundedPanelRenderer {
         fillSpanClip(g, py, br0, br1, c0, c1, color);
     }
 
-    private static void fillCornerTL(GuiGraphics g, int x, int y, int r, int r2, int color) {
+    private static void fillCornerTL(GuiGraphicsExtractor g, int x, int y, int r, int r2, int color) {
         int cx = x + r;
         int cy = y + r;
         for (int py = y; py < y + r; py++) {
@@ -164,7 +164,7 @@ public final class RoundedPanelRenderer {
         }
     }
 
-    private static void fillCornerTR(GuiGraphics g, int x, int y, int w, int r, int r2, int color) {
+    private static void fillCornerTR(GuiGraphicsExtractor g, int x, int y, int w, int r, int r2, int color) {
         int x0 = x + w - r;
         int cx = x + w - r;
         int cy = y + r;
@@ -183,7 +183,7 @@ public final class RoundedPanelRenderer {
         }
     }
 
-    private static void fillCornerBL(GuiGraphics g, int x, int y, int h, int r, int r2, int color) {
+    private static void fillCornerBL(GuiGraphicsExtractor g, int x, int y, int h, int r, int r2, int color) {
         int y0 = y + h - r;
         int cx = x + r;
         int cy = y + h - r;
@@ -202,7 +202,7 @@ public final class RoundedPanelRenderer {
         }
     }
 
-    private static void fillCornerBR(GuiGraphics g, int x, int y, int w, int h, int r, int r2, int color) {
+    private static void fillCornerBR(GuiGraphicsExtractor g, int x, int y, int w, int h, int r, int r2, int color) {
         int x0 = x + w - r;
         int y0 = y + h - r;
         int cx = x + w - r;

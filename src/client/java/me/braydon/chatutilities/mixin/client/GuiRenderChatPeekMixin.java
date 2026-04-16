@@ -7,6 +7,7 @@ import net.minecraft.client.gui.components.ChatComponent;
 import net.minecraft.client.gui.screens.ChatScreen;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
 /**
@@ -26,10 +27,34 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  * <p>This mixin {@code @Redirect}s specifically the {@code isChatFocused()} call that acts as the
  * guard inside {@code renderChat()} so it returns {@code false} while peek is held — allowing
  * {@code renderChat()} to proceed. The expanded render booleans are then supplied by the
- * {@code @ModifyVariable} injections in {@link ChatComponentMixin}.
+ * {@code @ModifyArg} / {@link ChatComponentMixin} for the expanded flag on {@code extractRenderState}.
  */
 @Mixin(Gui.class)
 public class GuiRenderChatPeekMixin {
+
+    /**
+     * {@code Gui.extractChat} always passes {@code false} as the last {@code extractRenderState} boolean (see
+     * {@code iconst_0} in 26.1.2). Without forcing {@code true} during peek, the main HUD chat never takes the
+     * expanded path even when {@link ChatComponentFocusPeekMixin} reports focused for sizing.
+     */
+    @ModifyArg(
+            method = "extractChat",
+            at =
+                    @At(
+                            value = "INVOKE",
+                            target =
+                                    "Lnet/minecraft/client/gui/components/ChatComponent;extractRenderState(Lnet/minecraft/client/gui/GuiGraphicsExtractor;Lnet/minecraft/client/gui/Font;IIILnet/minecraft/client/gui/components/ChatComponent$DisplayMode;Z)V"),
+            index = 6,
+            require = 1)
+    private boolean chatUtilities$peekHudExtractRenderStateExpanded(boolean original) {
+        if (ChatUtilitiesModClient.CHAT_PEEK_KEY != null && ChatUtilitiesModClient.CHAT_PEEK_KEY.isDown()) {
+            Minecraft mc = Minecraft.getInstance();
+            if (mc != null && !(mc.screen instanceof ChatScreen)) {
+                return true;
+            }
+        }
+        return original;
+    }
 
     /**
      * During peek: returns {@code false} so the {@code if (!isChatFocused())} guard passes and
@@ -41,14 +66,26 @@ public class GuiRenderChatPeekMixin {
             at = @At(value = "INVOKE",
                     target = "Lnet/minecraft/client/gui/components/ChatComponent;isChatFocused()Z"),
             require = 0)
-    private boolean chatUtilities$peekKeepRenderChatActive(ChatComponent chatComponent) {
+    private boolean chatUtilities$peekKeepRenderChatActive_renderChat(ChatComponent chatComponent) {
+        return chatUtilities$peekKeepHudChatActive(chatComponent);
+    }
+
+    @Redirect(
+            method = "extractChat",
+            at = @At(value = "INVOKE",
+                    target = "Lnet/minecraft/client/gui/components/ChatComponent;isChatFocused()Z"),
+            require = 1)
+    private boolean chatUtilities$peekKeepRenderChatActive_extractChat(ChatComponent chatComponent) {
+        return chatUtilities$peekKeepHudChatActive(chatComponent);
+    }
+
+    private boolean chatUtilities$peekKeepHudChatActive(ChatComponent chatComponent) {
         if (ChatUtilitiesModClient.CHAT_PEEK_KEY != null && ChatUtilitiesModClient.CHAT_PEEK_KEY.isDown()) {
             Minecraft mc = Minecraft.getInstance();
             if (mc != null && !(mc.screen instanceof ChatScreen)) {
-                // Lie to renderChat: claim chat is not focused so it proceeds to call
-                // chat.render(). getLinesPerPage() will still use the expanded height
-                // because ChatComponentFocusPeekMixin makes isChatFocused() return true
-                // in that call path.
+                // Lie to the HUD chat guard (renderChat/extractChat): claim chat is not focused so the
+                // HUD chat path proceeds to render. The chat itself will still treat it as focused
+                // (ChatComponentFocusPeekMixin) to expand height/lines like pressing T.
                 return false;
             }
         }

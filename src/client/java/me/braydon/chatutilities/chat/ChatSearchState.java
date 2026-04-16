@@ -1,8 +1,8 @@
 package me.braydon.chatutilities.chat;
 
-import net.minecraft.client.GuiMessage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.multiplayer.chat.GuiMessage;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 

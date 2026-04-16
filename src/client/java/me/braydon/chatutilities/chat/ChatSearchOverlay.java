@@ -1,12 +1,12 @@
 package me.braydon.chatutilities.chat;
 
 import me.braydon.chatutilities.client.ChatUtilitiesClientOptions;
-import net.minecraft.client.GuiMessage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.multiplayer.chat.GuiMessage;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 
@@ -79,7 +79,7 @@ public final class ChatSearchOverlay {
     }
 
     public static void renderVanillaJump(
-            Minecraft mc, GuiGraphics graphics, Font font, int mouseX, int mouseY, int screenW, int screenH) {
+            Minecraft mc, GuiGraphicsExtractor graphics, Font font, int mouseX, int mouseY, int screenW, int screenH) {
         if (!ChatUtilitiesClientOptions.isChatSearchBarEnabled() || !ChatSearchState.isFiltering()) {
             resetJumpInteraction();
             return;
@@ -151,8 +151,8 @@ public final class ChatSearchOverlay {
             return;
         }
         graphics.fill(x, y, x + w, y + h, JUMP_FILL);
-        graphics.renderOutline(x, y, w, h, JUMP_EDGE);
-        graphics.drawString(
+        graphics.outline(x, y, w, h, JUMP_EDGE);
+        graphics.text(
                 font,
                 JUMP_LABEL,
                 x + 4,
@@ -200,7 +200,7 @@ public final class ChatSearchOverlay {
      */
     public static void renderHudJumpTopmost(
             Minecraft mc,
-            GuiGraphics graphics,
+            GuiGraphicsExtractor graphics,
             int gw,
             int gh,
             int mx,
@@ -317,8 +317,8 @@ public final class ChatSearchOverlay {
             int edge = (Math.round(a * 255f) << 24) | (JUMP_EDGE & 0xFFFFFF);
             int textRgb = ChatWindowGeometry.argbText(a, 0xFFFFFF);
             graphics.fill(jumpX, jumpY, jumpX + labelW, jumpY + labelH, fill);
-            graphics.renderOutline(jumpX, jumpY, labelW, labelH, edge);
-            graphics.drawString(
+            graphics.outline(jumpX, jumpY, labelW, labelH, edge);
+            graphics.text(
                     font, JUMP_LABEL, jumpX + 4, jumpY + 2, textRgb, ChatUtilitiesClientOptions.isChatTextShadow());
             hudJumpX = jumpX;
             hudJumpY = jumpY;
@@ -388,7 +388,7 @@ public final class ChatSearchOverlay {
 
     private static boolean tryDrawHudJumpForSticky(
             Minecraft mc,
-            GuiGraphics graphics,
+            GuiGraphicsExtractor graphics,
             int gw,
             int gh,
             int guiTick,
@@ -445,8 +445,8 @@ public final class ChatSearchOverlay {
         int edge = (Math.round(a * 255f) << 24) | (JUMP_EDGE & 0xFFFFFF);
         int textRgb = ChatWindowGeometry.argbText(a, 0xFFFFFF);
         graphics.fill(jumpX, jumpY, jumpX + labelW, jumpY + labelH, fill);
-        graphics.renderOutline(jumpX, jumpY, labelW, labelH, edge);
-        graphics.drawString(
+        graphics.outline(jumpX, jumpY, labelW, labelH, edge);
+        graphics.text(
                 font, JUMP_LABEL, jumpX + 4, jumpY + 2, textRgb, ChatUtilitiesClientOptions.isChatTextShadow());
         hudJumpX = jumpX;
         hudJumpY = jumpY;

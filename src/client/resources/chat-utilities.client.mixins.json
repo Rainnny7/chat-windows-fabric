@@ -1,7 +1,7 @@
 {
 	"required": true,
 	"package": "me.braydon.chatutilities.mixin.client",
-	"compatibilityLevel": "JAVA_21",
+	"compatibilityLevel": "JAVA_25",
 	"refmap": "chat-utilities.client.refmap.json",
 	"client": [
 		"ChatComponentAccess",
@@ -24,6 +24,6 @@
 		"MinecraftMixin"
 	],
 	"injectors": {
-		"defaultRequire": 1
+		"defaultRequire": 0
 	}
 }

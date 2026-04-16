@@ -1,0 +1,1483 @@
+Compiled from "GuiRenderer.java"
+public class net.minecraft.client.gui.render.GuiRenderer implements java.lang.AutoCloseable {
+  private static final org.slf4j.Logger LOGGER;
+
+  private static final float MAX_GUI_Z;
+
+  public static final float MIN_GUI_Z;
+
+  private static final float GUI_Z_NEAR;
+
+  public static final int GUI_3D_Z_FAR;
+
+  public static final int GUI_3D_Z_NEAR;
+
+  public static final int DEFAULT_ITEM_SIZE;
+
+  public static final int CLEAR_COLOR;
+
+  private static final java.util.Comparator<net.minecraft.client.gui.navigation.ScreenRectangle> SCISSOR_COMPARATOR;
+
+  private static final java.util.Comparator<net.minecraft.client.gui.render.TextureSetup> TEXTURE_COMPARATOR;
+
+  private static final java.util.Comparator<net.minecraft.client.renderer.state.gui.GuiElementRenderState> ELEMENT_SORT_COMPARATOR;
+
+  private final java.util.Map<java.lang.Object, net.minecraft.client.gui.render.pip.OversizedItemRenderer> oversizedItemRenderers;
+
+  private final net.minecraft.client.renderer.state.gui.GuiRenderState renderState;
+
+  private final java.util.List<net.minecraft.client.gui.render.GuiRenderer$Draw> draws;
+
+  private final java.util.List<net.minecraft.client.gui.render.GuiRenderer$MeshToDraw> meshesToDraw;
+
+  private final com.mojang.blaze3d.vertex.ByteBufferBuilder byteBufferBuilder;
+
+  private final java.util.Map<com.mojang.blaze3d.vertex.VertexFormat, net.minecraft.client.renderer.MappableRingBuffer> vertexBuffers;
+
+  private int firstDrawIndexAfterBlur;
+
+  private final net.minecraft.client.renderer.Projection guiProjection;
+
+  private final net.minecraft.client.renderer.ProjectionMatrixBuffer guiProjectionMatrixBuffer;
+
+  private final net.minecraft.client.renderer.MultiBufferSource$BufferSource bufferSource;
+
+  private final net.minecraft.client.renderer.SubmitNodeCollector submitNodeCollector;
+
+  private final net.minecraft.client.renderer.feature.FeatureRenderDispatcher featureRenderDispatcher;
+
+  private final java.util.Map<java.lang.Class<? extends net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState>, net.minecraft.client.gui.render.pip.PictureInPictureRenderer<?>> pictureInPictureRenderers;
+
+  private net.minecraft.client.gui.render.GuiItemAtlas itemAtlas;
+
+  private int cachedGuiScale;
+
+  private final net.minecraft.client.renderer.CubeMap cubeMap;
+
+  private net.minecraft.client.gui.navigation.ScreenRectangle previousScissorArea;
+
+  private com.mojang.blaze3d.pipeline.RenderPipeline previousPipeline;
+
+  private net.minecraft.client.gui.render.TextureSetup previousTextureSetup;
+
+  private com.mojang.blaze3d.vertex.BufferBuilder bufferBuilder;
+
+  public net.minecraft.client.gui.render.GuiRenderer(net.minecraft.client.renderer.state.gui.GuiRenderState, net.minecraft.client.renderer.MultiBufferSource$BufferSource, net.minecraft.client.renderer.SubmitNodeCollector, net.minecraft.client.renderer.feature.FeatureRenderDispatcher, java.util.List<net.minecraft.client.gui.render.pip.PictureInPictureRenderer<?>>);
+    Code:
+         0: aload_0
+         1: invokespecial #1                  // Method java/lang/Object."<init>":()V
+         4: aload_0
+         5: new           #7                  // class it/unimi/dsi/fastutil/objects/Object2ObjectOpenHashMap
+         8: dup
+         9: invokespecial #9                  // Method it/unimi/dsi/fastutil/objects/Object2ObjectOpenHashMap."<init>":()V
+        12: putfield      #10                 // Field oversizedItemRenderers:Ljava/util/Map;
+        15: aload_0
+        16: new           #16                 // class java/util/ArrayList
+        19: dup
+        20: invokespecial #18                 // Method java/util/ArrayList."<init>":()V
+        23: putfield      #19                 // Field draws:Ljava/util/List;
+        26: aload_0
+        27: new           #16                 // class java/util/ArrayList
+        30: dup
+        31: invokespecial #18                 // Method java/util/ArrayList."<init>":()V
+        34: putfield      #23                 // Field meshesToDraw:Ljava/util/List;
+        37: aload_0
+        38: new           #26                 // class com/mojang/blaze3d/vertex/ByteBufferBuilder
+        41: dup
+        42: ldc           #30                 // int 786432
+        44: invokespecial #31                 // Method com/mojang/blaze3d/vertex/ByteBufferBuilder."<init>":(I)V
+        47: putfield      #34                 // Field byteBufferBuilder:Lcom/mojang/blaze3d/vertex/ByteBufferBuilder;
+        50: aload_0
+        51: new           #7                  // class it/unimi/dsi/fastutil/objects/Object2ObjectOpenHashMap
+        54: dup
+        55: invokespecial #9                  // Method it/unimi/dsi/fastutil/objects/Object2ObjectOpenHashMap."<init>":()V
+        58: putfield      #38                 // Field vertexBuffers:Ljava/util/Map;
+        61: aload_0
+        62: ldc           #43                 // int 2147483647
+        64: putfield      #44                 // Field firstDrawIndexAfterBlur:I
+        67: aload_0
+        68: new           #48                 // class net/minecraft/client/renderer/Projection
+        71: dup
+        72: invokespecial #50                 // Method net/minecraft/client/renderer/Projection."<init>":()V
+        75: putfield      #51                 // Field guiProjection:Lnet/minecraft/client/renderer/Projection;
+        78: aload_0
+        79: new           #55                 // class net/minecraft/client/renderer/ProjectionMatrixBuffer
+        82: dup
+        83: ldc           #57                 // String gui
+        85: invokespecial #59                 // Method net/minecraft/client/renderer/ProjectionMatrixBuffer."<init>":(Ljava/lang/String;)V
+        88: putfield      #62                 // Field guiProjectionMatrixBuffer:Lnet/minecraft/client/renderer/ProjectionMatrixBuffer;
+        91: aload_0
+        92: new           #66                 // class net/minecraft/client/renderer/CubeMap
+        95: dup
+        96: ldc           #68                 // String textures/gui/title/background/panorama
+        98: invokestatic  #70                 // Method net/minecraft/resources/Identifier.withDefaultNamespace:(Ljava/lang/String;)Lnet/minecraft/resources/Identifier;
+       101: invokespecial #76                 // Method net/minecraft/client/renderer/CubeMap."<init>":(Lnet/minecraft/resources/Identifier;)V
+       104: putfield      #79                 // Field cubeMap:Lnet/minecraft/client/renderer/CubeMap;
+       107: aload_0
+       108: aconst_null
+       109: putfield      #83                 // Field previousScissorArea:Lnet/minecraft/client/gui/navigation/ScreenRectangle;
+       112: aload_0
+       113: aconst_null
+       114: putfield      #87                 // Field previousPipeline:Lcom/mojang/blaze3d/pipeline/RenderPipeline;
+       117: aload_0
+       118: aconst_null
+       119: putfield      #91                 // Field previousTextureSetup:Lnet/minecraft/client/gui/render/TextureSetup;
+       122: aload_0
+       123: aconst_null
+       124: putfield      #95                 // Field bufferBuilder:Lcom/mojang/blaze3d/vertex/BufferBuilder;
+       127: aload_0
+       128: aload_1
+       129: putfield      #99                 // Field renderState:Lnet/minecraft/client/renderer/state/gui/GuiRenderState;
+       132: aload_0
+       133: aload_2
+       134: putfield      #103                // Field bufferSource:Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;
+       137: aload_0
+       138: aload_3
+       139: putfield      #107                // Field submitNodeCollector:Lnet/minecraft/client/renderer/SubmitNodeCollector;
+       142: aload_0
+       143: aload         4
+       145: putfield      #111                // Field featureRenderDispatcher:Lnet/minecraft/client/renderer/feature/FeatureRenderDispatcher;
+       148: invokestatic  #115                // Method com/google/common/collect/ImmutableMap.builder:()Lcom/google/common/collect/ImmutableMap$Builder;
+       151: astore        6
+       153: aload         5
+       155: invokeinterface #121,  1          // InterfaceMethod java/util/List.iterator:()Ljava/util/Iterator;
+       160: astore        7
+       162: aload         7
+       164: invokeinterface #127,  1          // InterfaceMethod java/util/Iterator.hasNext:()Z
+       169: ifeq          200
+       172: aload         7
+       174: invokeinterface #133,  1          // InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;
+       179: checkcast     #137                // class net/minecraft/client/gui/render/pip/PictureInPictureRenderer
+       182: astore        8
+       184: aload         6
+       186: aload         8
+       188: invokevirtual #139                // Method net/minecraft/client/gui/render/pip/PictureInPictureRenderer.getRenderStateClass:()Ljava/lang/Class;
+       191: aload         8
+       193: invokevirtual #143                // Method com/google/common/collect/ImmutableMap$Builder.put:(Ljava/lang/Object;Ljava/lang/Object;)Lcom/google/common/collect/ImmutableMap$Builder;
+       196: pop
+       197: goto          162
+       200: aload_0
+       201: aload         6
+       203: invokevirtual #149                // Method com/google/common/collect/ImmutableMap$Builder.buildOrThrow:()Lcom/google/common/collect/ImmutableMap;
+       206: putfield      #153                // Field pictureInPictureRenderers:Ljava/util/Map;
+       209: return
+
+  public void endFrame();
+    Code:
+         0: aload_0
+         1: getfield      #156                // Field itemAtlas:Lnet/minecraft/client/gui/render/GuiItemAtlas;
+         4: ifnull        14
+         7: aload_0
+         8: getfield      #156                // Field itemAtlas:Lnet/minecraft/client/gui/render/GuiItemAtlas;
+        11: invokevirtual #160                // Method net/minecraft/client/gui/render/GuiItemAtlas.endFrame:()V
+        14: return
+
+  public void render(com.mojang.blaze3d.buffers.GpuBufferSlice);
+    Code:
+         0: invokestatic  #165                // Method net/minecraft/util/profiling/Profiler.get:()Lnet/minecraft/util/profiling/ProfilerFiller;
+         3: astore_2
+         4: aload_0
+         5: getfield      #99                 // Field renderState:Lnet/minecraft/client/renderer/state/gui/GuiRenderState;
+         8: getfield      #171                // Field net/minecraft/client/renderer/state/gui/GuiRenderState.panoramaRenderState:Lnet/minecraft/client/renderer/state/gui/PanoramaRenderState;
+        11: ifnull        33
+        14: aload_0
+        15: getfield      #79                 // Field cubeMap:Lnet/minecraft/client/renderer/CubeMap;
+        18: ldc           #177                // float 10.0f
+        20: aload_0
+        21: getfield      #99                 // Field renderState:Lnet/minecraft/client/renderer/state/gui/GuiRenderState;
+        24: getfield      #171                // Field net/minecraft/client/renderer/state/gui/GuiRenderState.panoramaRenderState:Lnet/minecraft/client/renderer/state/gui/PanoramaRenderState;
+        27: invokevirtual #178                // Method net/minecraft/client/renderer/state/gui/PanoramaRenderState.spin:()F
+        30: invokevirtual #184                // Method net/minecraft/client/renderer/CubeMap.render:(FF)V
+        33: aload_2
+        34: ldc           #188                // String prepare
+        36: invokeinterface #190,  2          // InterfaceMethod net/minecraft/util/profiling/ProfilerFiller.push:(Ljava/lang/String;)V
+        41: aload_0
+        42: invokevirtual #195                // Method prepare:()V
+        45: aload_2
+        46: ldc           #197                // String draw
+        48: invokeinterface #199,  2          // InterfaceMethod net/minecraft/util/profiling/ProfilerFiller.popPush:(Ljava/lang/String;)V
+        53: aload_0
+        54: aload_1
+        55: invokevirtual #202                // Method draw:(Lcom/mojang/blaze3d/buffers/GpuBufferSlice;)V
+        58: aload_2
+        59: ldc           #205                // String vertexBufferRotate
+        61: invokeinterface #199,  2          // InterfaceMethod net/minecraft/util/profiling/ProfilerFiller.popPush:(Ljava/lang/String;)V
+        66: aload_0
+        67: getfield      #38                 // Field vertexBuffers:Ljava/util/Map;
+        70: invokeinterface #207,  1          // InterfaceMethod java/util/Map.values:()Ljava/util/Collection;
+        75: invokeinterface #213,  1          // InterfaceMethod java/util/Collection.iterator:()Ljava/util/Iterator;
+        80: astore_3
+        81: aload_3
+        82: invokeinterface #127,  1          // InterfaceMethod java/util/Iterator.hasNext:()Z
+        87: ifeq          109
+        90: aload_3
+        91: invokeinterface #133,  1          // InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;
+        96: checkcast     #216                // class net/minecraft/client/renderer/MappableRingBuffer
+        99: astore        4
+       101: aload         4
+       103: invokevirtual #218                // Method net/minecraft/client/renderer/MappableRingBuffer.rotate:()V
+       106: goto          81
+       109: aload_2
+       110: invokeinterface #221,  1          // InterfaceMethod net/minecraft/util/profiling/ProfilerFiller.pop:()V
+       115: aload_0
+       116: getfield      #19                 // Field draws:Ljava/util/List;
+       119: invokeinterface #224,  1          // InterfaceMethod java/util/List.clear:()V
+       124: aload_0
+       125: getfield      #23                 // Field meshesToDraw:Ljava/util/List;
+       128: invokeinterface #224,  1          // InterfaceMethod java/util/List.clear:()V
+       133: aload_0
+       134: getfield      #99                 // Field renderState:Lnet/minecraft/client/renderer/state/gui/GuiRenderState;
+       137: invokevirtual #227                // Method net/minecraft/client/renderer/state/gui/GuiRenderState.reset:()V
+       140: aload_0
+       141: ldc           #43                 // int 2147483647
+       143: putfield      #44                 // Field firstDrawIndexAfterBlur:I
+       146: aload_0
+       147: invokevirtual #230                // Method clearUnusedOversizedItemRenderers:()V
+       150: getstatic     #233                // Field net/minecraft/SharedConstants.DEBUG_SHUFFLE_UI_RENDERING_ORDER:Z
+       153: ifeq          162
+       156: invokestatic  #239                // Method com/mojang/blaze3d/pipeline/RenderPipeline.updateSortKeySeed:()V
+       159: invokestatic  #244                // Method net/minecraft/client/gui/render/TextureSetup.updateSortKeySeed:()V
+       162: return
+
+  private void clearUnusedOversizedItemRenderers();
+    Code:
+         0: aload_0
+         1: getfield      #10                 // Field oversizedItemRenderers:Ljava/util/Map;
+         4: invokeinterface #247,  1          // InterfaceMethod java/util/Map.entrySet:()Ljava/util/Set;
+         9: invokeinterface #251,  1          // InterfaceMethod java/util/Set.iterator:()Ljava/util/Iterator;
+        14: astore_1
+        15: aload_1
+        16: invokeinterface #127,  1          // InterfaceMethod java/util/Iterator.hasNext:()Z
+        21: ifeq          71
+        24: aload_1
+        25: invokeinterface #133,  1          // InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;
+        30: checkcast     #254                // class java/util/Map$Entry
+        33: astore_2
+        34: aload_2
+        35: invokeinterface #256,  1          // InterfaceMethod java/util/Map$Entry.getValue:()Ljava/lang/Object;
+        40: checkcast     #259                // class net/minecraft/client/gui/render/pip/OversizedItemRenderer
+        43: astore_3
+        44: aload_3
+        45: invokevirtual #261                // Method net/minecraft/client/gui/render/pip/OversizedItemRenderer.usedOnThisFrame:()Z
+        48: ifne          64
+        51: aload_3
+        52: invokevirtual #264                // Method net/minecraft/client/gui/render/pip/OversizedItemRenderer.close:()V
+        55: aload_1
+        56: invokeinterface #267,  1          // InterfaceMethod java/util/Iterator.remove:()V
+        61: goto          68
+        64: aload_3
+        65: invokevirtual #270                // Method net/minecraft/client/gui/render/pip/OversizedItemRenderer.resetUsedOnThisFrame:()V
+        68: goto          15
+        71: return
+
+  private void prepare();
+    Code:
+         0: aload_0
+         1: getfield      #103                // Field bufferSource:Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;
+         4: invokevirtual #273                // Method net/minecraft/client/renderer/MultiBufferSource$BufferSource.endBatch:()V
+         7: aload_0
+         8: invokevirtual #278                // Method preparePictureInPicture:()V
+        11: aload_0
+        12: invokevirtual #281                // Method prepareItemElements:()V
+        15: aload_0
+        16: invokevirtual #284                // Method prepareText:()V
+        19: aload_0
+        20: getfield      #99                 // Field renderState:Lnet/minecraft/client/renderer/state/gui/GuiRenderState;
+        23: getstatic     #287                // Field ELEMENT_SORT_COMPARATOR:Ljava/util/Comparator;
+        26: invokevirtual #291                // Method net/minecraft/client/renderer/state/gui/GuiRenderState.sortElements:(Ljava/util/Comparator;)V
+        29: aload_0
+        30: getstatic     #295                // Field net/minecraft/client/renderer/state/gui/GuiRenderState$TraverseRange.BEFORE_BLUR:Lnet/minecraft/client/renderer/state/gui/GuiRenderState$TraverseRange;
+        33: invokevirtual #301                // Method addElementsToMeshes:(Lnet/minecraft/client/renderer/state/gui/GuiRenderState$TraverseRange;)V
+        36: aload_0
+        37: aload_0
+        38: getfield      #23                 // Field meshesToDraw:Ljava/util/List;
+        41: invokeinterface #305,  1          // InterfaceMethod java/util/List.size:()I
+        46: putfield      #44                 // Field firstDrawIndexAfterBlur:I
+        49: aload_0
+        50: getstatic     #309                // Field net/minecraft/client/renderer/state/gui/GuiRenderState$TraverseRange.AFTER_BLUR:Lnet/minecraft/client/renderer/state/gui/GuiRenderState$TraverseRange;
+        53: invokevirtual #301                // Method addElementsToMeshes:(Lnet/minecraft/client/renderer/state/gui/GuiRenderState$TraverseRange;)V
+        56: aload_0
+        57: invokevirtual #312                // Method recordDraws:()V
+        60: return
+
+  private void addElementsToMeshes(net.minecraft.client.renderer.state.gui.GuiRenderState$TraverseRange);
+    Code:
+         0: aload_0
+         1: aconst_null
+         2: putfield      #83                 // Field previousScissorArea:Lnet/minecraft/client/gui/navigation/ScreenRectangle;
+         5: aload_0
+         6: aconst_null
+         7: putfield      #87                 // Field previousPipeline:Lcom/mojang/blaze3d/pipeline/RenderPipeline;
+        10: aload_0
+        11: aconst_null
+        12: putfield      #91                 // Field previousTextureSetup:Lnet/minecraft/client/gui/render/TextureSetup;
+        15: aload_0
+        16: aconst_null
+        17: putfield      #95                 // Field bufferBuilder:Lcom/mojang/blaze3d/vertex/BufferBuilder;
+        20: aload_0
+        21: getfield      #99                 // Field renderState:Lnet/minecraft/client/renderer/state/gui/GuiRenderState;
+        24: aload_0
+        25: invokedynamic #315,  0            // InvokeDynamic #0:accept:(Lnet/minecraft/client/gui/render/GuiRenderer;)Ljava/util/function/Consumer;
+        30: aload_1
+        31: invokevirtual #319                // Method net/minecraft/client/renderer/state/gui/GuiRenderState.forEachElement:(Ljava/util/function/Consumer;Lnet/minecraft/client/renderer/state/gui/GuiRenderState$TraverseRange;)V
+        34: aload_0
+        35: getfield      #95                 // Field bufferBuilder:Lcom/mojang/blaze3d/vertex/BufferBuilder;
+        38: ifnull        61
+        41: aload_0
+        42: aload_0
+        43: getfield      #95                 // Field bufferBuilder:Lcom/mojang/blaze3d/vertex/BufferBuilder;
+        46: aload_0
+        47: getfield      #87                 // Field previousPipeline:Lcom/mojang/blaze3d/pipeline/RenderPipeline;
+        50: aload_0
+        51: getfield      #91                 // Field previousTextureSetup:Lnet/minecraft/client/gui/render/TextureSetup;
+        54: aload_0
+        55: getfield      #83                 // Field previousScissorArea:Lnet/minecraft/client/gui/navigation/ScreenRectangle;
+        58: invokevirtual #323                // Method recordMesh:(Lcom/mojang/blaze3d/vertex/BufferBuilder;Lcom/mojang/blaze3d/pipeline/RenderPipeline;Lnet/minecraft/client/gui/render/TextureSetup;Lnet/minecraft/client/gui/navigation/ScreenRectangle;)V
+        61: return
+
+  private void draw(com.mojang.blaze3d.buffers.GpuBufferSlice);
+    Code:
+         0: aload_0
+         1: getfield      #19                 // Field draws:Ljava/util/List;
+         4: invokeinterface #327,  1          // InterfaceMethod java/util/List.isEmpty:()Z
+         9: ifeq          13
+        12: return
+        13: invokestatic  #330                // Method net/minecraft/client/Minecraft.getInstance:()Lnet/minecraft/client/Minecraft;
+        16: astore_2
+        17: aload_2
+        18: getfield      #336                // Field net/minecraft/client/Minecraft.gameRenderer:Lnet/minecraft/client/renderer/GameRenderer;
+        21: invokevirtual #340                // Method net/minecraft/client/renderer/GameRenderer.getGameRenderState:()Lnet/minecraft/client/renderer/state/GameRenderState;
+        24: getfield      #346                // Field net/minecraft/client/renderer/state/GameRenderState.windowRenderState:Lnet/minecraft/client/renderer/state/WindowRenderState;
+        27: astore_3
+        28: aload_0
+        29: getfield      #51                 // Field guiProjection:Lnet/minecraft/client/renderer/Projection;
+        32: ldc_w         #352                // float 1000.0f
+        35: ldc_w         #353                // float 11000.0f
+        38: aload_3
+        39: getfield      #354                // Field net/minecraft/client/renderer/state/WindowRenderState.width:I
+        42: i2f
+        43: aload_3
+        44: getfield      #359                // Field net/minecraft/client/renderer/state/WindowRenderState.guiScale:I
+        47: i2f
+        48: fdiv
+        49: aload_3
+        50: getfield      #362                // Field net/minecraft/client/renderer/state/WindowRenderState.height:I
+        53: i2f
+        54: aload_3
+        55: getfield      #359                // Field net/minecraft/client/renderer/state/WindowRenderState.guiScale:I
+        58: i2f
+        59: fdiv
+        60: iconst_1
+        61: invokevirtual #365                // Method net/minecraft/client/renderer/Projection.setupOrtho:(FFFFZ)V
+        64: aload_0
+        65: getfield      #62                 // Field guiProjectionMatrixBuffer:Lnet/minecraft/client/renderer/ProjectionMatrixBuffer;
+        68: aload_0
+        69: getfield      #51                 // Field guiProjection:Lnet/minecraft/client/renderer/Projection;
+        72: invokevirtual #369                // Method net/minecraft/client/renderer/ProjectionMatrixBuffer.getBuffer:(Lnet/minecraft/client/renderer/Projection;)Lcom/mojang/blaze3d/buffers/GpuBufferSlice;
+        75: getstatic     #373                // Field com/mojang/blaze3d/ProjectionType.ORTHOGRAPHIC:Lcom/mojang/blaze3d/ProjectionType;
+        78: invokestatic  #379                // Method com/mojang/blaze3d/systems/RenderSystem.setProjectionMatrix:(Lcom/mojang/blaze3d/buffers/GpuBufferSlice;Lcom/mojang/blaze3d/ProjectionType;)V
+        81: aload_2
+        82: invokevirtual #385                // Method net/minecraft/client/Minecraft.getMainRenderTarget:()Lcom/mojang/blaze3d/pipeline/RenderTarget;
+        85: astore        4
+        87: iconst_0
+        88: istore        5
+        90: aload_0
+        91: getfield      #19                 // Field draws:Ljava/util/List;
+        94: invokeinterface #121,  1          // InterfaceMethod java/util/List.iterator:()Ljava/util/Iterator;
+        99: astore        6
+       101: aload         6
+       103: invokeinterface #127,  1          // InterfaceMethod java/util/Iterator.hasNext:()Z
+       108: ifeq          143
+       111: aload         6
+       113: invokeinterface #133,  1          // InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;
+       118: checkcast     #389                // class net/minecraft/client/gui/render/GuiRenderer$Draw
+       121: astore        7
+       123: aload         7
+       125: getfield      #391                // Field net/minecraft/client/gui/render/GuiRenderer$Draw.indexCount:I
+       128: iload         5
+       130: if_icmple     140
+       133: aload         7
+       135: getfield      #391                // Field net/minecraft/client/gui/render/GuiRenderer$Draw.indexCount:I
+       138: istore        5
+       140: goto          101
+       143: getstatic     #394                // Field com/mojang/blaze3d/vertex/VertexFormat$Mode.QUADS:Lcom/mojang/blaze3d/vertex/VertexFormat$Mode;
+       146: invokestatic  #400                // Method com/mojang/blaze3d/systems/RenderSystem.getSequentialBuffer:(Lcom/mojang/blaze3d/vertex/VertexFormat$Mode;)Lcom/mojang/blaze3d/systems/RenderSystem$AutoStorageIndexBuffer;
+       149: astore        6
+       151: aload         6
+       153: iload         5
+       155: invokevirtual #404                // Method com/mojang/blaze3d/systems/RenderSystem$AutoStorageIndexBuffer.getBuffer:(I)Lcom/mojang/blaze3d/buffers/GpuBuffer;
+       158: astore        7
+       160: aload         6
+       162: invokevirtual #409                // Method com/mojang/blaze3d/systems/RenderSystem$AutoStorageIndexBuffer.type:()Lcom/mojang/blaze3d/vertex/VertexFormat$IndexType;
+       165: astore        8
+       167: invokestatic  #413                // Method com/mojang/blaze3d/systems/RenderSystem.getDynamicUniforms:()Lnet/minecraft/client/renderer/DynamicUniforms;
+       170: new           #417                // class org/joml/Matrix4f
+       173: dup
+       174: invokespecial #419                // Method org/joml/Matrix4f."<init>":()V
+       177: fconst_0
+       178: fconst_0
+       179: ldc_w         #420                // float -11000.0f
+       182: invokevirtual #421                // Method org/joml/Matrix4f.setTranslation:(FFF)Lorg/joml/Matrix4f;
+       185: new           #425                // class org/joml/Vector4f
+       188: dup
+       189: fconst_1
+       190: fconst_1
+       191: fconst_1
+       192: fconst_1
+       193: invokespecial #427                // Method org/joml/Vector4f."<init>":(FFFF)V
+       196: new           #430                // class org/joml/Vector3f
+       199: dup
+       200: invokespecial #432                // Method org/joml/Vector3f."<init>":()V
+       203: new           #417                // class org/joml/Matrix4f
+       206: dup
+       207: invokespecial #419                // Method org/joml/Matrix4f."<init>":()V
+       210: invokevirtual #433                // Method net/minecraft/client/renderer/DynamicUniforms.writeTransform:(Lorg/joml/Matrix4fc;Lorg/joml/Vector4fc;Lorg/joml/Vector3fc;Lorg/joml/Matrix4fc;)Lcom/mojang/blaze3d/buffers/GpuBufferSlice;
+       213: astore        9
+       215: aload_0
+       216: getfield      #44                 // Field firstDrawIndexAfterBlur:I
+       219: ifle          257
+       222: aload_0
+       223: invokedynamic #439,  0            // InvokeDynamic #1:get:()Ljava/util/function/Supplier;
+       228: aload         4
+       230: aload_1
+       231: aload         9
+       233: aload         7
+       235: aload         8
+       237: iconst_0
+       238: aload_0
+       239: getfield      #44                 // Field firstDrawIndexAfterBlur:I
+       242: aload_0
+       243: getfield      #19                 // Field draws:Ljava/util/List;
+       246: invokeinterface #305,  1          // InterfaceMethod java/util/List.size:()I
+       251: invokestatic  #442                // Method java/lang/Math.min:(II)I
+       254: invokevirtual #448                // Method executeDrawRange:(Ljava/util/function/Supplier;Lcom/mojang/blaze3d/pipeline/RenderTarget;Lcom/mojang/blaze3d/buffers/GpuBufferSlice;Lcom/mojang/blaze3d/buffers/GpuBufferSlice;Lcom/mojang/blaze3d/buffers/GpuBuffer;Lcom/mojang/blaze3d/vertex/VertexFormat$IndexType;II)V
+       257: aload_0
+       258: getfield      #19                 // Field draws:Ljava/util/List;
+       261: invokeinterface #305,  1          // InterfaceMethod java/util/List.size:()I
+       266: aload_0
+       267: getfield      #44                 // Field firstDrawIndexAfterBlur:I
+       270: if_icmpgt     274
+       273: return
+       274: invokestatic  #452                // Method com/mojang/blaze3d/systems/RenderSystem.getDevice:()Lcom/mojang/blaze3d/systems/GpuDevice;
+       277: invokevirtual #456                // Method com/mojang/blaze3d/systems/GpuDevice.createCommandEncoder:()Lcom/mojang/blaze3d/systems/CommandEncoder;
+       280: aload         4
+       282: invokevirtual #462                // Method com/mojang/blaze3d/pipeline/RenderTarget.getDepthTexture:()Lcom/mojang/blaze3d/textures/GpuTexture;
+       285: dconst_1
+       286: invokevirtual #468                // Method com/mojang/blaze3d/systems/CommandEncoder.clearDepthTexture:(Lcom/mojang/blaze3d/textures/GpuTexture;D)V
+       289: aload_2
+       290: getfield      #336                // Field net/minecraft/client/Minecraft.gameRenderer:Lnet/minecraft/client/renderer/GameRenderer;
+       293: invokevirtual #474                // Method net/minecraft/client/renderer/GameRenderer.processBlurEffect:()V
+       296: aload_0
+       297: invokedynamic #477,  0            // InvokeDynamic #2:get:()Ljava/util/function/Supplier;
+       302: aload         4
+       304: aload_1
+       305: aload         9
+       307: aload         7
+       309: aload         8
+       311: aload_0
+       312: getfield      #44                 // Field firstDrawIndexAfterBlur:I
+       315: aload_0
+       316: getfield      #19                 // Field draws:Ljava/util/List;
+       319: invokeinterface #305,  1          // InterfaceMethod java/util/List.size:()I
+       324: invokevirtual #448                // Method executeDrawRange:(Ljava/util/function/Supplier;Lcom/mojang/blaze3d/pipeline/RenderTarget;Lcom/mojang/blaze3d/buffers/GpuBufferSlice;Lcom/mojang/blaze3d/buffers/GpuBufferSlice;Lcom/mojang/blaze3d/buffers/GpuBuffer;Lcom/mojang/blaze3d/vertex/VertexFormat$IndexType;II)V
+       327: return
+
+  private void executeDrawRange(java.util.function.Supplier<java.lang.String>, com.mojang.blaze3d.pipeline.RenderTarget, com.mojang.blaze3d.buffers.GpuBufferSlice, com.mojang.blaze3d.buffers.GpuBufferSlice, com.mojang.blaze3d.buffers.GpuBuffer, com.mojang.blaze3d.vertex.VertexFormat$IndexType, int, int);
+    Code:
+         0: invokestatic  #452                // Method com/mojang/blaze3d/systems/RenderSystem.getDevice:()Lcom/mojang/blaze3d/systems/GpuDevice;
+         3: invokevirtual #456                // Method com/mojang/blaze3d/systems/GpuDevice.createCommandEncoder:()Lcom/mojang/blaze3d/systems/CommandEncoder;
+         6: aload_1
+         7: aload_2
+         8: invokevirtual #478                // Method com/mojang/blaze3d/pipeline/RenderTarget.getColorTextureView:()Lcom/mojang/blaze3d/textures/GpuTextureView;
+        11: invokestatic  #482                // Method java/util/OptionalInt.empty:()Ljava/util/OptionalInt;
+        14: aload_2
+        15: getfield      #488                // Field com/mojang/blaze3d/pipeline/RenderTarget.useDepth:Z
+        18: ifeq          28
+        21: aload_2
+        22: invokevirtual #491                // Method com/mojang/blaze3d/pipeline/RenderTarget.getDepthTextureView:()Lcom/mojang/blaze3d/textures/GpuTextureView;
+        25: goto          29
+        28: aconst_null
+        29: invokestatic  #494                // Method java/util/OptionalDouble.empty:()Ljava/util/OptionalDouble;
+        32: invokevirtual #499                // Method com/mojang/blaze3d/systems/CommandEncoder.createRenderPass:(Ljava/util/function/Supplier;Lcom/mojang/blaze3d/textures/GpuTextureView;Ljava/util/OptionalInt;Lcom/mojang/blaze3d/textures/GpuTextureView;Ljava/util/OptionalDouble;)Lcom/mojang/blaze3d/systems/RenderPass;
+        35: astore        9
+        37: aload         9
+        39: invokestatic  #503                // Method com/mojang/blaze3d/systems/RenderSystem.bindDefaultUniforms:(Lcom/mojang/blaze3d/systems/RenderPass;)V
+        42: aload         9
+        44: ldc_w         #507                // String Fog
+        47: aload_3
+        48: invokevirtual #509                // Method com/mojang/blaze3d/systems/RenderPass.setUniform:(Ljava/lang/String;Lcom/mojang/blaze3d/buffers/GpuBufferSlice;)V
+        51: aload         9
+        53: ldc_w         #515                // String DynamicTransforms
+        56: aload         4
+        58: invokevirtual #509                // Method com/mojang/blaze3d/systems/RenderPass.setUniform:(Ljava/lang/String;Lcom/mojang/blaze3d/buffers/GpuBufferSlice;)V
+        61: iload         7
+        63: istore        10
+        65: iload         10
+        67: iload         8
+        69: if_icmpge     106
+        72: aload_0
+        73: getfield      #19                 // Field draws:Ljava/util/List;
+        76: iload         10
+        78: invokeinterface #517,  2          // InterfaceMethod java/util/List.get:(I)Ljava/lang/Object;
+        83: checkcast     #389                // class net/minecraft/client/gui/render/GuiRenderer$Draw
+        86: astore        11
+        88: aload_0
+        89: aload         11
+        91: aload         9
+        93: aload         5
+        95: aload         6
+        97: invokevirtual #520                // Method executeDraw:(Lnet/minecraft/client/gui/render/GuiRenderer$Draw;Lcom/mojang/blaze3d/systems/RenderPass;Lcom/mojang/blaze3d/buffers/GpuBuffer;Lcom/mojang/blaze3d/vertex/VertexFormat$IndexType;)V
+       100: iinc          10, 1
+       103: goto          65
+       106: aload         9
+       108: ifnull        146
+       111: aload         9
+       113: invokevirtual #524                // Method com/mojang/blaze3d/systems/RenderPass.close:()V
+       116: goto          146
+       119: astore        10
+       121: aload         9
+       123: ifnull        143
+       126: aload         9
+       128: invokevirtual #524                // Method com/mojang/blaze3d/systems/RenderPass.close:()V
+       131: goto          143
+       134: astore        11
+       136: aload         10
+       138: aload         11
+       140: invokevirtual #527                // Method java/lang/Throwable.addSuppressed:(Ljava/lang/Throwable;)V
+       143: aload         10
+       145: athrow
+       146: return
+      Exception table:
+         from    to  target type
+            37   106   119   Class java/lang/Throwable
+           126   131   134   Class java/lang/Throwable
+
+  private void addElementToMesh(net.minecraft.client.renderer.state.gui.GuiElementRenderState);
+    Code:
+         0: aload_1
+         1: invokeinterface #531,  1          // InterfaceMethod net/minecraft/client/renderer/state/gui/GuiElementRenderState.pipeline:()Lcom/mojang/blaze3d/pipeline/RenderPipeline;
+         6: astore_2
+         7: aload_1
+         8: invokeinterface #537,  1          // InterfaceMethod net/minecraft/client/renderer/state/gui/GuiElementRenderState.textureSetup:()Lnet/minecraft/client/gui/render/TextureSetup;
+        13: astore_3
+        14: aload_1
+        15: invokeinterface #541,  1          // InterfaceMethod net/minecraft/client/renderer/state/gui/GuiElementRenderState.scissorArea:()Lnet/minecraft/client/gui/navigation/ScreenRectangle;
+        20: astore        4
+        22: aload_2
+        23: aload_0
+        24: getfield      #87                 // Field previousPipeline:Lcom/mojang/blaze3d/pipeline/RenderPipeline;
+        27: if_acmpne     54
+        30: aload_0
+        31: aload         4
+        33: aload_0
+        34: getfield      #83                 // Field previousScissorArea:Lnet/minecraft/client/gui/navigation/ScreenRectangle;
+        37: invokevirtual #545                // Method scissorChanged:(Lnet/minecraft/client/gui/navigation/ScreenRectangle;Lnet/minecraft/client/gui/navigation/ScreenRectangle;)Z
+        40: ifne          54
+        43: aload_3
+        44: aload_0
+        45: getfield      #91                 // Field previousTextureSetup:Lnet/minecraft/client/gui/render/TextureSetup;
+        48: invokevirtual #549                // Method net/minecraft/client/gui/render/TextureSetup.equals:(Ljava/lang/Object;)Z
+        51: ifne          106
+        54: aload_0
+        55: getfield      #95                 // Field bufferBuilder:Lcom/mojang/blaze3d/vertex/BufferBuilder;
+        58: ifnull        81
+        61: aload_0
+        62: aload_0
+        63: getfield      #95                 // Field bufferBuilder:Lcom/mojang/blaze3d/vertex/BufferBuilder;
+        66: aload_0
+        67: getfield      #87                 // Field previousPipeline:Lcom/mojang/blaze3d/pipeline/RenderPipeline;
+        70: aload_0
+        71: getfield      #91                 // Field previousTextureSetup:Lnet/minecraft/client/gui/render/TextureSetup;
+        74: aload_0
+        75: getfield      #83                 // Field previousScissorArea:Lnet/minecraft/client/gui/navigation/ScreenRectangle;
+        78: invokevirtual #323                // Method recordMesh:(Lcom/mojang/blaze3d/vertex/BufferBuilder;Lcom/mojang/blaze3d/pipeline/RenderPipeline;Lnet/minecraft/client/gui/render/TextureSetup;Lnet/minecraft/client/gui/navigation/ScreenRectangle;)V
+        81: aload_0
+        82: aload_0
+        83: aload_2
+        84: invokevirtual #553                // Method getBufferBuilder:(Lcom/mojang/blaze3d/pipeline/RenderPipeline;)Lcom/mojang/blaze3d/vertex/BufferBuilder;
+        87: putfield      #95                 // Field bufferBuilder:Lcom/mojang/blaze3d/vertex/BufferBuilder;
+        90: aload_0
+        91: aload_2
+        92: putfield      #87                 // Field previousPipeline:Lcom/mojang/blaze3d/pipeline/RenderPipeline;
+        95: aload_0
+        96: aload_3
+        97: putfield      #91                 // Field previousTextureSetup:Lnet/minecraft/client/gui/render/TextureSetup;
+       100: aload_0
+       101: aload         4
+       103: putfield      #83                 // Field previousScissorArea:Lnet/minecraft/client/gui/navigation/ScreenRectangle;
+       106: aload_1
+       107: aload_0
+       108: getfield      #95                 // Field bufferBuilder:Lcom/mojang/blaze3d/vertex/BufferBuilder;
+       111: invokeinterface #557,  2          // InterfaceMethod net/minecraft/client/renderer/state/gui/GuiElementRenderState.buildVertices:(Lcom/mojang/blaze3d/vertex/VertexConsumer;)V
+       116: return
+
+  private void prepareText();
+    Code:
+         0: aload_0
+         1: getfield      #99                 // Field renderState:Lnet/minecraft/client/renderer/state/gui/GuiRenderState;
+         4: aload_0
+         5: invokedynamic #561,  0            // InvokeDynamic #3:accept:(Lnet/minecraft/client/gui/render/GuiRenderer;)Ljava/util/function/Consumer;
+        10: invokevirtual #562                // Method net/minecraft/client/renderer/state/gui/GuiRenderState.forEachText:(Ljava/util/function/Consumer;)V
+        13: return
+
+  private void prepareItemElements();
+    Code:
+         0: aload_0
+         1: getfield      #99                 // Field renderState:Lnet/minecraft/client/renderer/state/gui/GuiRenderState;
+         4: invokevirtual #566                // Method net/minecraft/client/renderer/state/gui/GuiRenderState.getItemModelIdentities:()Ljava/util/Set;
+         7: astore_1
+         8: aload_1
+         9: invokeinterface #569,  1          // InterfaceMethod java/util/Set.isEmpty:()Z
+        14: ifeq          18
+        17: return
+        18: aload_0
+        19: invokevirtual #570                // Method getGuiScaleInvalidatingItemAtlasIfChanged:()I
+        22: istore_2
+        23: aload_0
+        24: aload_1
+        25: bipush        16
+        27: iload_2
+        28: imul
+        29: invokevirtual #573                // Method prepareItemAtlas:(Ljava/util/Set;I)Lnet/minecraft/client/gui/render/GuiItemAtlas;
+        32: astore_3
+        33: new           #577                // class org/apache/commons/lang3/mutable/MutableBoolean
+        36: dup
+        37: iconst_0
+        38: invokespecial #579                // Method org/apache/commons/lang3/mutable/MutableBoolean."<init>":(Z)V
+        41: astore        4
+        43: aload_0
+        44: getfield      #99                 // Field renderState:Lnet/minecraft/client/renderer/state/gui/GuiRenderState;
+        47: aload_0
+        48: aload         4
+        50: aload_3
+        51: invokedynamic #582,  0            // InvokeDynamic #4:accept:(Lnet/minecraft/client/gui/render/GuiRenderer;Lorg/apache/commons/lang3/mutable/MutableBoolean;Lnet/minecraft/client/gui/render/GuiItemAtlas;)Ljava/util/function/Consumer;
+        56: invokevirtual #585                // Method net/minecraft/client/renderer/state/gui/GuiRenderState.forEachItem:(Ljava/util/function/Consumer;)V
+        59: aload         4
+        61: invokevirtual #588                // Method org/apache/commons/lang3/mutable/MutableBoolean.booleanValue:()Z
+        64: ifeq          81
+        67: aload_0
+        68: getfield      #99                 // Field renderState:Lnet/minecraft/client/renderer/state/gui/GuiRenderState;
+        71: aload_0
+        72: iload_2
+        73: invokedynamic #591,  0            // InvokeDynamic #5:accept:(Lnet/minecraft/client/gui/render/GuiRenderer;I)Ljava/util/function/Consumer;
+        78: invokevirtual #585                // Method net/minecraft/client/renderer/state/gui/GuiRenderState.forEachItem:(Ljava/util/function/Consumer;)V
+        81: return
+
+  private void preparePictureInPicture();
+    Code:
+         0: invokestatic  #330                // Method net/minecraft/client/Minecraft.getInstance:()Lnet/minecraft/client/Minecraft;
+         3: getfield      #336                // Field net/minecraft/client/Minecraft.gameRenderer:Lnet/minecraft/client/renderer/GameRenderer;
+         6: invokevirtual #340                // Method net/minecraft/client/renderer/GameRenderer.getGameRenderState:()Lnet/minecraft/client/renderer/state/GameRenderState;
+         9: getfield      #346                // Field net/minecraft/client/renderer/state/GameRenderState.windowRenderState:Lnet/minecraft/client/renderer/state/WindowRenderState;
+        12: getfield      #359                // Field net/minecraft/client/renderer/state/WindowRenderState.guiScale:I
+        15: istore_1
+        16: aload_0
+        17: getfield      #99                 // Field renderState:Lnet/minecraft/client/renderer/state/gui/GuiRenderState;
+        20: aload_0
+        21: iload_1
+        22: invokedynamic #594,  0            // InvokeDynamic #6:accept:(Lnet/minecraft/client/gui/render/GuiRenderer;I)Ljava/util/function/Consumer;
+        27: invokevirtual #595                // Method net/minecraft/client/renderer/state/gui/GuiRenderState.forEachPictureInPicture:(Ljava/util/function/Consumer;)V
+        30: return
+
+  private <T extends net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState> void preparePictureInPictureState(T, int);
+    Code:
+         0: aload_0
+         1: getfield      #153                // Field pictureInPictureRenderers:Ljava/util/Map;
+         4: aload_1
+         5: invokeinterface #598,  1          // InterfaceMethod net/minecraft/client/renderer/state/gui/pip/PictureInPictureRenderState.getClass:()Ljava/lang/Class;
+        10: invokeinterface #603,  2          // InterfaceMethod java/util/Map.get:(Ljava/lang/Object;)Ljava/lang/Object;
+        15: checkcast     #137                // class net/minecraft/client/gui/render/pip/PictureInPictureRenderer
+        18: astore_3
+        19: aload_3
+        20: ifnull        33
+        23: aload_3
+        24: aload_1
+        25: aload_0
+        26: getfield      #99                 // Field renderState:Lnet/minecraft/client/renderer/state/gui/GuiRenderState;
+        29: iload_2
+        30: invokevirtual #606                // Method net/minecraft/client/gui/render/pip/PictureInPictureRenderer.prepare:(Lnet/minecraft/client/renderer/state/gui/pip/PictureInPictureRenderState;Lnet/minecraft/client/renderer/state/gui/GuiRenderState;I)V
+        33: return
+
+  private void submitBlitFromItemAtlas(net.minecraft.client.renderer.state.gui.GuiItemRenderState, net.minecraft.client.gui.render.GuiItemAtlas$SlotView);
+    Code:
+         0: aload_0
+         1: getfield      #99                 // Field renderState:Lnet/minecraft/client/renderer/state/gui/GuiRenderState;
+         4: new           #609                // class net/minecraft/client/renderer/state/gui/BlitRenderState
+         7: dup
+         8: getstatic     #611                // Field net/minecraft/client/renderer/RenderPipelines.GUI_TEXTURED_PREMULTIPLIED_ALPHA:Lcom/mojang/blaze3d/pipeline/RenderPipeline;
+        11: aload_2
+        12: invokevirtual #616                // Method net/minecraft/client/gui/render/GuiItemAtlas$SlotView.textureView:()Lcom/mojang/blaze3d/textures/GpuTextureView;
+        15: invokestatic  #621                // Method com/mojang/blaze3d/systems/RenderSystem.getSamplerCache:()Lcom/mojang/blaze3d/systems/SamplerCache;
+        18: getstatic     #625                // Field com/mojang/blaze3d/textures/FilterMode.NEAREST:Lcom/mojang/blaze3d/textures/FilterMode;
+        21: invokevirtual #631                // Method com/mojang/blaze3d/systems/SamplerCache.getRepeat:(Lcom/mojang/blaze3d/textures/FilterMode;)Lcom/mojang/blaze3d/textures/GpuSampler;
+        24: invokestatic  #637                // Method net/minecraft/client/gui/render/TextureSetup.singleTexture:(Lcom/mojang/blaze3d/textures/GpuTextureView;Lcom/mojang/blaze3d/textures/GpuSampler;)Lnet/minecraft/client/gui/render/TextureSetup;
+        27: aload_1
+        28: invokevirtual #641                // Method net/minecraft/client/renderer/state/gui/GuiItemRenderState.pose:()Lorg/joml/Matrix3x2f;
+        31: aload_1
+        32: invokevirtual #647                // Method net/minecraft/client/renderer/state/gui/GuiItemRenderState.x:()I
+        35: aload_1
+        36: invokevirtual #650                // Method net/minecraft/client/renderer/state/gui/GuiItemRenderState.y:()I
+        39: aload_1
+        40: invokevirtual #647                // Method net/minecraft/client/renderer/state/gui/GuiItemRenderState.x:()I
+        43: bipush        16
+        45: iadd
+        46: aload_1
+        47: invokevirtual #650                // Method net/minecraft/client/renderer/state/gui/GuiItemRenderState.y:()I
+        50: bipush        16
+        52: iadd
+        53: aload_2
+        54: invokevirtual #653                // Method net/minecraft/client/gui/render/GuiItemAtlas$SlotView.u0:()F
+        57: aload_2
+        58: invokevirtual #656                // Method net/minecraft/client/gui/render/GuiItemAtlas$SlotView.u1:()F
+        61: aload_2
+        62: invokevirtual #659                // Method net/minecraft/client/gui/render/GuiItemAtlas$SlotView.v0:()F
+        65: aload_2
+        66: invokevirtual #662                // Method net/minecraft/client/gui/render/GuiItemAtlas$SlotView.v1:()F
+        69: iconst_m1
+        70: aload_1
+        71: invokevirtual #667                // Method net/minecraft/client/renderer/state/gui/GuiItemRenderState.scissorArea:()Lnet/minecraft/client/gui/navigation/ScreenRectangle;
+        74: aconst_null
+        75: invokespecial #668                // Method net/minecraft/client/renderer/state/gui/BlitRenderState."<init>":(Lcom/mojang/blaze3d/pipeline/RenderPipeline;Lnet/minecraft/client/gui/render/TextureSetup;Lorg/joml/Matrix3x2f;IIIIFFFFILnet/minecraft/client/gui/navigation/ScreenRectangle;Lnet/minecraft/client/gui/navigation/ScreenRectangle;)V
+        78: invokevirtual #671                // Method net/minecraft/client/renderer/state/gui/GuiRenderState.addBlitToCurrentLayer:(Lnet/minecraft/client/renderer/state/gui/BlitRenderState;)V
+        81: return
+
+  private net.minecraft.client.gui.render.GuiItemAtlas prepareItemAtlas(java.util.Set<java.lang.Object>, int);
+    Code:
+         0: aload_0
+         1: getfield      #156                // Field itemAtlas:Lnet/minecraft/client/gui/render/GuiItemAtlas;
+         4: ifnull        23
+         7: aload_0
+         8: getfield      #156                // Field itemAtlas:Lnet/minecraft/client/gui/render/GuiItemAtlas;
+        11: aload_1
+        12: invokevirtual #675                // Method net/minecraft/client/gui/render/GuiItemAtlas.tryPrepareFor:(Ljava/util/Set;)Z
+        15: ifeq          23
+        18: aload_0
+        19: getfield      #156                // Field itemAtlas:Lnet/minecraft/client/gui/render/GuiItemAtlas;
+        22: areturn
+        23: iload_2
+        24: aload_1
+        25: invokeinterface #679,  1          // InterfaceMethod java/util/Set.size:()I
+        30: invokestatic  #680                // Method net/minecraft/client/gui/render/GuiItemAtlas.computeTextureSizeFor:(II)I
+        33: istore_3
+        34: aload_0
+        35: getfield      #156                // Field itemAtlas:Lnet/minecraft/client/gui/render/GuiItemAtlas;
+        38: ifnull        98
+        41: aload_0
+        42: getfield      #156                // Field itemAtlas:Lnet/minecraft/client/gui/render/GuiItemAtlas;
+        45: invokevirtual #683                // Method net/minecraft/client/gui/render/GuiItemAtlas.textureSize:()I
+        48: iload_3
+        49: if_icmpne     98
+        52: getstatic     #686                // Field LOGGER:Lorg/slf4j/Logger;
+        55: ldc_w         #690                // String Too many items ({}) in UI, some will be skipped! (Reached maximum texture size {}x{})
+        58: iconst_3
+        59: anewarray     #2                  // class java/lang/Object
+        62: dup
+        63: iconst_0
+        64: aload_1
+        65: invokeinterface #679,  1          // InterfaceMethod java/util/Set.size:()I
+        70: invokestatic  #692                // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        73: aastore
+        74: dup
+        75: iconst_1
+        76: iload_3
+        77: invokestatic  #692                // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        80: aastore
+        81: dup
+        82: iconst_2
+        83: iload_3
+        84: invokestatic  #692                // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        87: aastore
+        88: invokeinterface #696,  3          // InterfaceMethod org/slf4j/Logger.warn:(Ljava/lang/String;[Ljava/lang/Object;)V
+        93: aload_0
+        94: getfield      #156                // Field itemAtlas:Lnet/minecraft/client/gui/render/GuiItemAtlas;
+        97: areturn
+        98: aload_0
+        99: getfield      #156                // Field itemAtlas:Lnet/minecraft/client/gui/render/GuiItemAtlas;
+       102: ifnull        112
+       105: aload_0
+       106: getfield      #156                // Field itemAtlas:Lnet/minecraft/client/gui/render/GuiItemAtlas;
+       109: invokevirtual #702                // Method net/minecraft/client/gui/render/GuiItemAtlas.close:()V
+       112: aload_0
+       113: new           #161                // class net/minecraft/client/gui/render/GuiItemAtlas
+       116: dup
+       117: aload_0
+       118: getfield      #107                // Field submitNodeCollector:Lnet/minecraft/client/renderer/SubmitNodeCollector;
+       121: aload_0
+       122: getfield      #111                // Field featureRenderDispatcher:Lnet/minecraft/client/renderer/feature/FeatureRenderDispatcher;
+       125: aload_0
+       126: getfield      #103                // Field bufferSource:Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;
+       129: iload_3
+       130: iload_2
+       131: invokespecial #703                // Method net/minecraft/client/gui/render/GuiItemAtlas."<init>":(Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/feature/FeatureRenderDispatcher;Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;II)V
+       134: putfield      #156                // Field itemAtlas:Lnet/minecraft/client/gui/render/GuiItemAtlas;
+       137: aload_0
+       138: getfield      #156                // Field itemAtlas:Lnet/minecraft/client/gui/render/GuiItemAtlas;
+       141: areturn
+
+  private int getGuiScaleInvalidatingItemAtlasIfChanged();
+    Code:
+         0: invokestatic  #330                // Method net/minecraft/client/Minecraft.getInstance:()Lnet/minecraft/client/Minecraft;
+         3: getfield      #336                // Field net/minecraft/client/Minecraft.gameRenderer:Lnet/minecraft/client/renderer/GameRenderer;
+         6: invokevirtual #340                // Method net/minecraft/client/renderer/GameRenderer.getGameRenderState:()Lnet/minecraft/client/renderer/state/GameRenderState;
+         9: getfield      #346                // Field net/minecraft/client/renderer/state/GameRenderState.windowRenderState:Lnet/minecraft/client/renderer/state/WindowRenderState;
+        12: getfield      #359                // Field net/minecraft/client/renderer/state/WindowRenderState.guiScale:I
+        15: istore_1
+        16: iload_1
+        17: aload_0
+        18: getfield      #706                // Field cachedGuiScale:I
+        21: if_icmpeq     74
+        24: aload_0
+        25: invokevirtual #709                // Method invalidateItemAtlas:()V
+        28: aload_0
+        29: getfield      #10                 // Field oversizedItemRenderers:Ljava/util/Map;
+        32: invokeinterface #207,  1          // InterfaceMethod java/util/Map.values:()Ljava/util/Collection;
+        37: invokeinterface #213,  1          // InterfaceMethod java/util/Collection.iterator:()Ljava/util/Iterator;
+        42: astore_2
+        43: aload_2
+        44: invokeinterface #127,  1          // InterfaceMethod java/util/Iterator.hasNext:()Z
+        49: ifeq          69
+        52: aload_2
+        53: invokeinterface #133,  1          // InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;
+        58: checkcast     #259                // class net/minecraft/client/gui/render/pip/OversizedItemRenderer
+        61: astore_3
+        62: aload_3
+        63: invokevirtual #712                // Method net/minecraft/client/gui/render/pip/OversizedItemRenderer.invalidateTexture:()V
+        66: goto          43
+        69: aload_0
+        70: iload_1
+        71: putfield      #706                // Field cachedGuiScale:I
+        74: iload_1
+        75: ireturn
+
+  private void invalidateItemAtlas();
+    Code:
+         0: aload_0
+         1: getfield      #156                // Field itemAtlas:Lnet/minecraft/client/gui/render/GuiItemAtlas;
+         4: ifnull        19
+         7: aload_0
+         8: getfield      #156                // Field itemAtlas:Lnet/minecraft/client/gui/render/GuiItemAtlas;
+        11: invokevirtual #702                // Method net/minecraft/client/gui/render/GuiItemAtlas.close:()V
+        14: aload_0
+        15: aconst_null
+        16: putfield      #156                // Field itemAtlas:Lnet/minecraft/client/gui/render/GuiItemAtlas;
+        19: return
+
+  private void recordMesh(com.mojang.blaze3d.vertex.BufferBuilder, com.mojang.blaze3d.pipeline.RenderPipeline, net.minecraft.client.gui.render.TextureSetup, net.minecraft.client.gui.navigation.ScreenRectangle);
+    Code:
+         0: aload_1
+         1: invokevirtual #715                // Method com/mojang/blaze3d/vertex/BufferBuilder.build:()Lcom/mojang/blaze3d/vertex/MeshData;
+         4: astore        5
+         6: aload         5
+         8: ifnull        34
+        11: aload_0
+        12: getfield      #23                 // Field meshesToDraw:Ljava/util/List;
+        15: new           #721                // class net/minecraft/client/gui/render/GuiRenderer$MeshToDraw
+        18: dup
+        19: aload         5
+        21: aload_2
+        22: aload_3
+        23: aload         4
+        25: invokespecial #723                // Method net/minecraft/client/gui/render/GuiRenderer$MeshToDraw."<init>":(Lcom/mojang/blaze3d/vertex/MeshData;Lcom/mojang/blaze3d/pipeline/RenderPipeline;Lnet/minecraft/client/gui/render/TextureSetup;Lnet/minecraft/client/gui/navigation/ScreenRectangle;)V
+        28: invokeinterface #726,  2          // InterfaceMethod java/util/List.add:(Ljava/lang/Object;)Z
+        33: pop
+        34: return
+
+  private void recordDraws();
+    Code:
+         0: aload_0
+         1: invokevirtual #729                // Method ensureVertexBufferSizes:()V
+         4: invokestatic  #452                // Method com/mojang/blaze3d/systems/RenderSystem.getDevice:()Lcom/mojang/blaze3d/systems/GpuDevice;
+         7: invokevirtual #456                // Method com/mojang/blaze3d/systems/GpuDevice.createCommandEncoder:()Lcom/mojang/blaze3d/systems/CommandEncoder;
+        10: astore_1
+        11: new           #732                // class it/unimi/dsi/fastutil/objects/Object2IntOpenHashMap
+        14: dup
+        15: invokespecial #734                // Method it/unimi/dsi/fastutil/objects/Object2IntOpenHashMap."<init>":()V
+        18: astore_2
+        19: aload_0
+        20: getfield      #23                 // Field meshesToDraw:Ljava/util/List;
+        23: invokeinterface #121,  1          // InterfaceMethod java/util/List.iterator:()Ljava/util/Iterator;
+        28: astore_3
+        29: aload_3
+        30: invokeinterface #127,  1          // InterfaceMethod java/util/Iterator.hasNext:()Z
+        35: ifeq          286
+        38: aload_3
+        39: invokeinterface #133,  1          // InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;
+        44: checkcast     #721                // class net/minecraft/client/gui/render/GuiRenderer$MeshToDraw
+        47: astore        4
+        49: aload         4
+        51: getfield      #735                // Field net/minecraft/client/gui/render/GuiRenderer$MeshToDraw.mesh:Lcom/mojang/blaze3d/vertex/MeshData;
+        54: astore        5
+        56: aload         5
+        58: invokevirtual #739                // Method com/mojang/blaze3d/vertex/MeshData.drawState:()Lcom/mojang/blaze3d/vertex/MeshData$DrawState;
+        61: astore        6
+        63: aload         6
+        65: invokevirtual #745                // Method com/mojang/blaze3d/vertex/MeshData$DrawState.format:()Lcom/mojang/blaze3d/vertex/VertexFormat;
+        68: astore        7
+        70: aload_0
+        71: getfield      #38                 // Field vertexBuffers:Ljava/util/Map;
+        74: aload         7
+        76: invokeinterface #603,  2          // InterfaceMethod java/util/Map.get:(Ljava/lang/Object;)Ljava/lang/Object;
+        81: checkcast     #216                // class net/minecraft/client/renderer/MappableRingBuffer
+        84: astore        8
+        86: aload_2
+        87: aload         7
+        89: invokeinterface #751,  2          // InterfaceMethod it/unimi/dsi/fastutil/objects/Object2IntMap.containsKey:(Ljava/lang/Object;)Z
+        94: ifne          107
+        97: aload_2
+        98: aload         7
+       100: iconst_0
+       101: invokeinterface #756,  3          // InterfaceMethod it/unimi/dsi/fastutil/objects/Object2IntMap.put:(Ljava/lang/Object;I)I
+       106: pop
+       107: aload         5
+       109: invokevirtual #759                // Method com/mojang/blaze3d/vertex/MeshData.vertexBuffer:()Ljava/nio/ByteBuffer;
+       112: astore        9
+       114: aload         9
+       116: invokevirtual #763                // Method java/nio/ByteBuffer.remaining:()I
+       119: istore        10
+       121: aload_2
+       122: aload         7
+       124: invokeinterface #768,  2          // InterfaceMethod it/unimi/dsi/fastutil/objects/Object2IntMap.getInt:(Ljava/lang/Object;)I
+       129: istore        11
+       131: aload_1
+       132: aload         8
+       134: invokevirtual #772                // Method net/minecraft/client/renderer/MappableRingBuffer.currentBuffer:()Lcom/mojang/blaze3d/buffers/GpuBuffer;
+       137: iload         11
+       139: i2l
+       140: iload         10
+       142: i2l
+       143: invokevirtual #776                // Method com/mojang/blaze3d/buffers/GpuBuffer.slice:(JJ)Lcom/mojang/blaze3d/buffers/GpuBufferSlice;
+       146: iconst_0
+       147: iconst_1
+       148: invokevirtual #782                // Method com/mojang/blaze3d/systems/CommandEncoder.mapBuffer:(Lcom/mojang/blaze3d/buffers/GpuBufferSlice;ZZ)Lcom/mojang/blaze3d/buffers/GpuBuffer$MappedView;
+       151: astore        12
+       153: aload         9
+       155: aload         12
+       157: invokeinterface #786,  1          // InterfaceMethod com/mojang/blaze3d/buffers/GpuBuffer$MappedView.data:()Ljava/nio/ByteBuffer;
+       162: invokestatic  #791                // Method org/lwjgl/system/MemoryUtil.memCopy:(Ljava/nio/ByteBuffer;Ljava/nio/ByteBuffer;)V
+       165: aload         12
+       167: ifnull        209
+       170: aload         12
+       172: invokeinterface #797,  1          // InterfaceMethod com/mojang/blaze3d/buffers/GpuBuffer$MappedView.close:()V
+       177: goto          209
+       180: astore        13
+       182: aload         12
+       184: ifnull        206
+       187: aload         12
+       189: invokeinterface #797,  1          // InterfaceMethod com/mojang/blaze3d/buffers/GpuBuffer$MappedView.close:()V
+       194: goto          206
+       197: astore        14
+       199: aload         13
+       201: aload         14
+       203: invokevirtual #527                // Method java/lang/Throwable.addSuppressed:(Ljava/lang/Throwable;)V
+       206: aload         13
+       208: athrow
+       209: aload_2
+       210: aload         7
+       212: iload         11
+       214: iload         10
+       216: iadd
+       217: invokeinterface #756,  3          // InterfaceMethod it/unimi/dsi/fastutil/objects/Object2IntMap.put:(Ljava/lang/Object;I)I
+       222: pop
+       223: aload_0
+       224: getfield      #19                 // Field draws:Ljava/util/List;
+       227: new           #389                // class net/minecraft/client/gui/render/GuiRenderer$Draw
+       230: dup
+       231: aload         8
+       233: invokevirtual #772                // Method net/minecraft/client/renderer/MappableRingBuffer.currentBuffer:()Lcom/mojang/blaze3d/buffers/GpuBuffer;
+       236: iload         11
+       238: aload         7
+       240: invokevirtual #798                // Method com/mojang/blaze3d/vertex/VertexFormat.getVertexSize:()I
+       243: idiv
+       244: aload         6
+       246: invokevirtual #803                // Method com/mojang/blaze3d/vertex/MeshData$DrawState.mode:()Lcom/mojang/blaze3d/vertex/VertexFormat$Mode;
+       249: aload         6
+       251: invokevirtual #807                // Method com/mojang/blaze3d/vertex/MeshData$DrawState.indexCount:()I
+       254: aload         4
+       256: getfield      #809                // Field net/minecraft/client/gui/render/GuiRenderer$MeshToDraw.pipeline:Lcom/mojang/blaze3d/pipeline/RenderPipeline;
+       259: aload         4
+       261: getfield      #811                // Field net/minecraft/client/gui/render/GuiRenderer$MeshToDraw.textureSetup:Lnet/minecraft/client/gui/render/TextureSetup;
+       264: aload         4
+       266: getfield      #813                // Field net/minecraft/client/gui/render/GuiRenderer$MeshToDraw.scissorArea:Lnet/minecraft/client/gui/navigation/ScreenRectangle;
+       269: invokespecial #815                // Method net/minecraft/client/gui/render/GuiRenderer$Draw."<init>":(Lcom/mojang/blaze3d/buffers/GpuBuffer;ILcom/mojang/blaze3d/vertex/VertexFormat$Mode;ILcom/mojang/blaze3d/pipeline/RenderPipeline;Lnet/minecraft/client/gui/render/TextureSetup;Lnet/minecraft/client/gui/navigation/ScreenRectangle;)V
+       272: invokeinterface #726,  2          // InterfaceMethod java/util/List.add:(Ljava/lang/Object;)Z
+       277: pop
+       278: aload         4
+       280: invokevirtual #818                // Method net/minecraft/client/gui/render/GuiRenderer$MeshToDraw.close:()V
+       283: goto          29
+       286: return
+      Exception table:
+         from    to  target type
+           153   165   180   Class java/lang/Throwable
+           187   194   197   Class java/lang/Throwable
+
+  private void ensureVertexBufferSizes();
+    Code:
+         0: aload_0
+         1: invokevirtual #819                // Method calculatedRequiredVertexBufferSizes:()Lit/unimi/dsi/fastutil/objects/Object2IntMap;
+         4: astore_1
+         5: aload_1
+         6: invokeinterface #823,  1          // InterfaceMethod it/unimi/dsi/fastutil/objects/Object2IntMap.object2IntEntrySet:()Lit/unimi/dsi/fastutil/objects/ObjectSet;
+        11: invokeinterface #827,  1          // InterfaceMethod it/unimi/dsi/fastutil/objects/ObjectSet.iterator:()Lit/unimi/dsi/fastutil/objects/ObjectIterator;
+        16: astore_2
+        17: aload_2
+        18: invokeinterface #127,  1          // InterfaceMethod java/util/Iterator.hasNext:()Z
+        23: ifeq          129
+        26: aload_2
+        27: invokeinterface #133,  1          // InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;
+        32: checkcast     #832                // class it/unimi/dsi/fastutil/objects/Object2IntMap$Entry
+        35: astore_3
+        36: aload_3
+        37: invokeinterface #834,  1          // InterfaceMethod it/unimi/dsi/fastutil/objects/Object2IntMap$Entry.getKey:()Ljava/lang/Object;
+        42: checkcast     #799                // class com/mojang/blaze3d/vertex/VertexFormat
+        45: astore        4
+        47: aload_3
+        48: invokeinterface #837,  1          // InterfaceMethod it/unimi/dsi/fastutil/objects/Object2IntMap$Entry.getIntValue:()I
+        53: istore        5
+        55: aload_0
+        56: getfield      #38                 // Field vertexBuffers:Ljava/util/Map;
+        59: aload         4
+        61: invokeinterface #603,  2          // InterfaceMethod java/util/Map.get:(Ljava/lang/Object;)Ljava/lang/Object;
+        66: checkcast     #216                // class net/minecraft/client/renderer/MappableRingBuffer
+        69: astore        6
+        71: aload         6
+        73: ifnull        86
+        76: aload         6
+        78: invokevirtual #840                // Method net/minecraft/client/renderer/MappableRingBuffer.size:()I
+        81: iload         5
+        83: if_icmpge     126
+        86: aload         6
+        88: ifnull        96
+        91: aload         6
+        93: invokevirtual #841                // Method net/minecraft/client/renderer/MappableRingBuffer.close:()V
+        96: aload_0
+        97: getfield      #38                 // Field vertexBuffers:Ljava/util/Map;
+       100: aload         4
+       102: new           #216                // class net/minecraft/client/renderer/MappableRingBuffer
+       105: dup
+       106: aload         4
+       108: invokedynamic #842,  0            // InvokeDynamic #7:get:(Lcom/mojang/blaze3d/vertex/VertexFormat;)Ljava/util/function/Supplier;
+       113: bipush        34
+       115: iload         5
+       117: invokespecial #845                // Method net/minecraft/client/renderer/MappableRingBuffer."<init>":(Ljava/util/function/Supplier;II)V
+       120: invokeinterface #848,  3          // InterfaceMethod java/util/Map.put:(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+       125: pop
+       126: goto          17
+       129: return
+
+  private it.unimi.dsi.fastutil.objects.Object2IntMap<com.mojang.blaze3d.vertex.VertexFormat> calculatedRequiredVertexBufferSizes();
+    Code:
+         0: new           #732                // class it/unimi/dsi/fastutil/objects/Object2IntOpenHashMap
+         3: dup
+         4: invokespecial #734                // Method it/unimi/dsi/fastutil/objects/Object2IntOpenHashMap."<init>":()V
+         7: astore_1
+         8: aload_0
+         9: getfield      #23                 // Field meshesToDraw:Ljava/util/List;
+        12: invokeinterface #121,  1          // InterfaceMethod java/util/List.iterator:()Ljava/util/Iterator;
+        17: astore_2
+        18: aload_2
+        19: invokeinterface #127,  1          // InterfaceMethod java/util/Iterator.hasNext:()Z
+        24: ifeq          106
+        27: aload_2
+        28: invokeinterface #133,  1          // InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;
+        33: checkcast     #721                // class net/minecraft/client/gui/render/GuiRenderer$MeshToDraw
+        36: astore_3
+        37: aload_3
+        38: getfield      #735                // Field net/minecraft/client/gui/render/GuiRenderer$MeshToDraw.mesh:Lcom/mojang/blaze3d/vertex/MeshData;
+        41: invokevirtual #739                // Method com/mojang/blaze3d/vertex/MeshData.drawState:()Lcom/mojang/blaze3d/vertex/MeshData$DrawState;
+        44: astore        4
+        46: aload         4
+        48: invokevirtual #745                // Method com/mojang/blaze3d/vertex/MeshData$DrawState.format:()Lcom/mojang/blaze3d/vertex/VertexFormat;
+        51: astore        5
+        53: aload_1
+        54: aload         5
+        56: invokeinterface #751,  2          // InterfaceMethod it/unimi/dsi/fastutil/objects/Object2IntMap.containsKey:(Ljava/lang/Object;)Z
+        61: ifne          74
+        64: aload_1
+        65: aload         5
+        67: iconst_0
+        68: invokeinterface #756,  3          // InterfaceMethod it/unimi/dsi/fastutil/objects/Object2IntMap.put:(Ljava/lang/Object;I)I
+        73: pop
+        74: aload_1
+        75: aload         5
+        77: aload_1
+        78: aload         5
+        80: invokeinterface #768,  2          // InterfaceMethod it/unimi/dsi/fastutil/objects/Object2IntMap.getInt:(Ljava/lang/Object;)I
+        85: aload         4
+        87: invokevirtual #851                // Method com/mojang/blaze3d/vertex/MeshData$DrawState.vertexCount:()I
+        90: aload         5
+        92: invokevirtual #798                // Method com/mojang/blaze3d/vertex/VertexFormat.getVertexSize:()I
+        95: imul
+        96: iadd
+        97: invokeinterface #756,  3          // InterfaceMethod it/unimi/dsi/fastutil/objects/Object2IntMap.put:(Ljava/lang/Object;I)I
+       102: pop
+       103: goto          18
+       106: aload_1
+       107: areturn
+
+  private void executeDraw(net.minecraft.client.gui.render.GuiRenderer$Draw, com.mojang.blaze3d.systems.RenderPass, com.mojang.blaze3d.buffers.GpuBuffer, com.mojang.blaze3d.vertex.VertexFormat$IndexType);
+    Code:
+         0: aload_1
+         1: invokevirtual #854                // Method net/minecraft/client/gui/render/GuiRenderer$Draw.pipeline:()Lcom/mojang/blaze3d/pipeline/RenderPipeline;
+         4: astore        5
+         6: aload_2
+         7: aload         5
+         9: invokevirtual #855                // Method com/mojang/blaze3d/systems/RenderPass.setPipeline:(Lcom/mojang/blaze3d/pipeline/RenderPipeline;)V
+        12: aload_2
+        13: iconst_0
+        14: aload_1
+        15: getfield      #859                // Field net/minecraft/client/gui/render/GuiRenderer$Draw.vertexBuffer:Lcom/mojang/blaze3d/buffers/GpuBuffer;
+        18: invokevirtual #862                // Method com/mojang/blaze3d/systems/RenderPass.setVertexBuffer:(ILcom/mojang/blaze3d/buffers/GpuBuffer;)V
+        21: aload_1
+        22: invokevirtual #866                // Method net/minecraft/client/gui/render/GuiRenderer$Draw.scissorArea:()Lnet/minecraft/client/gui/navigation/ScreenRectangle;
+        25: astore        6
+        27: aload         6
+        29: ifnull        42
+        32: aload_0
+        33: aload         6
+        35: aload_2
+        36: invokevirtual #867                // Method enableScissor:(Lnet/minecraft/client/gui/navigation/ScreenRectangle;Lcom/mojang/blaze3d/systems/RenderPass;)V
+        39: goto          46
+        42: aload_2
+        43: invokevirtual #871                // Method com/mojang/blaze3d/systems/RenderPass.disableScissor:()V
+        46: aload_1
+        47: getfield      #874                // Field net/minecraft/client/gui/render/GuiRenderer$Draw.textureSetup:Lnet/minecraft/client/gui/render/TextureSetup;
+        50: invokevirtual #875                // Method net/minecraft/client/gui/render/TextureSetup.texure0:()Lcom/mojang/blaze3d/textures/GpuTextureView;
+        53: ifnull        77
+        56: aload_2
+        57: ldc_w         #878                // String Sampler0
+        60: aload_1
+        61: getfield      #874                // Field net/minecraft/client/gui/render/GuiRenderer$Draw.textureSetup:Lnet/minecraft/client/gui/render/TextureSetup;
+        64: invokevirtual #875                // Method net/minecraft/client/gui/render/TextureSetup.texure0:()Lcom/mojang/blaze3d/textures/GpuTextureView;
+        67: aload_1
+        68: getfield      #874                // Field net/minecraft/client/gui/render/GuiRenderer$Draw.textureSetup:Lnet/minecraft/client/gui/render/TextureSetup;
+        71: invokevirtual #880                // Method net/minecraft/client/gui/render/TextureSetup.sampler0:()Lcom/mojang/blaze3d/textures/GpuSampler;
+        74: invokevirtual #884                // Method com/mojang/blaze3d/systems/RenderPass.bindTexture:(Ljava/lang/String;Lcom/mojang/blaze3d/textures/GpuTextureView;Lcom/mojang/blaze3d/textures/GpuSampler;)V
+        77: aload_1
+        78: getfield      #874                // Field net/minecraft/client/gui/render/GuiRenderer$Draw.textureSetup:Lnet/minecraft/client/gui/render/TextureSetup;
+        81: invokevirtual #888                // Method net/minecraft/client/gui/render/TextureSetup.texure1:()Lcom/mojang/blaze3d/textures/GpuTextureView;
+        84: ifnull        108
+        87: aload_2
+        88: ldc_w         #891                // String Sampler1
+        91: aload_1
+        92: getfield      #874                // Field net/minecraft/client/gui/render/GuiRenderer$Draw.textureSetup:Lnet/minecraft/client/gui/render/TextureSetup;
+        95: invokevirtual #888                // Method net/minecraft/client/gui/render/TextureSetup.texure1:()Lcom/mojang/blaze3d/textures/GpuTextureView;
+        98: aload_1
+        99: getfield      #874                // Field net/minecraft/client/gui/render/GuiRenderer$Draw.textureSetup:Lnet/minecraft/client/gui/render/TextureSetup;
+       102: invokevirtual #893                // Method net/minecraft/client/gui/render/TextureSetup.sampler1:()Lcom/mojang/blaze3d/textures/GpuSampler;
+       105: invokevirtual #884                // Method com/mojang/blaze3d/systems/RenderPass.bindTexture:(Ljava/lang/String;Lcom/mojang/blaze3d/textures/GpuTextureView;Lcom/mojang/blaze3d/textures/GpuSampler;)V
+       108: aload_1
+       109: getfield      #874                // Field net/minecraft/client/gui/render/GuiRenderer$Draw.textureSetup:Lnet/minecraft/client/gui/render/TextureSetup;
+       112: invokevirtual #896                // Method net/minecraft/client/gui/render/TextureSetup.texure2:()Lcom/mojang/blaze3d/textures/GpuTextureView;
+       115: ifnull        139
+       118: aload_2
+       119: ldc_w         #899                // String Sampler2
+       122: aload_1
+       123: getfield      #874                // Field net/minecraft/client/gui/render/GuiRenderer$Draw.textureSetup:Lnet/minecraft/client/gui/render/TextureSetup;
+       126: invokevirtual #896                // Method net/minecraft/client/gui/render/TextureSetup.texure2:()Lcom/mojang/blaze3d/textures/GpuTextureView;
+       129: aload_1
+       130: getfield      #874                // Field net/minecraft/client/gui/render/GuiRenderer$Draw.textureSetup:Lnet/minecraft/client/gui/render/TextureSetup;
+       133: invokevirtual #901                // Method net/minecraft/client/gui/render/TextureSetup.sampler2:()Lcom/mojang/blaze3d/textures/GpuSampler;
+       136: invokevirtual #884                // Method com/mojang/blaze3d/systems/RenderPass.bindTexture:(Ljava/lang/String;Lcom/mojang/blaze3d/textures/GpuTextureView;Lcom/mojang/blaze3d/textures/GpuSampler;)V
+       139: aload_2
+       140: aload_3
+       141: aload         4
+       143: invokevirtual #904                // Method com/mojang/blaze3d/systems/RenderPass.setIndexBuffer:(Lcom/mojang/blaze3d/buffers/GpuBuffer;Lcom/mojang/blaze3d/vertex/VertexFormat$IndexType;)V
+       146: aload_2
+       147: aload_1
+       148: getfield      #908                // Field net/minecraft/client/gui/render/GuiRenderer$Draw.baseVertex:I
+       151: iconst_0
+       152: aload_1
+       153: getfield      #391                // Field net/minecraft/client/gui/render/GuiRenderer$Draw.indexCount:I
+       156: iconst_1
+       157: invokevirtual #911                // Method com/mojang/blaze3d/systems/RenderPass.drawIndexed:(IIII)V
+       160: return
+
+  private com.mojang.blaze3d.vertex.BufferBuilder getBufferBuilder(com.mojang.blaze3d.pipeline.RenderPipeline);
+    Code:
+         0: new           #716                // class com/mojang/blaze3d/vertex/BufferBuilder
+         3: dup
+         4: aload_0
+         5: getfield      #34                 // Field byteBufferBuilder:Lcom/mojang/blaze3d/vertex/ByteBufferBuilder;
+         8: aload_1
+         9: invokevirtual #915                // Method com/mojang/blaze3d/pipeline/RenderPipeline.getVertexFormatMode:()Lcom/mojang/blaze3d/vertex/VertexFormat$Mode;
+        12: aload_1
+        13: invokevirtual #918                // Method com/mojang/blaze3d/pipeline/RenderPipeline.getVertexFormat:()Lcom/mojang/blaze3d/vertex/VertexFormat;
+        16: invokespecial #921                // Method com/mojang/blaze3d/vertex/BufferBuilder."<init>":(Lcom/mojang/blaze3d/vertex/ByteBufferBuilder;Lcom/mojang/blaze3d/vertex/VertexFormat$Mode;Lcom/mojang/blaze3d/vertex/VertexFormat;)V
+        19: areturn
+
+  private boolean scissorChanged(net.minecraft.client.gui.navigation.ScreenRectangle, net.minecraft.client.gui.navigation.ScreenRectangle);
+    Code:
+         0: aload_1
+         1: aload_2
+         2: if_acmpne     7
+         5: iconst_0
+         6: ireturn
+         7: aload_1
+         8: ifnull        25
+        11: aload_1
+        12: aload_2
+        13: invokevirtual #924                // Method net/minecraft/client/gui/navigation/ScreenRectangle.equals:(Ljava/lang/Object;)Z
+        16: ifne          23
+        19: iconst_1
+        20: goto          24
+        23: iconst_0
+        24: ireturn
+        25: iconst_1
+        26: ireturn
+
+  private void enableScissor(net.minecraft.client.gui.navigation.ScreenRectangle, com.mojang.blaze3d.systems.RenderPass);
+    Code:
+         0: invokestatic  #330                // Method net/minecraft/client/Minecraft.getInstance:()Lnet/minecraft/client/Minecraft;
+         3: getfield      #336                // Field net/minecraft/client/Minecraft.gameRenderer:Lnet/minecraft/client/renderer/GameRenderer;
+         6: invokevirtual #340                // Method net/minecraft/client/renderer/GameRenderer.getGameRenderState:()Lnet/minecraft/client/renderer/state/GameRenderState;
+         9: getfield      #346                // Field net/minecraft/client/renderer/state/GameRenderState.windowRenderState:Lnet/minecraft/client/renderer/state/WindowRenderState;
+        12: astore_3
+        13: aload_3
+        14: getfield      #362                // Field net/minecraft/client/renderer/state/WindowRenderState.height:I
+        17: istore        4
+        19: aload_3
+        20: getfield      #359                // Field net/minecraft/client/renderer/state/WindowRenderState.guiScale:I
+        23: istore        5
+        25: aload_1
+        26: invokevirtual #927                // Method net/minecraft/client/gui/navigation/ScreenRectangle.left:()I
+        29: iload         5
+        31: imul
+        32: i2d
+        33: dstore        6
+        35: iload         4
+        37: aload_1
+        38: invokevirtual #930                // Method net/minecraft/client/gui/navigation/ScreenRectangle.bottom:()I
+        41: iload         5
+        43: imul
+        44: isub
+        45: i2d
+        46: dstore        8
+        48: aload_1
+        49: invokevirtual #933                // Method net/minecraft/client/gui/navigation/ScreenRectangle.width:()I
+        52: iload         5
+        54: imul
+        55: i2d
+        56: dstore        10
+        58: aload_1
+        59: invokevirtual #935                // Method net/minecraft/client/gui/navigation/ScreenRectangle.height:()I
+        62: iload         5
+        64: imul
+        65: i2d
+        66: dstore        12
+        68: aload_2
+        69: dload         6
+        71: d2i
+        72: dload         8
+        74: d2i
+        75: iconst_0
+        76: dload         10
+        78: d2i
+        79: invokestatic  #937                // Method java/lang/Math.max:(II)I
+        82: iconst_0
+        83: dload         12
+        85: d2i
+        86: invokestatic  #937                // Method java/lang/Math.max:(II)I
+        89: invokevirtual #940                // Method com/mojang/blaze3d/systems/RenderPass.enableScissor:(IIII)V
+        92: return
+
+  public void registerPanoramaTextures(net.minecraft.client.renderer.texture.TextureManager);
+    Code:
+         0: aload_0
+         1: getfield      #79                 // Field cubeMap:Lnet/minecraft/client/renderer/CubeMap;
+         4: aload_1
+         5: invokevirtual #942                // Method net/minecraft/client/renderer/CubeMap.registerTextures:(Lnet/minecraft/client/renderer/texture/TextureManager;)V
+         8: return
+
+  public void close();
+    Code:
+         0: aload_0
+         1: getfield      #34                 // Field byteBufferBuilder:Lcom/mojang/blaze3d/vertex/ByteBufferBuilder;
+         4: invokevirtual #946                // Method com/mojang/blaze3d/vertex/ByteBufferBuilder.close:()V
+         7: aload_0
+         8: getfield      #156                // Field itemAtlas:Lnet/minecraft/client/gui/render/GuiItemAtlas;
+        11: ifnull        26
+        14: aload_0
+        15: getfield      #156                // Field itemAtlas:Lnet/minecraft/client/gui/render/GuiItemAtlas;
+        18: invokevirtual #702                // Method net/minecraft/client/gui/render/GuiItemAtlas.close:()V
+        21: aload_0
+        22: aconst_null
+        23: putfield      #156                // Field itemAtlas:Lnet/minecraft/client/gui/render/GuiItemAtlas;
+        26: aload_0
+        27: getfield      #153                // Field pictureInPictureRenderers:Ljava/util/Map;
+        30: invokeinterface #207,  1          // InterfaceMethod java/util/Map.values:()Ljava/util/Collection;
+        35: invokedynamic #947,  0            // InvokeDynamic #8:accept:()Ljava/util/function/Consumer;
+        40: invokeinterface #950,  2          // InterfaceMethod java/util/Collection.forEach:(Ljava/util/function/Consumer;)V
+        45: aload_0
+        46: getfield      #62                 // Field guiProjectionMatrixBuffer:Lnet/minecraft/client/renderer/ProjectionMatrixBuffer;
+        49: invokevirtual #953                // Method net/minecraft/client/renderer/ProjectionMatrixBuffer.close:()V
+        52: aload_0
+        53: getfield      #38                 // Field vertexBuffers:Ljava/util/Map;
+        56: invokeinterface #207,  1          // InterfaceMethod java/util/Map.values:()Ljava/util/Collection;
+        61: invokeinterface #213,  1          // InterfaceMethod java/util/Collection.iterator:()Ljava/util/Iterator;
+        66: astore_1
+        67: aload_1
+        68: invokeinterface #127,  1          // InterfaceMethod java/util/Iterator.hasNext:()Z
+        73: ifeq          93
+        76: aload_1
+        77: invokeinterface #133,  1          // InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;
+        82: checkcast     #216                // class net/minecraft/client/renderer/MappableRingBuffer
+        85: astore_2
+        86: aload_2
+        87: invokevirtual #841                // Method net/minecraft/client/renderer/MappableRingBuffer.close:()V
+        90: goto          67
+        93: aload_0
+        94: getfield      #10                 // Field oversizedItemRenderers:Ljava/util/Map;
+        97: invokeinterface #207,  1          // InterfaceMethod java/util/Map.values:()Ljava/util/Collection;
+       102: invokedynamic #954,  0            // InvokeDynamic #9:accept:()Ljava/util/function/Consumer;
+       107: invokeinterface #950,  2          // InterfaceMethod java/util/Collection.forEach:(Ljava/util/function/Consumer;)V
+       112: aload_0
+       113: getfield      #79                 // Field cubeMap:Lnet/minecraft/client/renderer/CubeMap;
+       116: invokevirtual #955                // Method net/minecraft/client/renderer/CubeMap.close:()V
+       119: return
+
+  private static java.lang.String lambda$ensureVertexBufferSizes$0(com.mojang.blaze3d.vertex.VertexFormat);
+    Code:
+         0: aload_0
+         1: invokestatic  #956                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+         4: invokedynamic #961,  0            // InvokeDynamic #10:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+         9: areturn
+
+  private void lambda$preparePictureInPicture$0(int, net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState);
+    Code:
+         0: aload_0
+         1: aload_2
+         2: iload_1
+         3: invokevirtual #965                // Method preparePictureInPictureState:(Lnet/minecraft/client/renderer/state/gui/pip/PictureInPictureRenderState;I)V
+         6: return
+
+  private void lambda$prepareItemElements$1(int, net.minecraft.client.renderer.state.gui.GuiItemRenderState);
+    Code:
+         0: aload_2
+         1: invokevirtual #969                // Method net/minecraft/client/renderer/state/gui/GuiItemRenderState.oversizedItemBounds:()Lnet/minecraft/client/gui/navigation/ScreenRectangle;
+         4: ifnull        84
+         7: aload_2
+         8: invokevirtual #972                // Method net/minecraft/client/renderer/state/gui/GuiItemRenderState.itemStackRenderState:()Lnet/minecraft/client/renderer/item/TrackingItemStackRenderState;
+        11: astore_3
+        12: aload_0
+        13: getfield      #10                 // Field oversizedItemRenderers:Ljava/util/Map;
+        16: aload_3
+        17: invokevirtual #976                // Method net/minecraft/client/renderer/item/TrackingItemStackRenderState.getModelIdentity:()Ljava/lang/Object;
+        20: aload_0
+        21: invokedynamic #981,  0            // InvokeDynamic #11:apply:(Lnet/minecraft/client/gui/render/GuiRenderer;)Ljava/util/function/Function;
+        26: invokeinterface #985,  3          // InterfaceMethod java/util/Map.computeIfAbsent:(Ljava/lang/Object;Ljava/util/function/Function;)Ljava/lang/Object;
+        31: checkcast     #259                // class net/minecraft/client/gui/render/pip/OversizedItemRenderer
+        34: astore        4
+        36: aload_2
+        37: invokevirtual #969                // Method net/minecraft/client/renderer/state/gui/GuiItemRenderState.oversizedItemBounds:()Lnet/minecraft/client/gui/navigation/ScreenRectangle;
+        40: astore        5
+        42: new           #989                // class net/minecraft/client/renderer/state/gui/pip/OversizedItemRenderState
+        45: dup
+        46: aload_2
+        47: aload         5
+        49: invokevirtual #927                // Method net/minecraft/client/gui/navigation/ScreenRectangle.left:()I
+        52: aload         5
+        54: invokevirtual #991                // Method net/minecraft/client/gui/navigation/ScreenRectangle.top:()I
+        57: aload         5
+        59: invokevirtual #994                // Method net/minecraft/client/gui/navigation/ScreenRectangle.right:()I
+        62: aload         5
+        64: invokevirtual #930                // Method net/minecraft/client/gui/navigation/ScreenRectangle.bottom:()I
+        67: invokespecial #997                // Method net/minecraft/client/renderer/state/gui/pip/OversizedItemRenderState."<init>":(Lnet/minecraft/client/renderer/state/gui/GuiItemRenderState;IIII)V
+        70: astore        6
+        72: aload         4
+        74: aload         6
+        76: aload_0
+        77: getfield      #99                 // Field renderState:Lnet/minecraft/client/renderer/state/gui/GuiRenderState;
+        80: iload_1
+        81: invokevirtual #1000               // Method net/minecraft/client/gui/render/pip/OversizedItemRenderer.prepare:(Lnet/minecraft/client/renderer/state/gui/pip/PictureInPictureRenderState;Lnet/minecraft/client/renderer/state/gui/GuiRenderState;I)V
+        84: return
+
+  private net.minecraft.client.gui.render.pip.OversizedItemRenderer lambda$prepareItemElements$2(java.lang.Object);
+    Code:
+         0: new           #259                // class net/minecraft/client/gui/render/pip/OversizedItemRenderer
+         3: dup
+         4: aload_0
+         5: getfield      #103                // Field bufferSource:Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;
+         8: invokespecial #1001               // Method net/minecraft/client/gui/render/pip/OversizedItemRenderer."<init>":(Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;)V
+        11: areturn
+
+  private void lambda$prepareItemElements$0(org.apache.commons.lang3.mutable.MutableBoolean, net.minecraft.client.gui.render.GuiItemAtlas, net.minecraft.client.renderer.state.gui.GuiItemRenderState);
+    Code:
+         0: aload_3
+         1: invokevirtual #969                // Method net/minecraft/client/renderer/state/gui/GuiItemRenderState.oversizedItemBounds:()Lnet/minecraft/client/gui/navigation/ScreenRectangle;
+         4: ifnull        12
+         7: aload_1
+         8: invokevirtual #1004               // Method org/apache/commons/lang3/mutable/MutableBoolean.setTrue:()V
+        11: return
+        12: aload_2
+        13: aload_3
+        14: invokevirtual #972                // Method net/minecraft/client/renderer/state/gui/GuiItemRenderState.itemStackRenderState:()Lnet/minecraft/client/renderer/item/TrackingItemStackRenderState;
+        17: invokevirtual #1007               // Method net/minecraft/client/gui/render/GuiItemAtlas.getOrUpdate:(Lnet/minecraft/client/renderer/item/TrackingItemStackRenderState;)Lnet/minecraft/client/gui/render/GuiItemAtlas$SlotView;
+        20: astore        4
+        22: aload         4
+        24: ifnull        34
+        27: aload_0
+        28: aload_3
+        29: aload         4
+        31: invokevirtual #1011               // Method submitBlitFromItemAtlas:(Lnet/minecraft/client/renderer/state/gui/GuiItemRenderState;Lnet/minecraft/client/gui/render/GuiItemAtlas$SlotView;)V
+        34: return
+
+  private void lambda$prepareText$0(net.minecraft.client.renderer.state.gui.GuiTextRenderState);
+    Code:
+         0: aload_1
+         1: getfield      #1015               // Field net/minecraft/client/renderer/state/gui/GuiTextRenderState.pose:Lorg/joml/Matrix3x2fc;
+         4: astore_2
+         5: aload_1
+         6: getfield      #1020               // Field net/minecraft/client/renderer/state/gui/GuiTextRenderState.scissor:Lnet/minecraft/client/gui/navigation/ScreenRectangle;
+         9: astore_3
+        10: aload_1
+        11: invokevirtual #1023               // Method net/minecraft/client/renderer/state/gui/GuiTextRenderState.ensurePrepared:()Lnet/minecraft/client/gui/Font$PreparedText;
+        14: new           #1027               // class net/minecraft/client/gui/render/GuiRenderer$1
+        17: dup
+        18: aload_0
+        19: aload_2
+        20: aload_3
+        21: invokespecial #1029               // Method net/minecraft/client/gui/render/GuiRenderer$1."<init>":(Lnet/minecraft/client/gui/render/GuiRenderer;Lorg/joml/Matrix3x2fc;Lnet/minecraft/client/gui/navigation/ScreenRectangle;)V
+        24: invokeinterface #1032,  2         // InterfaceMethod net/minecraft/client/gui/Font$PreparedText.visit:(Lnet/minecraft/client/gui/Font$GlyphVisitor;)V
+        29: return
+
+  private static java.lang.String lambda$draw$1();
+    Code:
+         0: ldc_w         #1038               // String GUI after blur
+         3: areturn
+
+  private static java.lang.String lambda$draw$0();
+    Code:
+         0: ldc_w         #1040               // String GUI before blur
+         3: areturn
+
+  static {};
+    Code:
+         0: invokestatic  #1042               // Method com/mojang/logging/LogUtils.getLogger:()Lorg/slf4j/Logger;
+         3: putstatic     #686                // Field LOGGER:Lorg/slf4j/Logger;
+         6: invokedynamic #1048,  0           // InvokeDynamic #12:apply:()Ljava/util/function/Function;
+        11: invokestatic  #1051               // InterfaceMethod java/util/Comparator.comparing:(Ljava/util/function/Function;)Ljava/util/Comparator;
+        14: invokedynamic #1057,  0           // InvokeDynamic #13:apply:()Ljava/util/function/Function;
+        19: invokeinterface #1058,  2         // InterfaceMethod java/util/Comparator.thenComparing:(Ljava/util/function/Function;)Ljava/util/Comparator;
+        24: invokedynamic #1061,  0           // InvokeDynamic #14:apply:()Ljava/util/function/Function;
+        29: invokeinterface #1058,  2         // InterfaceMethod java/util/Comparator.thenComparing:(Ljava/util/function/Function;)Ljava/util/Comparator;
+        34: invokedynamic #1062,  0           // InvokeDynamic #15:apply:()Ljava/util/function/Function;
+        39: invokeinterface #1058,  2         // InterfaceMethod java/util/Comparator.thenComparing:(Ljava/util/function/Function;)Ljava/util/Comparator;
+        44: invokestatic  #1063               // InterfaceMethod java/util/Comparator.nullsFirst:(Ljava/util/Comparator;)Ljava/util/Comparator;
+        47: putstatic     #1067               // Field SCISSOR_COMPARATOR:Ljava/util/Comparator;
+        50: invokedynamic #1070,  0           // InvokeDynamic #16:apply:()Ljava/util/function/Function;
+        55: invokestatic  #1051               // InterfaceMethod java/util/Comparator.comparing:(Ljava/util/function/Function;)Ljava/util/Comparator;
+        58: invokestatic  #1063               // InterfaceMethod java/util/Comparator.nullsFirst:(Ljava/util/Comparator;)Ljava/util/Comparator;
+        61: putstatic     #1071               // Field TEXTURE_COMPARATOR:Ljava/util/Comparator;
+        64: invokedynamic #1074,  0           // InvokeDynamic #17:apply:()Ljava/util/function/Function;
+        69: getstatic     #1067               // Field SCISSOR_COMPARATOR:Ljava/util/Comparator;
+        72: invokestatic  #1075               // InterfaceMethod java/util/Comparator.comparing:(Ljava/util/function/Function;Ljava/util/Comparator;)Ljava/util/Comparator;
+        75: invokedynamic #1078,  0           // InvokeDynamic #18:apply:()Ljava/util/function/Function;
+        80: invokedynamic #1079,  0           // InvokeDynamic #19:apply:()Ljava/util/function/Function;
+        85: invokestatic  #1051               // InterfaceMethod java/util/Comparator.comparing:(Ljava/util/function/Function;)Ljava/util/Comparator;
+        88: invokeinterface #1080,  3         // InterfaceMethod java/util/Comparator.thenComparing:(Ljava/util/function/Function;Ljava/util/Comparator;)Ljava/util/Comparator;
+        93: invokedynamic #1082,  0           // InvokeDynamic #20:apply:()Ljava/util/function/Function;
+        98: getstatic     #1071               // Field TEXTURE_COMPARATOR:Ljava/util/Comparator;
+       101: invokeinterface #1080,  3         // InterfaceMethod java/util/Comparator.thenComparing:(Ljava/util/function/Function;Ljava/util/Comparator;)Ljava/util/Comparator;
+       106: putstatic     #287                // Field ELEMENT_SORT_COMPARATOR:Ljava/util/Comparator;
+       109: return
+}

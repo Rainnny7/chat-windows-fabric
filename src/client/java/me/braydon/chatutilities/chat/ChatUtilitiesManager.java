@@ -7,11 +7,11 @@ import me.braydon.chatutilities.client.ChatUtilitiesClientOptions;
 import me.braydon.chatutilities.mixin.client.ChatComponentAccess;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.GuiMessage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.ServerData;
+import net.minecraft.client.multiplayer.chat.GuiMessage;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -1301,7 +1301,7 @@ public final class ChatUtilitiesManager {
         List<Component> lines = new ArrayList<>(preservedVanillaChatSnapshot);
         preservedVanillaChatSnapshot.clear();
         for (Component c : lines) {
-            mc.gui.getChat().addMessage(c);
+            mc.gui.getChat().addClientSystemMessage(c);
         }
     }
 
@@ -1447,7 +1447,7 @@ public final class ChatUtilitiesManager {
 
     /**
      * Replays messages that arrived before {@link #onPlayJoin} fired, now that the correct server
-     * profile is known.  Each message is fed back through {@link ChatComponent#addMessage(Component)}
+     * profile is known. Each message is fed back through the normal chat pipeline.
      * so the full mixin pipeline (auto-responses, text replacements, routing) runs with the correct
      * profile.  Must be called from the main client thread.
      */
@@ -1459,7 +1459,7 @@ public final class ChatUtilitiesManager {
         earlyMessageBuffer.clear();
         Minecraft mc = Minecraft.getInstance();
         for (Component msg : pending) {
-            mc.gui.getChat().addMessage(msg);
+            mc.gui.getChat().addClientSystemMessage(msg);
         }
     }
 

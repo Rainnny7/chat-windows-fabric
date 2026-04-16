@@ -14,7 +14,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.EditBox;
@@ -46,14 +46,14 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.lwjgl.glfw.GLFW;
 
-import java.awt.*;
+import java.awt.Color;
+import java.awt.Desktop;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.List;
 import java.util.regex.PatternSyntaxException;
 
 /**
@@ -651,7 +651,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
     }
 
     /** Sidebar (or separator) pixels clipped to the panel’s rounded fill (same bounds as the solid panel background). */
-    private void fillSidebarClipped(GuiGraphics g, int ax, int ay, int aw, int ah, int color) {
+    private void fillSidebarClipped(GuiGraphicsExtractor g, int ax, int ay, int aw, int ah, int color) {
         RoundedPanelRenderer.fillRectIntersectRounded(
                 g,
                 panelInnerX(),
@@ -777,7 +777,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
     // ── Background override (panel only, game world visible at margins) ─────────
 
     @Override
-    public void renderBackground(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    public void extractBackground(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         // Subtle global dim so the game world at the margins is not distracting
         g.fill(0, 0, this.width, this.height, menuFadeArgb(0x55000000));
         int pl = panelLeft();
@@ -808,7 +808,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     int rt = rc.chatListYLogical() ? rc.t() - cws : rc.t();
                     int rb = rc.chatListYLogical() ? rc.b() - cws : rc.b();
                     g.fill(rc.l(), rt, rc.r(), rb, menuFadeArgb(C_WIN_GROUP_BG));
-                    g.renderOutline(rc.l(), rt, rc.r() - rc.l(), rb - rt, menuFadeArgb(C_WIN_GROUP_EDGE));
+                    g.outline(rc.l(), rt, rc.r() - rc.l(), rb - rt, menuFadeArgb(C_WIN_GROUP_EDGE));
                 }
             }
         } finally {
@@ -895,7 +895,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
      * animate after options toggle; easing uses real time between renders.
      */
     private void renderSettingsBooleanSwitch(
-            GuiGraphics g,
+            GuiGraphicsExtractor g,
             String animKey,
             int x,
             int y,
@@ -955,7 +955,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
             fillCol = 0xFF000000 | (r << 16) | (gr << 8) | bl;
         }
         g.fill(rx, ry, rx + trackW, ry + trackH, fillCol);
-        g.renderOutline(rx, ry, trackW, trackH, 0xFF1A1A22);
+        g.outline(rx, ry, trackW, trackH, 0xFF1A1A22);
         int margin = 2;
         int thumb = trackH - 2 * margin;
         int thumbY = ry + margin;
@@ -965,7 +965,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
         int thumbCol = 0xFFF4F4FA;
         g.fill(thumbX + 1, thumbY + 1, thumbX + thumb + 1, thumbY + thumb + 1, 0x48000000);
         g.fill(thumbX, thumbY, thumbX + thumb, thumbY + thumb, thumbCol);
-        g.renderOutline(thumbX, thumbY, thumb, thumb, 0xFF4A4A58);
+        g.outline(thumbX, thumbY, thumb, thumb, 0xFF4A4A58);
     }
 
     /**
@@ -1232,16 +1232,20 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
     private AbstractWidget flatButton(Component label, Runnable press, int x, int y, int w, int h) {
         return new AbstractWidget(x, y, w, h, label) {
             @Override public void onClick(net.minecraft.client.input.MouseButtonEvent event, boolean dbl) { press.run(); }
-            @Override protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+            @Override protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                 boolean hov = this.isHovered();
                 boolean act = this.active;
                 int bg      = !act ? 0x25000000 : hov ? 0x55FFFFFF : 0x35000000;
                 int outline = !act ? 0x25FFFFFF : hov ? 0x70FFFFFF : 0x40FFFFFF;
                 int tc      = !act ? 0xFF555565 : hov ? 0xFFFFFFFF : 0xFFBBBBCC;
                 g.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), bg);
-                g.renderOutline(getX(), getY(), getWidth(), getHeight(), outline);
-                g.drawCenteredString(Minecraft.getInstance().font, getMessage(),
-                        getX() + getWidth() / 2, getY() + (getHeight() - 8) / 2, tc);
+                g.outline(getX(), getY(), getWidth(), getHeight(), outline);
+                g.centeredText(
+                        Minecraft.getInstance().font,
+                        getMessage(),
+                        getX() + getWidth() / 2,
+                        getY() + (getHeight() - 8) / 2,
+                        tc);
             }
             @Override public void updateWidgetNarration(NarrationElementOutput n) {
                 defaultButtonNarrationText(n);
@@ -1253,16 +1257,20 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
     private AbstractWidget flatButtonDestructive(Component label, Runnable press, int x, int y, int w, int h) {
         return new AbstractWidget(x, y, w, h, label) {
             @Override public void onClick(MouseButtonEvent event, boolean dbl) { press.run(); }
-            @Override protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+            @Override protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                 boolean hov = this.isHovered();
                 boolean act = this.active;
                 int bg = !act ? 0x35402020 : hov ? 0x55903030 : 0x45302828;
                 int outline = !act ? 0x45C06060 : hov ? 0x85FF9090 : 0x65D07070;
                 int tc = !act ? C_DANGER_TEXT : hov ? C_DANGER_TEXT_H : 0xFFF0A0A0;
                 g.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), bg);
-                g.renderOutline(getX(), getY(), getWidth(), getHeight(), outline);
-                g.drawCenteredString(Minecraft.getInstance().font, getMessage(),
-                        getX() + getWidth() / 2, getY() + (getHeight() - 8) / 2, tc);
+                g.outline(getX(), getY(), getWidth(), getHeight(), outline);
+                g.centeredText(
+                        Minecraft.getInstance().font,
+                        getMessage(),
+                        getX() + getWidth() / 2,
+                        getY() + (getHeight() - 8) / 2,
+                        tc);
             }
             @Override public void updateWidgetNarration(NarrationElementOutput n) {
                 defaultButtonNarrationText(n);
@@ -1274,7 +1282,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
     private AbstractWidget flatButtonPositive(Component label, Runnable press, int x, int y, int w, int h) {
         return new AbstractWidget(x, y, w, h, label) {
             @Override public void onClick(MouseButtonEvent event, boolean dbl) { press.run(); }
-            @Override protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+            @Override protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                 boolean hov = this.isHovered();
                 boolean act = this.active;
                 // Cool green tint — avoid yellow/brown (high R + G) on outline
@@ -1282,9 +1290,13 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                 int outline = !act ? 0x40487058 : hov ? 0x6598C082 : 0x5078A068;
                 int tc = !act ? C_NEW_PROFILE : hov ? C_POS_TEXT_H : 0xFF7ED47E;
                 g.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), bg);
-                g.renderOutline(getX(), getY(), getWidth(), getHeight(), outline);
-                g.drawCenteredString(Minecraft.getInstance().font, getMessage(),
-                        getX() + getWidth() / 2, getY() + (getHeight() - 8) / 2, tc);
+                g.outline(getX(), getY(), getWidth(), getHeight(), outline);
+                g.centeredText(
+                        Minecraft.getInstance().font,
+                        getMessage(),
+                        getX() + getWidth() / 2,
+                        getY() + (getHeight() - 8) / 2,
+                        tc);
             }
             @Override public void updateWidgetNarration(NarrationElementOutput n) {
                 defaultButtonNarrationText(n);
@@ -1307,7 +1319,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
     private AbstractWidget primaryButton(Component label, Runnable press, int x, int y, int w, int h) {
         return new AbstractWidget(x, y, w, h, label) {
             @Override public void onClick(net.minecraft.client.input.MouseButtonEvent event, boolean dbl) { press.run(); }
-            @Override protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+            @Override protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                 boolean hov = this.isHovered();
                 int acc = modAccentArgb();
                 int r = (acc >> 16) & 0xFF;
@@ -1322,9 +1334,13 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                 int lb = Mth.clamp((int) (b * (hov ? 1.15f : 1f)), 0, 255);
                 int outline = 0xFF000000 | (lr << 16) | (lg << 8) | lb;
                 g.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), bg);
-                g.renderOutline(getX(), getY(), getWidth(), getHeight(), outline);
-                g.drawCenteredString(Minecraft.getInstance().font, getMessage(),
-                        getX() + getWidth() / 2, getY() + (getHeight() - 8) / 2, 0xFFFFFFFF);
+                g.outline(getX(), getY(), getWidth(), getHeight(), outline);
+                g.centeredText(
+                        Minecraft.getInstance().font,
+                        getMessage(),
+                        getX() + getWidth() / 2,
+                        getY() + (getHeight() - 8) / 2,
+                        0xFFFFFFFF);
             }
             @Override public void updateWidgetNarration(NarrationElementOutput n) {
                 defaultButtonNarrationText(n);
@@ -2484,7 +2500,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
         chatActionTypeDropdownOpen = true;
     }
 
-    private void renderChatActionTypeDropdownOnTop(GuiGraphics g, int mouseX, int mouseY) {
+    private void renderChatActionTypeDropdownOnTop(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         if (!chatActionTypeDropdownOpen || activePanel != Panel.CHAT_ACTIONS) {
             return;
         }
@@ -2494,7 +2510,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
         int h = chatActionTypeDropH;
         int rowH = 18;
         g.fill(x, y, x + w, y + h, 0xF0101012);
-        g.renderOutline(x, y, w, h, 0xFF2C2C3A);
+        g.outline(x, y, w, h, 0xFF2C2C3A);
         ChatActionEffect.Type[] types = ChatActionEffect.Type.values();
         for (int i = 0; i < types.length; i++) {
             int ry = y + i * rowH;
@@ -2503,7 +2519,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                 g.fill(x + 1, ry, x + w - 1, ry + rowH, 0x203A6AC8);
             }
             Component cap = chatEffectTypeButtonCaption(types[i]);
-            g.drawString(this.font, cap, x + 6, ry + (rowH - 8) / 2, 0xFFE0E0E8, false);
+            g.text(this.font, cap, x + 6, ry + (rowH - 8) / 2, 0xFFE0E0E8, false);
         }
     }
 
@@ -2576,20 +2592,20 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
             }
 
             @Override
-            protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+            protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                 boolean hov = this.isHovered();
                 boolean act = this.active;
                 int bg = !act ? 0x25000000 : hov ? 0x55FFFFFF : 0x35000000;
                 int outline = !act ? 0x25FFFFFF : hov ? 0x70FFFFFF : 0x40FFFFFF;
                 g.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), bg);
-                g.renderOutline(getX(), getY(), getWidth(), getHeight(), outline);
+                g.outline(getX(), getY(), getWidth(), getHeight(), outline);
                 int sw = rgb | 0xFF000000;
                 int sx = getX() + 6;
                 int sy = getY() + (getHeight() - 14) / 2;
                 g.fill(sx, sy, sx + 14, sy + 14, sw);
-                g.renderOutline(sx, sy, 14, 14, 0xFFAAAAAA);
+                g.outline(sx, sy, 14, 14, 0xFFAAAAAA);
                 String cap = I18n.get("chat-utilities.chat_actions.color_highlight.pick");
-                g.drawString(
+                g.text(
                         Minecraft.getInstance().font,
                         cap,
                         sx + 18,
@@ -2853,10 +2869,10 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                 addRenderableWidget(
                         new AbstractWidget(fx, y, listRowFormW, 18, Component.empty()) {
                             @Override
-                            protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                            protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                                 int bg = this.isHovered() ? 0x28000000 : 0x18000000;
                                 g.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), bg);
-                                g.drawString(
+                                g.text(
                                         Minecraft.getInstance().font,
                                         previewFinal,
                                         getX() + 4,
@@ -3442,7 +3458,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
         settingsFormatDropdownOpen = true;
     }
 
-    private void renderSettingsFormatDropdownOnTop(GuiGraphics g, int mouseX, int mouseY) {
+    private void renderSettingsFormatDropdownOnTop(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         if (!settingsFormatDropdownOpen || activePanel != Panel.SETTINGS) {
             return;
         }
@@ -3452,7 +3468,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
         int h = settingsFormatDropH;
         int rowH = 18;
         g.fill(x, y, x + w, y + h, 0xF0101012);
-        g.renderOutline(x, y, w, h, 0xFF2C2C3A);
+        g.outline(x, y, w, h, 0xFF2C2C3A);
         ChatUtilitiesClientOptions.CopyFormattedStyle[] vals = ChatUtilitiesClientOptions.CopyFormattedStyle.values();
         for (int i = 0; i < vals.length; i++) {
             int ry = y + i * rowH;
@@ -3470,7 +3486,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
         }
     }
 
-    private void renderSettingsUnreadBadgeStyleDropdownOnTop(GuiGraphics g, int mouseX, int mouseY) {
+    private void renderSettingsUnreadBadgeStyleDropdownOnTop(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         if (!settingsUnreadBadgeStyleDropdownOpen || activePanel != Panel.SETTINGS) {
             return;
         }
@@ -3480,7 +3496,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
         int h = settingsUnreadBadgeStyleDropH;
         int rowH = 18;
         g.fill(x, y, x + w, y + h, 0xF0101012);
-        g.renderOutline(x, y, w, h, 0xFF2C2C3A);
+        g.outline(x, y, w, h, 0xFF2C2C3A);
         ChatUtilitiesClientOptions.TabUnreadBadgeStyle[] vals =
                 ChatUtilitiesClientOptions.TabUnreadBadgeStyle.values();
         for (int i = 0; i < vals.length; i++) {
@@ -3493,7 +3509,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     Component.translatable(
                             "chat-utilities.settings.unread_badge.style.value."
                                     + vals[i].name().toLowerCase(Locale.ROOT));
-            g.drawString(
+            g.text(
                     this.font,
                     cap,
                     x + w / 2 - this.font.width(cap) / 2,
@@ -3526,10 +3542,10 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                         }
 
                         @Override
-                        protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                        protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                             boolean hov = this.isHovered() && !atDefault;
                             int edge = atDefault ? 0xFF303038 : hov ? 0xFF707088 : 0xFF505060;
-                            g.renderOutline(getX(), getY(), getWidth(), getHeight(), edge);
+                            g.outline(getX(), getY(), getWidth(), getHeight(), edge);
                             net.minecraft.client.gui.Font fn = ChatUtilitiesRootScreen.this.font;
                             String sym = "↺";
                             float sc = 2.05f;
@@ -3541,7 +3557,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                             pose.pushMatrix();
                             pose.translate(getX() + getWidth() / 2f, top);
                             pose.scale(sc, sc);
-                            g.drawString(fn, sym, Math.round(-tw0 / 2f), 0, col, false);
+                            g.text(fn, sym, Math.round(-tw0 / 2f), 0, col, false);
                             pose.popMatrix();
                         }
 
@@ -3715,15 +3731,15 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     }
 
                     @Override
-                    protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                         boolean hov = this.isHovered();
                         boolean act = this.active;
                         int bg = !act ? 0x25000000 : hov ? 0x55FFFFFF : 0x35000000;
                         int outline = !act ? 0x25FFFFFF : hov ? 0x70FFFFFF : 0x40FFFFFF;
                         int tc = !act ? 0xFF555565 : hov ? 0xFFFFFFFF : 0xFFBBBBCC;
                         g.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), bg);
-                        g.renderOutline(getX(), getY(), getWidth(), getHeight(), outline);
-                        g.drawCenteredString(
+                        g.outline(getX(), getY(), getWidth(), getHeight(), outline);
+                        g.centeredText(
                                 Minecraft.getInstance().font,
                                 getMessage(),
                                 getX() + getWidth() / 2,
@@ -3777,17 +3793,18 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     }
 
                     @Override
-                    protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                         boolean hov = this.isHovered();
                         boolean act = this.active;
                         int bg = !act ? 0x25000000 : hov ? 0x55FFFFFF : 0x35000000;
                         int outline = !act ? 0x25FFFFFF : hov ? 0x70FFFFFF : 0x40FFFFFF;
                         int tc = !act ? 0xFF555565 : hov ? 0xFFFFFFFF : 0xFFBBBBCC;
                         g.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), bg);
-                        g.renderOutline(getX(), getY(), getWidth(), getHeight(), outline);
-                        g.drawCenteredString(
+                        g.outline(getX(), getY(), getWidth(), getHeight(), outline);
+                        g.centeredText(
                                 Minecraft.getInstance().font,
-                                keybindCaptionOnly(ChatUtilitiesModClient.CHAT_PEEK_KEY, rebindingChatPeekKey),
+                                Component.literal(
+                                        keybindCaptionOnly(ChatUtilitiesModClient.CHAT_PEEK_KEY, rebindingChatPeekKey)),
                                 getX() + getWidth() / 2,
                                 getY() + (getHeight() - 8) / 2,
                                 tc);
@@ -4089,14 +4106,14 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     }
 
                     @Override
-                    protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                         boolean hov = this.isHovered();
                         boolean act = this.active;
                         int bg = !act ? 0x35402020 : hov ? 0x55903030 : 0x45302828;
                         int outline = !act ? 0x45C06060 : hov ? 0x85FF9090 : 0x65D07070;
                         int tc = !act ? C_DANGER_TEXT : hov ? C_DANGER_TEXT_H : 0xFFF0A0A0;
                         g.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), bg);
-                        g.renderOutline(getX(), getY(), getWidth(), getHeight(), outline);
+                        g.outline(getX(), getY(), getWidth(), getHeight(), outline);
                         net.minecraft.client.gui.Font f = ChatUtilitiesRootScreen.this.font;
                         String sym = "\u21ba";
                         float iconScale = 2.12f;
@@ -4115,9 +4132,9 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                         pose.scale(iconScale, iconScale);
                         int tw = f.width(sym);
                         int ic = hov ? 0xFFFFFFFF : 0xFFF0A0A0;
-                        g.drawString(f, sym, Math.round(-tw / 2f), 0, ic, false);
+                        g.text(f, sym, Math.round(-tw / 2f), 0, ic, false);
                         pose.popMatrix();
-                        g.drawString(f, getMessage(), startX + symW + gap, textY, tc, false);
+                        g.text(f, getMessage(), startX + symW + gap, textY, tc, false);
                     }
 
                     @Override
@@ -4141,7 +4158,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     }
 
                     @Override
-                    protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                         boolean on = ChatUtilitiesClientOptions.isCheckForUpdatesEnabled();
                         boolean hov = this.isHovered();
                         boolean act = this.active;
@@ -4177,7 +4194,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     }
 
                     @Override
-                    protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                         boolean on = ChatUtilitiesClientOptions.isImageChatPreviewEnabled();
                         boolean hov = this.isHovered();
                         boolean act = this.active;
@@ -4219,14 +4236,14 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     }
 
                     @Override
-                    protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                         boolean hov = this.isHovered();
                         boolean act = this.active;
                         int bg = !act ? 0x25000000 : hov ? 0x55FFFFFF : 0x35000000;
                         int outline = !act ? 0x25FFFFFF : hov ? 0x70FFFFFF : 0x40FFFFFF;
                         g.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), bg);
-                        g.renderOutline(getX(), getY(), getWidth(), getHeight(), outline);
-                        g.drawCenteredString(
+                        g.outline(getX(), getY(), getWidth(), getHeight(), outline);
+                        g.centeredText(
                                 Minecraft.getInstance().font,
                                 Component.translatable("chat-utilities.settings.image_preview.whitelist_open"),
                                 getX() + getWidth() / 2,
@@ -4254,7 +4271,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     }
 
                     @Override
-                    protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                         boolean hov = this.isHovered();
                         boolean act = this.active;
                         boolean on = ChatUtilitiesClientOptions.isAllowUntrustedImagePreviewDomains();
@@ -4291,7 +4308,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     }
 
                     @Override
-                    protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                         boolean on = ChatUtilitiesClientOptions.isShowChatSymbolSelector();
                         boolean hov = this.isHovered();
                         boolean act = this.active;
@@ -4325,14 +4342,14 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
      * {@link String} still parses legacy {@code §} and draws nothing between the parentheses.
      */
     private static void drawSettingsCycleFormattedStyleCaptionAt(
-            GuiGraphics g,
+            GuiGraphicsExtractor g,
             Font font,
             ChatUtilitiesClientOptions.CopyFormattedStyle style,
             int cx,
             int y,
             int tc) {
         switch (style) {
-            case VANILLA -> g.drawCenteredString(
+            case VANILLA -> g.centeredText(
                     font,
                     Component.translatable("chat-utilities.settings.copy_formatted_style.value.vanilla"),
                     cx,
@@ -4347,13 +4364,13 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                         FormattedCharSequence.codepoint(SECTION_SIGN_CODEPOINT, Style.EMPTY);
                 int tw = font.width(lead) + font.width(secSeq) + font.width(trail);
                 int x = cx - tw / 2;
-                g.drawString(font, lead, x, y, tc, false);
+                g.text(font, lead, x, y, tc, false);
                 x += font.width(lead);
-                g.drawString(font, secSeq, x, y, tc, false);
+                g.text(font, secSeq, x, y, tc, false);
                 x += font.width(secSeq);
-                g.drawString(font, trail, x, y, tc, false);
+                g.text(font, trail, x, y, tc, false);
             }
-            case MINIMESSAGE -> g.drawCenteredString(
+            case MINIMESSAGE -> g.centeredText(
                     font,
                     Component.translatable("chat-utilities.settings.copy_formatted_style.value.minimessage"),
                     cx,
@@ -4363,7 +4380,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
     }
 
     private static void drawSettingsCycleFormattedStyleCaption(
-            GuiGraphics g, AbstractWidget widget, ChatUtilitiesClientOptions.CopyFormattedStyle style) {
+            GuiGraphicsExtractor g, AbstractWidget widget, ChatUtilitiesClientOptions.CopyFormattedStyle style) {
         Font font = Minecraft.getInstance().font;
         int cx = widget.getX() + widget.getWidth() / 2;
         int y = widget.getY() + (widget.getHeight() - 8) / 2;
@@ -4379,13 +4396,13 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     }
 
                     @Override
-                    protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                         boolean hov = this.isHovered();
                         boolean act = this.active;
                         int bg = !act ? 0x25000000 : hov ? 0x55FFFFFF : 0x35000000;
                         int outline = !act ? 0x25FFFFFF : hov ? 0x70FFFFFF : 0x40FFFFFF;
                         g.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), bg);
-                        g.renderOutline(getX(), getY(), getWidth(), getHeight(), outline);
+                        g.outline(getX(), getY(), getWidth(), getHeight(), outline);
                         drawSettingsCycleFormattedStyleCaption(
                                 g, this, ChatUtilitiesClientOptions.getCopyFormattedStyle());
                     }
@@ -4410,13 +4427,13 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     }
 
                     @Override
-                    protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                         boolean hov = this.isHovered();
                         boolean act = this.active;
                         int bg = !act ? 0x25000000 : hov ? 0x55FFFFFF : 0x35000000;
                         int outline = !act ? 0x25FFFFFF : hov ? 0x70FFFFFF : 0x40FFFFFF;
                         g.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), bg);
-                        g.renderOutline(getX(), getY(), getWidth(), getHeight(), outline);
+                        g.outline(getX(), getY(), getWidth(), getHeight(), outline);
                         drawSettingsCycleFormattedStyleCaption(
                                 g, this, ChatUtilitiesClientOptions.getSymbolPaletteInsertStyle());
                     }
@@ -4441,20 +4458,20 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     }
 
                     @Override
-                    protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                         boolean hov = this.isHovered();
                         boolean act = this.active;
                         int bg = !act ? 0x25000000 : hov ? 0x55FFFFFF : 0x35000000;
                         int outline = !act ? 0x25FFFFFF : hov ? 0x70FFFFFF : 0x40FFFFFF;
                         g.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), bg);
-                        g.renderOutline(getX(), getY(), getWidth(), getHeight(), outline);
+                        g.outline(getX(), getY(), getWidth(), getHeight(), outline);
                         ChatUtilitiesClientOptions.TabUnreadBadgeStyle st =
                                 ChatUtilitiesClientOptions.getTabUnreadBadgeStyle();
                         Component cap =
                                 Component.translatable(
                                         "chat-utilities.settings.unread_badge.style.value."
                                                 + st.name().toLowerCase(Locale.ROOT));
-                        g.drawString(
+                        g.text(
                                 Minecraft.getInstance().font,
                                 cap,
                                 getX() + getWidth() / 2 - Minecraft.getInstance().font.width(cap) / 2,
@@ -4482,7 +4499,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     }
 
                     @Override
-                    protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                         boolean on = ChatUtilitiesClientOptions.isChatTextShadow();
                         boolean hov = this.isHovered();
                         boolean act = this.active;
@@ -4519,7 +4536,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     }
 
                     @Override
-                    protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                         boolean on = ChatUtilitiesClientOptions.isSmoothChat();
                         boolean hov = this.isHovered();
                         boolean act = this.active;
@@ -4555,7 +4572,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
 
     /** Flat panel; label in upper area, thin track + thumb along the bottom (no line through the text). */
     private static void renderFlatSliderWidget(
-            GuiGraphics g, AbstractSliderButton slider, int mx, int my, float pt, double value01) {
+            GuiGraphicsExtractor g, AbstractSliderButton slider, int mx, int my, float pt, double value01) {
         boolean hov = slider.isHovered();
         boolean act = slider.active;
         int bg = !act ? 0x25000000 : hov ? 0x55FFFFFF : 0x35000000;
@@ -4566,7 +4583,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
         int w = slider.getWidth();
         int h = slider.getHeight();
         g.fill(x, y, x + w, y + h, bg);
-        g.renderOutline(x, y, w, h, outline);
+        g.outline(x, y, w, h, outline);
 
         int pad = 5;
         int innerL = x + pad;
@@ -4589,7 +4606,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
         g.fill(tx, thumbTop, tx + thumbW, thumbBot, act ? 0xFFDDDDEE : 0xFF666678);
 
         int textY = y + Math.max(2, trackTop - y - 10);
-        g.drawCenteredString(
+        g.centeredText(
                 Minecraft.getInstance().font,
                 slider.getMessage(),
                 x + w / 2,
@@ -4627,7 +4644,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     }
 
                     @Override
-                    public void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                    public void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                         renderFlatSliderWidget(g, this, mx, my, pt, value);
                     }
 
@@ -4683,7 +4700,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     }
 
                     @Override
-                    public void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                    public void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                         renderFlatSliderWidget(g, this, mx, my, pt, value);
                     }
 
@@ -4727,7 +4744,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     }
 
                     @Override
-                    protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                         boolean on = ChatUtilitiesClientOptions.isLongerChatHistory();
                         boolean hov = this.isHovered();
                         boolean act = this.active;
@@ -4764,7 +4781,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     }
 
                     @Override
-                    protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                         boolean on = ChatUtilitiesClientOptions.isStackRepeatedMessages();
                         boolean hov = this.isHovered();
                         boolean act = this.active;
@@ -4801,7 +4818,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     }
 
                     @Override
-                    protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                         boolean on = ChatUtilitiesClientOptions.isShowChatBarMenuButton();
                         boolean hov = this.isHovered();
                         boolean act = this.active;
@@ -4838,7 +4855,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     }
 
                     @Override
-                    protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                         boolean on = ChatUtilitiesClientOptions.isChatWindowTabUnreadBadgesEnabled();
                         boolean hov = this.isHovered();
                         boolean act = this.active;
@@ -4874,7 +4891,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     }
 
                     @Override
-                    protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                         boolean on = ChatUtilitiesClientOptions.isAlwaysShowUnreadTabs();
                         boolean hov = this.isHovered();
                         boolean act = this.active;
@@ -4910,7 +4927,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     }
 
                     @Override
-                    protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                         boolean on = ChatUtilitiesClientOptions.isIgnoreSelfInChatActions();
                         boolean hov = this.isHovered();
                         boolean act = this.active;
@@ -4947,7 +4964,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     }
 
                     @Override
-                    protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                         boolean on = ChatUtilitiesClientOptions.isPreserveVanillaChatOnDisconnect();
                         boolean hov = this.isHovered();
                         boolean act = this.active;
@@ -4985,7 +5002,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     }
 
                     @Override
-                    protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                         boolean on = ChatUtilitiesClientOptions.isChatSearchBarEnabled();
                         boolean hov = this.isHovered();
                         boolean act = this.active;
@@ -5022,19 +5039,19 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     }
 
                     @Override
-                    protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                         boolean hov = this.isHovered();
                         boolean act = this.active;
                         int bg = !act ? 0x25000000 : hov ? 0x55FFFFFF : 0x35000000;
                         int outline = !act ? 0x25FFFFFF : hov ? 0x70FFFFFF : 0x40FFFFFF;
                         g.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), bg);
-                        g.renderOutline(getX(), getY(), getWidth(), getHeight(), outline);
+                        g.outline(getX(), getY(), getWidth(), getHeight(), outline);
                         var pos = ChatUtilitiesClientOptions.getChatSearchBarPosition();
                         Component cap =
                                 Component.translatable(
                                         "chat-utilities.settings.chat_search_bar_position."
                                                 + pos.name().toLowerCase());
-                        g.drawCenteredString(
+                        g.centeredText(
                                 Minecraft.getInstance().font,
                                 cap,
                                 getX() + getWidth() / 2,
@@ -5082,7 +5099,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     }
 
                     @Override
-                    public void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                    public void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                         renderFlatSliderWidget(g, this, mx, my, pt, value);
                     }
 
@@ -5179,7 +5196,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     }
 
                     @Override
-                    public void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                    public void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                         renderFlatSliderWidget(g, this, mx, my, pt, value);
                     }
 
@@ -5214,20 +5231,20 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     }
 
                     @Override
-                    protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                         boolean hov = this.isHovered();
                         boolean act = this.active;
                         int bg = !act ? 0x25000000 : hov ? 0x55FFFFFF : 0x35000000;
                         int outline = !act ? 0x25FFFFFF : hov ? 0x70FFFFFF : 0x40FFFFFF;
                         g.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), bg);
-                        g.renderOutline(getX(), getY(), getWidth(), getHeight(), outline);
+                        g.outline(getX(), getY(), getWidth(), getHeight(), outline);
                         int sw = ModAccentAnimator.currentArgb();
                         int sx = getX() + 6;
                         int sy = getY() + (getHeight() - 14) / 2;
                         g.fill(sx, sy, sx + 14, sy + 14, sw);
-                        g.renderOutline(sx, sy, 14, 14, 0xFFAAAAAA);
+                        g.outline(sx, sy, 14, 14, 0xFFAAAAAA);
                         String cap = I18n.get("chat-utilities.settings.mod_primary_color.change");
-                        g.drawString(
+                        g.text(
                                 Minecraft.getInstance().font,
                                 cap,
                                 sx + 18,
@@ -5255,7 +5272,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     }
 
                     @Override
-                    protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                         boolean on = ChatUtilitiesClientOptions.isChatTimestampsEnabled();
                         boolean hov = this.isHovered();
                         boolean act = this.active;
@@ -5293,20 +5310,20 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     }
 
                     @Override
-                    protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                         boolean hov = this.isHovered();
                         boolean act = this.active;
                         int bg = !act ? 0x25000000 : hov ? 0x55FFFFFF : 0x35000000;
                         int outline = !act ? 0x25FFFFFF : hov ? 0x70FFFFFF : 0x40FFFFFF;
                         g.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), bg);
-                        g.renderOutline(getX(), getY(), getWidth(), getHeight(), outline);
+                        g.outline(getX(), getY(), getWidth(), getHeight(), outline);
                         int rgb = ChatUtilitiesClientOptions.getChatTimestampColorRgb() | 0xFF000000;
                         int sx = getX() + 6;
                         int sy = getY() + (getHeight() - 14) / 2;
                         g.fill(sx, sy, sx + 14, sy + 14, rgb);
-                        g.renderOutline(sx, sy, 14, 14, 0xFFAAAAAA);
+                        g.outline(sx, sy, 14, 14, 0xFFAAAAAA);
                         String cap = I18n.get("chat-utilities.settings.chat_timestamp_color.change");
-                        g.drawString(
+                        g.text(
                                 Minecraft.getInstance().font,
                                 cap,
                                 sx + 18,
@@ -5336,20 +5353,20 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     }
 
                     @Override
-                    protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                         boolean hov = this.isHovered();
                         boolean act = this.active;
                         int bg = !act ? 0x25000000 : hov ? 0x55FFFFFF : 0x35000000;
                         int outline = !act ? 0x25FFFFFF : hov ? 0x70FFFFFF : 0x40FFFFFF;
                         g.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), bg);
-                        g.renderOutline(getX(), getY(), getWidth(), getHeight(), outline);
+                        g.outline(getX(), getY(), getWidth(), getHeight(), outline);
                         int rgb = ChatUtilitiesClientOptions.getStackedMessageColorRgb() | 0xFF000000;
                         int sx = getX() + 6;
                         int sy = getY() + (getHeight() - 14) / 2;
                         g.fill(sx, sy, sx + 14, sy + 14, rgb);
-                        g.renderOutline(sx, sy, 14, 14, 0xFFAAAAAA);
+                        g.outline(sx, sy, 14, 14, 0xFFAAAAAA);
                         String cap = I18n.get("chat-utilities.settings.stacked_message.color.change");
-                        g.drawString(
+                        g.text(
                                 Minecraft.getInstance().font,
                                 cap,
                                 sx + 18,
@@ -5379,20 +5396,20 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     }
 
                     @Override
-                    protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                         boolean hov = this.isHovered();
                         boolean act = this.active;
                         int bg = !act ? 0x25000000 : hov ? 0x55FFFFFF : 0x35000000;
                         int outline = !act ? 0x25FFFFFF : hov ? 0x70FFFFFF : 0x40FFFFFF;
                         g.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), bg);
-                        g.renderOutline(getX(), getY(), getWidth(), getHeight(), outline);
+                        g.outline(getX(), getY(), getWidth(), getHeight(), outline);
                         int rgb = ChatUtilitiesClientOptions.getTabUnreadBadgeColorRgb() | 0xFF000000;
                         int sx = getX() + 6;
                         int sy = getY() + (getHeight() - 14) / 2;
                         g.fill(sx, sy, sx + 14, sy + 14, rgb);
-                        g.renderOutline(sx, sy, 14, 14, 0xFFAAAAAA);
+                        g.outline(sx, sy, 14, 14, 0xFFAAAAAA);
                         String cap = I18n.get("chat-utilities.settings.unread_badge.color.change");
-                        g.drawString(
+                        g.text(
                                 Minecraft.getInstance().font,
                                 cap,
                                 sx + 18,
@@ -5420,7 +5437,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     }
 
                     @Override
-                    protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                         boolean on = ChatUtilitiesClientOptions.isClickToCopyEnabled();
                         boolean hov = this.isHovered();
                         boolean act = this.active;
@@ -5479,15 +5496,15 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     }
 
                     @Override
-                    protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                         boolean hov = this.isHovered();
                         boolean act = this.active;
                         int bg = !act ? 0x25000000 : hov ? 0x55FFFFFF : 0x35000000;
                         int outline = !act ? 0x25FFFFFF : hov ? 0x70FFFFFF : 0x40FFFFFF;
                         g.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), bg);
-                        g.renderOutline(getX(), getY(), getWidth(), getHeight(), outline);
+                        g.outline(getX(), getY(), getWidth(), getHeight(), outline);
                         int tc = !act ? 0xFF555565 : hov ? 0xFFFFFFFF : 0xFFBBBBCC;
-                        g.drawCenteredString(
+                        g.centeredText(
                                 Minecraft.getInstance().font,
                                 Component.literal(copyBindCaptionOnly(plain)),
                                 getX() + getWidth() / 2,
@@ -5538,15 +5555,15 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                     }
 
                     @Override
-                    protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+                    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                         boolean hov = this.isHovered();
                         boolean act = this.active;
                         int bg = !act ? 0x25000000 : hov ? 0x55FFFFFF : 0x35000000;
                         int outline = !act ? 0x25FFFFFF : hov ? 0x70FFFFFF : 0x40FFFFFF;
                         g.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), bg);
-                        g.renderOutline(getX(), getY(), getWidth(), getHeight(), outline);
+                        g.outline(getX(), getY(), getWidth(), getHeight(), outline);
                         int tc = !act ? 0xFF555565 : hov ? 0xFFFFFFFF : 0xFFBBBBCC;
-                        g.drawCenteredString(
+                        g.centeredText(
                                 Minecraft.getInstance().font,
                                 Component.literal(fullscreenClickBindCaptionOnly()),
                                 getX() + getWidth() / 2,
@@ -5642,7 +5659,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
         settingsFinishRowWidget(w, r);
     }
 
-    private void settingsDrawSectionHeaderIf(GuiGraphics g, int fx, int fr, int sec, String i18nTitleKey) {
+    private void settingsDrawSectionHeaderIf(GuiGraphicsExtractor g, int fx, int fr, int sec, String i18nTitleKey) {
         if (!settingsLayoutSecOn(sec)) {
             return;
         }
@@ -5651,11 +5668,11 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
         drawSettingsSectionHeader(g, fx, fr, y, title);
     }
 
-    private void settingsDrawRowLabel(GuiGraphics g, SettingsRow row, Component text, int fx) {
+    private void settingsDrawRowLabel(GuiGraphicsExtractor g, SettingsRow row, Component text, int fx) {
         if (!settingsLayoutRowOn(row)) {
             return;
         }
-        g.drawString(
+        g.text(
                 this.font,
                 text,
                 fx,
@@ -6444,7 +6461,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
         menuDragDidMove = didMove;
     }
 
-    private void renderSettingsPanelExtras(GuiGraphics g) {
+    private void renderSettingsPanelExtras(GuiGraphicsExtractor g) {
         if (activePanel != Panel.SETTINGS) {
             return;
         }
@@ -6546,7 +6563,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                 int slotLeft =
                         settingsTimestampFormatField.getX() - settingsTimestampPreviewSlotW - fmtGap;
                 int tx = slotLeft + settingsTimestampPreviewSlotW - this.font.width(pv);
-                g.drawString(this.font, pv, Math.max(slotLeft, tx), rowY, pRgb, false);
+                g.text(this.font, pv, Math.max(slotLeft, tx), rowY, pRgb, false);
             }
 
             settingsDrawSectionHeaderIf(
@@ -6574,7 +6591,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                 int slotLeft =
                         settingsStackedMessageFormatField.getX() - settingsStackedMessagePreviewSlotW - fmtGap;
                 int tx = slotLeft + settingsStackedMessagePreviewSlotW - this.font.width(pv);
-                g.drawString(this.font, pv, Math.max(slotLeft, tx), rowY, pRgb, false);
+                g.text(this.font, pv, Math.max(slotLeft, tx), rowY, pRgb, false);
             }
 
             settingsDrawSectionHeaderIf(
@@ -6685,14 +6702,14 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
         }
     }
 
-    private void drawSettingsSectionHeader(GuiGraphics g, int fx, int fr, int y, String title) {
+    private void drawSettingsSectionHeader(GuiGraphicsExtractor g, int fx, int fr, int y, String title) {
         int h = settingsSectionHeaderH();
         g.fill(fx, y, fr, y + h, C_WIN_GROUP_BG);
-        g.renderOutline(fx, y, fr - fx, h, C_WIN_GROUP_EDGE);
+        g.outline(fx, y, fr - fx, h, C_WIN_GROUP_EDGE);
         g.fill(fx, y, fx + 2, y + h, modAccentArgb());
         Component line =
                 Component.literal(title.toUpperCase(Locale.ROOT)).withStyle(ChatFormatting.BOLD);
-        g.drawString(this.font, line, fx + 8, y + (h - 8) / 2, 0xFFE8EEF8, false);
+        g.text(this.font, line, fx + 8, y + (h - 8) / 2, 0xFFE8EEF8, false);
     }
 
     private void showSettingsToast(String title, String detail) {
@@ -7075,7 +7092,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
     // ── Render ────────────────────────────────────────────────────────────────
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         float menuSc = menuOpenVisualScale();
         boolean menuScalePose = menuSc < 0.9995f;
         final int imx = menuScalePose ? (int) Math.round(menuPointerToLogicalX(mouseX)) : mouseX;
@@ -7106,13 +7123,13 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                 graphics.enableScissor(cl, vt, cr, vb);
                 try {
                     for (Renderable renderable : settingsScrollClipRenderables) {
-                        renderable.render(graphics, imx, imy, partialTick);
+                        renderable.extractRenderState(graphics, imx, imy, partialTick);
                     }
                 } finally {
                     graphics.disableScissor();
                 }
                 for (Renderable renderable : settingsNonClipRenderables) {
-                    renderable.render(graphics, imx, imy, partialTick);
+                    renderable.extractRenderState(graphics, imx, imy, partialTick);
                 }
             } else if (activePanel == Panel.CHAT_WINDOWS && !chatWindowsScrollClipRenderables.isEmpty()) {
                 int cl = contentLeft();
@@ -7122,16 +7139,16 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                 graphics.enableScissor(cl, vt, cr, vb);
                 try {
                     for (Renderable renderable : chatWindowsScrollClipRenderables) {
-                        renderable.render(graphics, imx, imy, partialTick);
+                        renderable.extractRenderState(graphics, imx, imy, partialTick);
                     }
                 } finally {
                     graphics.disableScissor();
                 }
                 for (Renderable renderable : chatWindowsNonClipRenderables) {
-                    renderable.render(graphics, imx, imy, partialTick);
+                    renderable.extractRenderState(graphics, imx, imy, partialTick);
                 }
             } else {
-                super.render(graphics, imx, imy, partialTick);
+                super.extractRenderState(graphics, imx, imy, partialTick);
             }
             renderSidebar(graphics, imx, imy);
             renderContentHeader(graphics);
@@ -7212,7 +7229,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
      * Drawn last so the modal sits above sidebar, header, and list. Opaque dialog fill + second
      * widget pass so fields/buttons are not covered by earlier layers.
      */
-    private void renderCreateWindowDialogOnTop(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    private void renderCreateWindowDialogOnTop(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         int pl = panelLeft(), pr = panelRight(), pt = panelTop(), pb = panelBottom();
         int dx = createDlgX, dy = createDlgY, dR = dx + createDlgW, dB = dy + createDlgH;
         int dim = 0x78000000;
@@ -7222,24 +7239,24 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
         g.fill(dR, dy, pr, dB, dim);
 
         g.fill(dx, dy, dR, dB, C_PANEL_BG & 0x00FFFFFF | 0xFF000000);
-        g.renderOutline(dx, dy, createDlgW, createDlgH, 0xFF505068);
-        g.drawString(this.font, "New Chat Window", dx + 12, dy + 12, 0xFFFFFFFF, false);
+        g.outline(dx, dy, createDlgW, createDlgH, 0xFF505068);
+        g.text(this.font, "New Chat Window", dx + 12, dy + 12, 0xFFFFFFFF, false);
 
         if (dlgWinIdField != null) {
-            dlgWinIdField.render(g, mouseX, mouseY, partialTick);
+            dlgWinIdField.extractRenderState(g, mouseX, mouseY, partialTick);
         }
         if (dlgWinPatField != null) {
-            dlgWinPatField.render(g, mouseX, mouseY, partialTick);
+            dlgWinPatField.extractRenderState(g, mouseX, mouseY, partialTick);
         }
         if (dlgCreateButton != null) {
-            dlgCreateButton.render(g, mouseX, mouseY, partialTick);
+            dlgCreateButton.extractRenderState(g, mouseX, mouseY, partialTick);
         }
         if (dlgCancelButton != null) {
-            dlgCancelButton.render(g, mouseX, mouseY, partialTick);
+            dlgCancelButton.extractRenderState(g, mouseX, mouseY, partialTick);
         }
     }
 
-    private void renderRenameWindowDialogOnTop(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    private void renderRenameWindowDialogOnTop(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         int pl = panelLeft(), pr = panelRight(), pt = panelTop(), pb = panelBottom();
         int dx = renameDlgX, dy = renameDlgY, dR = dx + renameDlgW, dB = dy + renameDlgH;
         int dim = 0x78000000;
@@ -7249,21 +7266,21 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
         g.fill(dR, dy, pr, dB, dim);
 
         g.fill(dx, dy, dR, dB, C_PANEL_BG & 0x00FFFFFF | 0xFF000000);
-        g.renderOutline(dx, dy, renameDlgW, renameDlgH, 0xFF505068);
-        g.drawString(this.font, "Rename Chat Window", dx + 12, dy + 12, 0xFFFFFFFF, false);
+        g.outline(dx, dy, renameDlgW, renameDlgH, 0xFF505068);
+        g.text(this.font, "Rename Chat Window", dx + 12, dy + 12, 0xFFFFFFFF, false);
 
         if (dlgRenameIdField != null) {
-            dlgRenameIdField.render(g, mouseX, mouseY, partialTick);
+            dlgRenameIdField.extractRenderState(g, mouseX, mouseY, partialTick);
         }
         if (dlgRenameOkButton != null) {
-            dlgRenameOkButton.render(g, mouseX, mouseY, partialTick);
+            dlgRenameOkButton.extractRenderState(g, mouseX, mouseY, partialTick);
         }
         if (dlgRenameCancelButton != null) {
-            dlgRenameCancelButton.render(g, mouseX, mouseY, partialTick);
+            dlgRenameCancelButton.extractRenderState(g, mouseX, mouseY, partialTick);
         }
     }
 
-    private void renderImportExportChoiceDialogOnTop(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    private void renderImportExportChoiceDialogOnTop(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         int pl = panelLeft(), pr = panelRight(), pt = panelTop(), pb = panelBottom();
         int dx = importExportDlgX, dy = importExportDlgY, dR = dx + importExportDlgW, dB = dy + importExportDlgH;
         int dim = 0x78000000;
@@ -7273,22 +7290,22 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
         g.fill(dR, dy, pr, dB, dim);
 
         g.fill(dx, dy, dR, dB, C_PANEL_BG & 0x00FFFFFF | 0xFF000000);
-        g.renderOutline(dx, dy, importExportDlgW, importExportDlgH, 0xFF505068);
+        g.outline(dx, dy, importExportDlgW, importExportDlgH, 0xFF505068);
         String title = importExportChoiceIsImport ? "Import" : "Export";
-        g.drawString(this.font, title, dx + 12, dy + 12, 0xFFFFFFFF, false);
+        g.text(this.font, title, dx + 12, dy + 12, 0xFFFFFFFF, false);
 
         if (importExportProfilesOnlyBtn != null) {
-            importExportProfilesOnlyBtn.render(g, mouseX, mouseY, partialTick);
+            importExportProfilesOnlyBtn.extractRenderState(g, mouseX, mouseY, partialTick);
         }
         if (importExportProfilesAndSettingsBtn != null) {
-            importExportProfilesAndSettingsBtn.render(g, mouseX, mouseY, partialTick);
+            importExportProfilesAndSettingsBtn.extractRenderState(g, mouseX, mouseY, partialTick);
         }
         if (importExportCancelBtn != null) {
-            importExportCancelBtn.render(g, mouseX, mouseY, partialTick);
+            importExportCancelBtn.extractRenderState(g, mouseX, mouseY, partialTick);
         }
     }
 
-    private void renderNewTabDialogOnTop(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    private void renderNewTabDialogOnTop(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         int pl = panelLeft(), pr = panelRight(), pt = panelTop(), pb = panelBottom();
         int dx = newTabDlgX, dy = newTabDlgY, dR = dx + newTabDlgW, dB = dy + newTabDlgH;
         int dim = 0x78000000;
@@ -7298,21 +7315,21 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
         g.fill(dR, dy, pr, dB, dim);
 
         g.fill(dx, dy, dR, dB, C_PANEL_BG & 0x00FFFFFF | 0xFF000000);
-        g.renderOutline(dx, dy, newTabDlgW, newTabDlgH, 0xFF505068);
-        g.drawString(this.font, "New Chat Tab", dx + 12, dy + 12, 0xFFFFFFFF, false);
+        g.outline(dx, dy, newTabDlgW, newTabDlgH, 0xFF505068);
+        g.text(this.font, "New Chat Tab", dx + 12, dy + 12, 0xFFFFFFFF, false);
 
         if (dlgNewTabNameField != null) {
-            dlgNewTabNameField.render(g, mouseX, mouseY, partialTick);
+            dlgNewTabNameField.extractRenderState(g, mouseX, mouseY, partialTick);
         }
         if (dlgNewTabOkButton != null) {
-            dlgNewTabOkButton.render(g, mouseX, mouseY, partialTick);
+            dlgNewTabOkButton.extractRenderState(g, mouseX, mouseY, partialTick);
         }
         if (dlgNewTabCancelButton != null) {
-            dlgNewTabCancelButton.render(g, mouseX, mouseY, partialTick);
+            dlgNewTabCancelButton.extractRenderState(g, mouseX, mouseY, partialTick);
         }
     }
 
-    private void renderRenameTabDialogOnTop(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    private void renderRenameTabDialogOnTop(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         int pl = panelLeft(), pr = panelRight(), pt = panelTop(), pb = panelBottom();
         int dx = renameTabDlgX, dy = renameTabDlgY, dR = dx + renameTabDlgW, dB = dy + renameTabDlgH;
         int dim = 0x78000000;
@@ -7322,21 +7339,21 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
         g.fill(dR, dy, pr, dB, dim);
 
         g.fill(dx, dy, dR, dB, C_PANEL_BG & 0x00FFFFFF | 0xFF000000);
-        g.renderOutline(dx, dy, renameTabDlgW, renameTabDlgH, 0xFF505068);
-        g.drawString(this.font, "Rename Tab", dx + 12, dy + 12, 0xFFFFFFFF, false);
+        g.outline(dx, dy, renameTabDlgW, renameTabDlgH, 0xFF505068);
+        g.text(this.font, "Rename Tab", dx + 12, dy + 12, 0xFFFFFFFF, false);
 
         if (dlgRenameTabNameField != null) {
-            dlgRenameTabNameField.render(g, mouseX, mouseY, partialTick);
+            dlgRenameTabNameField.extractRenderState(g, mouseX, mouseY, partialTick);
         }
         if (dlgRenameTabOkButton != null) {
-            dlgRenameTabOkButton.render(g, mouseX, mouseY, partialTick);
+            dlgRenameTabOkButton.extractRenderState(g, mouseX, mouseY, partialTick);
         }
         if (dlgRenameTabCancelButton != null) {
-            dlgRenameTabCancelButton.render(g, mouseX, mouseY, partialTick);
+            dlgRenameTabCancelButton.extractRenderState(g, mouseX, mouseY, partialTick);
         }
     }
 
-    private void renderCreateProfileDialogOnTop(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    private void renderCreateProfileDialogOnTop(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         int pl = panelLeft(), pr = panelRight(), pt = panelTop(), pb = panelBottom();
         int dx = createProfileDlgX, dy = createProfileDlgY, dR = dx + createProfileDlgW, dB = dy + createProfileDlgH;
         int dim = 0x78000000;
@@ -7346,21 +7363,21 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
         g.fill(dR, dy, pr, dB, dim);
 
         g.fill(dx, dy, dR, dB, C_PANEL_BG & 0x00FFFFFF | 0xFF000000);
-        g.renderOutline(dx, dy, createProfileDlgW, createProfileDlgH, 0xFF505068);
-        g.drawString(this.font, "Create New Profile", dx + 12, dy + 12, 0xFFFFFFFF, false);
+        g.outline(dx, dy, createProfileDlgW, createProfileDlgH, 0xFF505068);
+        g.text(this.font, "Create New Profile", dx + 12, dy + 12, 0xFFFFFFFF, false);
 
         if (dlgCreateProfileNameField != null) {
-            dlgCreateProfileNameField.render(g, mouseX, mouseY, partialTick);
+            dlgCreateProfileNameField.extractRenderState(g, mouseX, mouseY, partialTick);
         }
         if (dlgCreateProfileOkButton != null) {
-            dlgCreateProfileOkButton.render(g, mouseX, mouseY, partialTick);
+            dlgCreateProfileOkButton.extractRenderState(g, mouseX, mouseY, partialTick);
         }
         if (dlgCreateProfileCancelButton != null) {
-            dlgCreateProfileCancelButton.render(g, mouseX, mouseY, partialTick);
+            dlgCreateProfileCancelButton.extractRenderState(g, mouseX, mouseY, partialTick);
         }
     }
 
-    private void renderModPrimaryColorPickerOnTop(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    private void renderModPrimaryColorPickerOnTop(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         if (modColorPickerOverlay == null) {
             return;
         }
@@ -7378,7 +7395,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
         modColorPickerOverlay.render(g, this.font, mouseX, mouseY, partialTick);
     }
 
-    private void renderImageWhitelistOverlayOnTop(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    private void renderImageWhitelistOverlayOnTop(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         if (imageWhitelistOverlay == null) {
             return;
         }
@@ -7396,7 +7413,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
         imageWhitelistOverlay.render(g, this.font, mouseX, mouseY, partialTick);
     }
 
-    private void renderSidebar(GuiGraphics g, int mouseX, int mouseY) {
+    private void renderSidebar(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         int sl = sidebarLeft(), sr = sidebarRight();
         int st = sidebarTop(),  sb = sidebarBottom();
 
@@ -7417,14 +7434,14 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
         String titleVer = modVersionLabel();
         int titleW = this.font.width(titleMain) + this.font.width(titleVer);
         int titleX = sl + (SIDEBAR_W - titleW) / 2;
-        g.drawString(this.font, titleMain, titleX, line1Y, 0xFFE0E0F0, false);
-        g.drawString(this.font, titleVer, titleX + this.font.width(titleMain), line1Y, 0xFF9090A8, false);
+        g.text(this.font, titleMain, titleX, line1Y, 0xFFE0E0F0, false);
+        g.text(this.font, titleVer, titleX + this.font.width(titleMain), line1Y, 0xFF9090A8, false);
         String byPrefix = "by ";
         String byAuthor = "Rainnny";
         int line2Y = blockTop + lh + gapTitle;
         int line2W = this.font.width(byPrefix) + this.font.width(byAuthor);
         int line2X = sl + (SIDEBAR_W - line2W) / 2;
-        g.drawString(this.font, byPrefix, line2X, line2Y, 0xFF9090A8, false);
+        g.text(this.font, byPrefix, line2X, line2Y, 0xFF9090A8, false);
         int nameX = line2X + this.font.width(byPrefix);
         int nameW = this.font.width(byAuthor);
         boolean hovAuthor = mouseX >= nameX && mouseX < nameX + nameW
@@ -7433,7 +7450,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                 && mouseY >= st && mouseY < st + SIDEBAR_TITLE_H;
         int authorHoverRgb = ModPrimaryColorUtils.brightenRgb(modGlobalAccentRgb(), 1.35f);
         int authorColor = hovAuthor ? (0xFF000000 | authorHoverRgb) : modAccentArgb();
-        g.drawString(this.font, byAuthor, nameX, line2Y, authorColor, false);
+        g.text(this.font, byAuthor, nameX, line2Y, authorColor, false);
         if (hovAuthor) {
             g.fill(nameX, line2Y + this.font.lineHeight, nameX + nameW, line2Y + this.font.lineHeight + 1, authorColor);
         }
@@ -7454,7 +7471,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
         if (hovNew) {
             fillSidebarClipped(g, sl, row0y, SIDEBAR_W, SIDEBAR_FOOTER_ROW_H, C_HOVER);
         }
-        g.drawString(this.font, "+ New Profile",
+        g.text(this.font, "+ New Profile",
                 sl + SIDEBAR_FOOTER_TEXT_INSET, row0y + (SIDEBAR_FOOTER_ROW_H - 8) / 2, C_NEW_PROFILE, false);
         fillSidebarClipped(g, sl, row0y + SIDEBAR_FOOTER_ROW_H - 1, SIDEBAR_W, 1, C_SIDEBAR_SEP);
         int row1y = row0y + SIDEBAR_FOOTER_ROW_H;
@@ -7479,10 +7496,10 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
             updPose.pushMatrix();
             updPose.translate(updIconX, updIconY);
             updPose.scale(updIconScale, updIconScale);
-            g.renderItem(new ItemStack(Items.SPYGLASS), 0, 0);
+            g.item(new ItemStack(Items.SPYGLASS), 0, 0);
             updPose.popMatrix();
             String updLabel = I18n.get("chat-utilities.sidebar.update_available");
-            g.drawString(
+            g.text(
                     this.font,
                     updLabel,
                     updTextX,
@@ -7505,7 +7522,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
             fillSidebarClipped(g, sl, settingsRowY, SIDEBAR_W, sb - settingsRowY, C_HOVER);
         }
         int settingsTextColor = 0xFFFFFFFF;
-        g.drawString(this.font, "\u2699 Settings",
+        g.text(this.font, "\u2699 Settings",
                 sl + SIDEBAR_FOOTER_TEXT_INSET,
                 settingsRowY + (SIDEBAR_FOOTER_ROW_H - 8) / 2,
                 settingsTextColor,
@@ -7527,7 +7544,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
 
             if (profiles.isEmpty()) {
                 int ey = listTop + listAreaH / 2 - 4;
-                g.drawCenteredString(this.font, "No profiles yet.", sl + SIDEBAR_W / 2, ey, 0xFF505060);
+                g.centeredText(this.font, "No profiles yet.", sl + SIDEBAR_W / 2, ey, 0xFF505060);
             }
 
             for (ServerProfile p : profiles) {
@@ -7558,7 +7575,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                         g.blit(RenderPipelines.GUI_TEXTURED, favicon,
                                 iconX, iconY, 0f, 0f, 16, 16, 16, 16);
                     } else {
-                        g.renderItem(new ItemStack(Items.COMPASS), iconX, iconY);
+                        g.item(new ItemStack(Items.COMPASS), iconX, iconY);
                     }
 
                     // Profile name (truncated)
@@ -7570,11 +7587,11 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                         trunc = true;
                     }
                     if (trunc) name += "…";
-                    g.drawString(this.font, name,
+                    g.text(this.font, name,
                             iconX + 20, rowY + (PROFILE_ROW_H - 8) / 2, C_PROFILE_NAME, false);
 
                     String branchGlyph = expanded ? UI_BRANCH_EXPANDED : UI_BRANCH_COLLAPSED;
-                    g.drawString(
+                    g.text(
                             this.font,
                             branchGlyph,
                             sr - this.font.width(branchGlyph) - 6,
@@ -7620,7 +7637,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                             if (active) {
                                 fillSidebarClipped(g, sl, subY, 2, SUB_ROW_H, subAccentBar);
                             }
-                            g.drawString(this.font, sl2,
+                            g.text(this.font, sl2,
                                     sl + SUB_INDENT, subY + (SUB_ROW_H - 8) / 2,
                                     active ? subTextActive : subTextInactive, false);
                             sidebarEntries.add(new SidebarEntry(subY, SUB_ROW_H, false, p.getId(), sp));
@@ -7647,12 +7664,12 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
         return h;
     }
 
-    private void renderContentHeader(GuiGraphics g) {
+    private void renderContentHeader(GuiGraphicsExtractor g) {
         int cx = contentCX();
         int descW = Math.min(contentW() - CONTENT_PAD_X, 420);
 
         int titleY = panelTop() + TITLE_Y_OFF;
-        g.drawCenteredString(this.font, headerTitleText(), cx, titleY, 0xFFFFFFFF);
+        g.centeredText(this.font, headerTitleText(), cx, titleY, 0xFFFFFFFF);
 
         int descStart = headerDescStartY();
         ChatUtilitiesScreenLayout.drawCenteredWrapped(
@@ -7697,7 +7714,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
         return null;
     }
 
-    private void renderSoundSuggestions(GuiGraphics g, int mouseX, int mouseY, EditBox anchor) {
+    private void renderSoundSuggestions(GuiGraphicsExtractor g, int mouseX, int mouseY, EditBox anchor) {
         if (anchor == null) {
             sugFiltered = List.of();
             return;
@@ -7742,14 +7759,14 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                 if (hov) {
                     g.fill(sugLeft, ry, sugLeft + sugWidth, ry + SUGGEST_ROW_H, 0x336688FF);
                 }
-                g.drawString(this.font, line, sugLeft + 3, ry + 2, 0xFFFFFFFF, false);
+                g.text(this.font, line, sugLeft + 3, ry + 2, 0xFFFFFFFF, false);
             }
         } finally {
             g.disableScissor();
         }
     }
 
-    private void renderCommandSuggestions(GuiGraphics g, int mouseX, int mouseY, EditBox anchor) {
+    private void renderCommandSuggestions(GuiGraphicsExtractor g, int mouseX, int mouseY, EditBox anchor) {
         if (anchor == null) {
             cmdSugFiltered = List.of();
             return;
@@ -7821,7 +7838,7 @@ public class ChatUtilitiesRootScreen extends Screen implements ProfileWorkflowSc
                 if (hov) {
                     g.fill(cmdSugLeft, ry, cmdSugLeft + cmdSugWidth, ry + SUGGEST_ROW_H, 0x336688FF);
                 }
-                g.drawString(this.font, line, cmdSugLeft + 3, ry + 2, 0xFFFFFFFF, false);
+                g.text(this.font, line, cmdSugLeft + 3, ry + 2, 0xFFFFFFFF, false);
             }
         } finally {
             g.disableScissor();

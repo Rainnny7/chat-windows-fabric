@@ -1,7 +1,7 @@
 package me.braydon.chatutilities.chat;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.util.Mth;
 
 public final class ChatWindowScrollbar {
@@ -100,7 +100,7 @@ public final class ChatWindowScrollbar {
     }
 
     public static void render(
-            GuiGraphics graphics,
+            GuiGraphicsExtractor graphics,
             Minecraft mc,
             ChatWindow window,
             ChatWindowGeometry geo,

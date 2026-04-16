@@ -3,7 +3,7 @@ package me.braydon.chatutilities.gui;
 import me.braydon.chatutilities.chat.ProfileFaviconCache;
 import me.braydon.chatutilities.chat.ServerProfile;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -83,7 +83,7 @@ public final class ServerProfileListWidget {
         scroll = Mth.clamp(scroll, 0, max);
     }
 
-    public void render(GuiGraphics graphics, int mouseX, int mouseY) {
+    public void render(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         int totalHeight = profiles.size() * ROW_HEIGHT;
         int maxScroll = Math.max(0, totalHeight - height);
         scroll = Mth.clamp(scroll, 0, maxScroll);
@@ -96,12 +96,9 @@ public final class ServerProfileListWidget {
                 String line3 = "for the servers you add. Create one to begin.";
                 int cx = x + width / 2;
                 int cy = y + height / 2 - 16;
-                graphics.drawCenteredString(
-                        minecraft.font, line1, cx, cy, ChatUtilitiesScreenLayout.TEXT_GRAY);
-                graphics.drawCenteredString(
-                        minecraft.font, line2, cx, cy + 11, ChatUtilitiesScreenLayout.TEXT_GRAY_DARK);
-                graphics.drawCenteredString(
-                        minecraft.font, line3, cx, cy + 22, ChatUtilitiesScreenLayout.TEXT_GRAY_DARK);
+                graphics.centeredText(minecraft.font, line1, cx, cy, ChatUtilitiesScreenLayout.TEXT_GRAY);
+                graphics.centeredText(minecraft.font, line2, cx, cy + 11, ChatUtilitiesScreenLayout.TEXT_GRAY_DARK);
+                graphics.centeredText(minecraft.font, line3, cx, cy + 22, ChatUtilitiesScreenLayout.TEXT_GRAY_DARK);
             }
             for (int i = 0; i < profiles.size(); i++) {
                 int rowY = y + i * ROW_HEIGHT - scroll;
@@ -124,7 +121,7 @@ public final class ServerProfileListWidget {
     }
 
     private void drawRow(
-            GuiGraphics graphics, ServerProfile p, int rx, int ry, int rw, boolean hovered, boolean selected) {
+            GuiGraphicsExtractor graphics, ServerProfile p, int rx, int ry, int rw, boolean hovered, boolean selected) {
         if (selected) {
             graphics.fill(rx, ry, rx + rw, ry + ROW_HEIGHT, 0x408080FF);
         }
@@ -151,14 +148,14 @@ public final class ServerProfileListWidget {
                     32,
                     32);
         } else {
-            graphics.renderItem(new ItemStack(Items.COMPASS), iconX + 8, iconY + 8);
+            graphics.item(new ItemStack(Items.COMPASS), iconX + 8, iconY + 8);
         }
         int textX = iconX + 32 + 4;
         String title = p.getDisplayName();
         if (title.length() > 42) {
             title = title.substring(0, 39) + "...";
         }
-        graphics.drawString(
+        graphics.text(
                 minecraft.font,
                 Component.literal(title),
                 textX,
@@ -169,7 +166,7 @@ public final class ServerProfileListWidget {
         if (detail.length() > 58) {
             detail = detail.substring(0, 55) + "...";
         }
-        graphics.drawString(
+        graphics.text(
                 minecraft.font,
                 Component.literal(detail),
                 textX,

@@ -24,7 +24,7 @@ import me.braydon.chatutilities.gui.FullscreenImagePreviewScreen;
 import com.mojang.blaze3d.platform.Window;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.CommandSuggestions;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.ChatComponent;
@@ -171,7 +171,7 @@ public abstract class ChatScreenMixin {
 
     @Unique
     private static void chatUtilities$drawSearchMagnifier(
-            GuiGraphics g, int slotLeft, int slotTop, int slotH, int iconColumnW, int unusedArgb) {
+            GuiGraphicsExtractor g, int slotLeft, int slotTop, int slotH, int iconColumnW, int unusedArgb) {
         int dim = Math.min(iconColumnW - 2, slotH);
         int x = slotLeft + (iconColumnW - dim) / 2;
         int y = slotTop + (slotH - dim) / 2;
@@ -279,7 +279,7 @@ public abstract class ChatScreenMixin {
         }
         if (!chatUtilities$fabricAfterRenderHooked) {
             chatUtilities$fabricAfterRenderHooked = true;
-            ScreenEvents.afterRender(self)
+            ScreenEvents.afterExtract(self)
                     .register(
                             (screen, graphics, mouseX, mouseY, partialTick) -> {
                                 ChatSymbolPaletteLayer.render(
@@ -444,13 +444,13 @@ public abstract class ChatScreenMixin {
     }
 
     @WrapOperation(
-            method = "render(Lnet/minecraft/client/gui/GuiGraphics;IIF)V",
+            method = "extractRenderState(Lnet/minecraft/client/gui/GuiGraphicsExtractor;IIF)V",
             at =
                     @At(
                             value = "INVOKE",
-                            target = "Lnet/minecraft/client/gui/GuiGraphics;fill(IIIII)V"))
+                            target = "Lnet/minecraft/client/gui/GuiGraphicsExtractor;fill(IIIII)V"))
     private void chatUtilities$slideChatBarBackgroundFill(
-            GuiGraphics graphics,
+            GuiGraphicsExtractor graphics,
             int minX,
             int minY,
             int maxX,
@@ -546,8 +546,8 @@ public abstract class ChatScreenMixin {
         }
     }
 
-    @Inject(method = "render(Lnet/minecraft/client/gui/GuiGraphics;IIF)V", at = @At("HEAD"))
-    private void chatUtilities$renderHeadBarSlide(GuiGraphics graphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
+    @Inject(method = "extractRenderState(Lnet/minecraft/client/gui/GuiGraphicsExtractor;IIF)V", at = @At("HEAD"))
+    private void chatUtilities$renderHeadBarSlide(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
         ChatScreen self = (ChatScreen) (Object) this;
         chatUtilities$refreshBarSlide(self);
         if (chatUtilities$searchField != null && ChatUtilitiesClientOptions.isChatSearchBarEnabled()) {
@@ -777,9 +777,9 @@ public abstract class ChatScreenMixin {
     }
 
     @Inject(
-            method = "render(Lnet/minecraft/client/gui/GuiGraphics;IIF)V",
+            method = "extractRenderState(Lnet/minecraft/client/gui/GuiGraphicsExtractor;IIF)V",
             at = @At("TAIL"))
-    private void chatUtilities$renderOverChatUi(GuiGraphics graphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
+    private void chatUtilities$renderOverChatUi(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
         ChatSymbolPaletteLayer.prepare(
                 chatUtilities$requirePalette(),
                 chatUtilities$symW > 0,
@@ -806,7 +806,7 @@ public abstract class ChatScreenMixin {
         }
         ChatSearchOverlay.renderVanillaJump(mc, graphics, mc.font, mouseX, mouseY, self.width, self.height);
         if (commandSuggestions.isVisible()) {
-            commandSuggestions.render(graphics, mouseX, mouseY);
+            commandSuggestions.extractRenderState(graphics, mouseX, mouseY);
         }
     }
 

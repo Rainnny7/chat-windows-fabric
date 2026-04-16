@@ -2,21 +2,21 @@ package me.braydon.chatutilities.mixin.client;
 
 import me.braydon.chatutilities.chat.ChatTextShadowRenderContext;
 import me.braydon.chatutilities.client.ChatUtilitiesClientOptions;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
 /**
- * Overrides the {@code dropShadow} flag for {@link GuiGraphics#drawString} during vanilla chat rendering.
+ * Overrides the {@code dropShadow} flag for {@link GuiGraphicsExtractor#text} during vanilla chat rendering.
  *
  * <p>Gated by {@link ChatTextShadowRenderContext} so this does not affect other UI text.
  */
-@Mixin(GuiGraphics.class)
+@Mixin(GuiGraphicsExtractor.class)
 public class GuiGraphicsMixin {
 
     @ModifyVariable(
-            method = "drawString(Lnet/minecraft/client/gui/Font;Ljava/lang/String;IIIZ)V",
+            method = "text(Lnet/minecraft/client/gui/Font;Ljava/lang/String;IIIZ)V",
             at = @At("HEAD"),
             argsOnly = true,
             ordinal = 0)
@@ -26,7 +26,7 @@ public class GuiGraphicsMixin {
 
     @ModifyVariable(
             method =
-                    "drawString(Lnet/minecraft/client/gui/Font;Lnet/minecraft/util/FormattedCharSequence;IIIZ)V",
+                    "text(Lnet/minecraft/client/gui/Font;Lnet/minecraft/util/FormattedCharSequence;IIIZ)V",
             at = @At("HEAD"),
             argsOnly = true,
             ordinal = 0)
@@ -35,7 +35,7 @@ public class GuiGraphicsMixin {
     }
 
     @ModifyVariable(
-            method = "drawString(Lnet/minecraft/client/gui/Font;Lnet/minecraft/network/chat/Component;IIIZ)V",
+            method = "text(Lnet/minecraft/client/gui/Font;Lnet/minecraft/network/chat/Component;IIIZ)V",
             at = @At("HEAD"),
             argsOnly = true,
             ordinal = 0)

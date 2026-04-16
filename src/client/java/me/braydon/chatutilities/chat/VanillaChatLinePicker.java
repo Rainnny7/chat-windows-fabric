@@ -1,14 +1,15 @@
 package me.braydon.chatutilities.chat;
 
-import net.minecraft.client.GuiMessage;
 import me.braydon.chatutilities.client.ChatUtilitiesClientOptions;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.ChatComponent;
 import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.multiplayer.chat.GuiMessage;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.player.ChatVisiblity;
 import org.joml.Matrix3x2f;
 import org.joml.Vector2f;
 import org.jspecify.annotations.Nullable;
@@ -140,7 +141,7 @@ public final class VanillaChatLinePicker {
 
     public static Optional<Component> pickLineAt(Minecraft mc, int mouseX, int mouseY) {
         ChatComponent chat = mc.gui.getChat();
-        if (chat.isChatHidden()) {
+        if (mc.options.chatVisibility().get() == ChatVisiblity.HIDDEN) {
             return Optional.empty();
         }
         // Expanded chat (ChatScreen) draws lines fully opaque; timeBased applies HUD fade and yields ~0 for most lines.
@@ -165,7 +166,7 @@ public final class VanillaChatLinePicker {
     /** Same hit test as {@link #pickLineAt}, but returns the wrapped {@link GuiMessage.Line} under the cursor. */
     public static Optional<GuiMessage.Line> pickGuiLineAt(Minecraft mc, int mouseX, int mouseY) {
         ChatComponent chat = mc.gui.getChat();
-        if (chat.isChatHidden()) {
+        if (mc.options.chatVisibility().get() == ChatVisiblity.HIDDEN) {
             return Optional.empty();
         }
         ChatComponent.AlphaCalculator alpha = ChatComponent.AlphaCalculator.FULLY_VISIBLE;
@@ -312,7 +313,7 @@ public final class VanillaChatLinePicker {
      */
     public static Optional<LineHit> pickLineHitAt(Minecraft mc, int mouseX, int mouseY) {
         ChatComponent chat = mc.gui.getChat();
-        if (chat.isChatHidden()) {
+        if (mc.options.chatVisibility().get() == ChatVisiblity.HIDDEN) {
             return Optional.empty();
         }
         ChatComponent.AlphaCalculator alpha = ChatComponent.AlphaCalculator.FULLY_VISIBLE;
@@ -517,7 +518,7 @@ public final class VanillaChatLinePicker {
      */
     public static int expandedChatTopVisibleLineTopScreenY(Minecraft mc) {
         ChatComponent chat = mc.gui.getChat();
-        if (chat.isChatHidden()) {
+        if (mc.options.chatVisibility().get() == ChatVisiblity.HIDDEN) {
             return expandedChatHighestLineTopScreenY(mc);
         }
         AtomicReference<GuiMessage.Line> top = new AtomicReference<>();
@@ -557,7 +558,7 @@ public final class VanillaChatLinePicker {
      */
     public static Optional<Float> guiScreenCenterYForGuiLine(Minecraft mc, GuiMessage.Line line) {
         ChatComponent chat = mc.gui.getChat();
-        if (chat.isChatHidden()) {
+        if (mc.options.chatVisibility().get() == ChatVisiblity.HIDDEN) {
             return Optional.empty();
         }
         AtomicInteger idx = new AtomicInteger(-1);
@@ -594,7 +595,7 @@ public final class VanillaChatLinePicker {
      */
     public static Optional<int[]> guiScreenRowScreenYBoundsForGuiLine(Minecraft mc, GuiMessage.Line line) {
         ChatComponent chat = mc.gui.getChat();
-        if (chat.isChatHidden()) {
+        if (mc.options.chatVisibility().get() == ChatVisiblity.HIDDEN) {
             return Optional.empty();
         }
         AtomicInteger idx = new AtomicInteger(-1);

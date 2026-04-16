@@ -2,7 +2,7 @@ package me.braydon.chatutilities.gui;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
@@ -72,7 +72,7 @@ public final class ChatUtilitiesScreenLayout {
      */
     public static int drawCenteredWrapped(
             Font font,
-            GuiGraphics graphics,
+            GuiGraphicsExtractor graphics,
             Component text,
             int centerX,
             int startY,
@@ -83,7 +83,7 @@ public final class ChatUtilitiesScreenLayout {
         int y = startY;
         for (FormattedCharSequence line : lines) {
             int lineW = font.width(line);
-            graphics.drawString(font, line, centerX - lineW / 2, y, color, false);
+            graphics.text(font, line, centerX - lineW / 2, y, color, false);
             y += lineSpacing;
         }
         return y;

@@ -1,6 +1,6 @@
 package me.braydon.chatutilities.gui;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
@@ -104,11 +104,10 @@ public final class SoundPickerScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        super.render(graphics, mouseX, mouseY, partialTick);
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
         refreshMatches();
-        graphics.drawCenteredString(
-                this.font, this.title, this.width / 2, 44, ChatUtilitiesScreenLayout.TEXT_WHITE);
+        graphics.centeredText(this.font, this.title, this.width / 2, 44, ChatUtilitiesScreenLayout.TEXT_WHITE);
         ChatUtilitiesScreenLayout.drawCenteredWrapped(
                 this.font,
                 graphics,
@@ -139,7 +138,7 @@ public final class SoundPickerScreen extends Screen {
             if (hovered) {
                 graphics.fill(listLeft, ry, listLeft + listWidth, ry + ROW_H, 0x336666FF);
             }
-            graphics.drawString(this.font, line, listLeft + 2, ry + 2, ChatUtilitiesScreenLayout.TEXT_WHITE, false);
+            graphics.text(this.font, line, listLeft + 2, ry + 2, ChatUtilitiesScreenLayout.TEXT_WHITE, false);
         }
     }
 

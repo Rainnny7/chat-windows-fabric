@@ -15,8 +15,22 @@ public class ChatPanelBackgroundAlphaUnfocusedMixin {
                     @At(
                             value = "INVOKE",
                             target = "Lnet/minecraft/client/gui/GuiGraphics;fill(IIIII)V"),
-            index = 4)
+            index = 4,
+            require = 0)
     private int chatUtilities$multiplyChatRowFillAlphaUnfocused(int color) {
+        return ChatUtilitiesClientOptions.multiplyChatPanelBackgroundArgb(color, false);
+    }
+
+    @ModifyArg(
+            method = "fill",
+            at =
+                    @At(
+                            value = "INVOKE",
+                            target =
+                                    "Lnet/minecraft/client/gui/GuiGraphics;fill(Lnet/minecraft/client/renderer/RenderType;IIIII)V"),
+            index = 5,
+            require = 0)
+    private int chatUtilities$multiplyChatRowFillAlphaUnfocused$renderType(int color) {
         return ChatUtilitiesClientOptions.multiplyChatPanelBackgroundArgb(color, false);
     }
 
@@ -26,8 +40,22 @@ public class ChatPanelBackgroundAlphaUnfocusedMixin {
                     @At(
                             value = "INVOKE",
                             target = "Lnet/minecraft/client/gui/GuiGraphics;fill(IIIII)V"),
-            index = 4)
+            index = 4,
+            require = 0)
     private int chatUtilities$multiplyTagFillAlphaUnfocused(int color) {
+        return ChatUtilitiesClientOptions.multiplyChatPanelBackgroundArgb(color, false);
+    }
+
+    @ModifyArg(
+            method = "handleTag",
+            at =
+                    @At(
+                            value = "INVOKE",
+                            target =
+                                    "Lnet/minecraft/client/gui/GuiGraphics;fill(Lnet/minecraft/client/renderer/RenderType;IIIII)V"),
+            index = 5,
+            require = 0)
+    private int chatUtilities$multiplyTagFillAlphaUnfocused$renderType(int color) {
         return ChatUtilitiesClientOptions.multiplyChatPanelBackgroundArgb(color, false);
     }
 }

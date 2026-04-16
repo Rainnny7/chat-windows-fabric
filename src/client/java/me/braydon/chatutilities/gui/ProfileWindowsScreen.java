@@ -3,7 +3,7 @@ package me.braydon.chatutilities.gui;
 import me.braydon.chatutilities.chat.ChatUtilitiesManager;
 import me.braydon.chatutilities.chat.ServerProfile;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
@@ -143,13 +143,13 @@ public class ProfileWindowsScreen extends Screen implements ProfileWorkflowScree
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        super.render(graphics, mouseX, mouseY, partialTick);
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
         int cx = this.width / 2;
         int margin = 30;
         int wrapW = Math.min(320, this.width - 40);
 
-        graphics.drawCenteredString(
+        graphics.centeredText(
                 this.font, this.title, cx, ChatUtilitiesScreenLayout.TITLE_Y, ChatUtilitiesScreenLayout.TEXT_WHITE);
 
         ChatUtilitiesScreenLayout.drawCenteredWrapped(
@@ -163,7 +163,7 @@ public class ProfileWindowsScreen extends Screen implements ProfileWorkflowScree
                 ChatUtilitiesScreenLayout.TEXT_GRAY,
                 10);
 
-        graphics.drawString(
+        graphics.text(
                 this.font, "Windows", margin, labelWindowsY, ChatUtilitiesScreenLayout.TEXT_LABEL, false);
     }
 }

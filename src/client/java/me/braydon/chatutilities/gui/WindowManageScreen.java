@@ -4,7 +4,7 @@ import me.braydon.chatutilities.chat.ChatUtilitiesManager;
 import me.braydon.chatutilities.chat.ChatWindow;
 import me.braydon.chatutilities.chat.ServerProfile;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -51,16 +51,20 @@ public class WindowManageScreen extends Screen {
             }
 
             @Override
-            protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+            protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
                 boolean hov = isHovered();
                 boolean act = active;
                 int bg = !act ? 0x35402020 : hov ? 0x55903030 : 0x45302828;
                 int outline = !act ? 0x45C06060 : hov ? 0x85FF9090 : 0x65D07070;
                 int tc = !act ? C_DANGER_TEXT : hov ? C_DANGER_TEXT_H : 0xFFF0A0A0;
                 g.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), bg);
-                g.renderOutline(getX(), getY(), getWidth(), getHeight(), outline);
-                g.drawCenteredString(Minecraft.getInstance().font, getMessage(),
-                        getX() + getWidth() / 2, getY() + (getHeight() - 8) / 2, tc);
+                g.outline(getX(), getY(), getWidth(), getHeight(), outline);
+                g.centeredText(
+                        Minecraft.getInstance().font,
+                        getMessage(),
+                        getX() + getWidth() / 2,
+                        getY() + (getHeight() - 8) / 2,
+                        tc);
             }
 
             @Override
@@ -224,13 +228,13 @@ public class WindowManageScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        super.render(graphics, mouseX, mouseY, partialTick);
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
         int cx = this.width / 2;
         int wrapW = Math.min(320, this.width - 40);
-        graphics.drawCenteredString(
+        graphics.centeredText(
                 this.font, this.title, cx, ChatUtilitiesScreenLayout.TITLE_Y, ChatUtilitiesScreenLayout.TEXT_WHITE);
-        graphics.drawCenteredString(
+        graphics.centeredText(
                 this.font,
                 Component.literal(windowId),
                 cx,

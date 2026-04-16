@@ -6,7 +6,7 @@ import me.braydon.chatutilities.gui.ThinScrollbar;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
@@ -817,7 +817,7 @@ public final class ChatSymbolPalette {
         scrollPixels = Mth.clamp(scrollPixels + delta, 0, maxScroll);
     }
 
-    public void render(GuiGraphics graphics, Font font, int screenWidth, int screenHeight, int mouseX, int mouseY) {
+    public void render(GuiGraphicsExtractor graphics, Font font, int screenWidth, int screenHeight, int mouseX, int mouseY) {
         if (!open) {
             return;
         }
@@ -833,13 +833,13 @@ public final class ChatSymbolPalette {
         graphics.fill(ml, st, mr, sb, PALETTE_PANEL_BG);
 
         // Outline the main panel only (strip is cell-painted; the old shared background border is intentionally gone).
-        graphics.renderOutline(ml, st, mr - ml, sb - st, PALETTE_PANEL_EDGE);
+        graphics.outline(ml, st, mr - ml, sb - st, PALETTE_PANEL_EDGE);
 
         renderFormatStrip(graphics, font, mouseX, mouseY, screenWidth, screenHeight);
         renderSearchBar(graphics, font, screenWidth, screenHeight, mouseX, mouseY);
 
         String title = I18n.get("chat-utilities.chat.symbol_palette.title");
-        graphics.drawString(font, title, ml + PANEL_PAD, st + PANEL_PAD, ChatUtilitiesScreenLayout.TEXT_LABEL, false);
+        graphics.text(font, title, ml + PANEL_PAD, st + PANEL_PAD, ChatUtilitiesScreenLayout.TEXT_LABEL, false);
 
         int cbx = closeButtonX(screenWidth);
         int cby = closeButtonY(screenHeight);
@@ -851,7 +851,7 @@ public final class ChatSymbolPalette {
         String closeLabel = "\u00D7";
         int cw = font.width(closeLabel);
         int ch = font.lineHeight;
-        graphics.drawString(
+        graphics.text(
                 font,
                 closeLabel,
                 cbx + (CLOSE_SIZE - cw) / 2,
@@ -885,7 +885,7 @@ public final class ChatSymbolPalette {
         try {
             float contentTop = symTop - (float) scrollPixels;
             int lx = symLeft;
-            graphics.drawString(
+            graphics.text(
                     font,
                     Component.literal("General").withStyle(ChatFormatting.GRAY),
                     lx,
@@ -925,13 +925,13 @@ public final class ChatSymbolPalette {
                     int sh = font.lineHeight;
                     int drawY = (int) (sy + (SYMBOL_CELL - sh) / 2);
                     if (drawY + sh >= symTop && drawY < symTop + symH) {
-                        graphics.drawString(font, sym, sx + (SYMBOL_CELL - sw) / 2, drawY, 0xFFFFFFFF, false);
+                        graphics.text(font, sym, sx + (SYMBOL_CELL - sw) / 2, drawY, 0xFFFFFFFF, false);
                     }
                 }
             }
             float kaoLabelY = gridTop + genGridH + SYMBOL_SECTION_GAP;
             if (!kao.isEmpty()) {
-                graphics.drawString(
+                graphics.text(
                         font,
                         Component.literal("Kaomoji").withStyle(ChatFormatting.GRAY),
                         lx,
@@ -964,7 +964,7 @@ public final class ChatSymbolPalette {
                     }
                     int ty = (int) (ry + (box.rowH() - font.lineHeight) / 2);
                     int tx = cellX + (cellWi - tw) / 2;
-                    graphics.drawString(font, full, tx, ty, 0xFFFFFFFF, false);
+                    graphics.text(font, full, tx, ty, 0xFFFFFFFF, false);
                 }
             }
         } finally {
@@ -975,7 +975,7 @@ public final class ChatSymbolPalette {
     }
 
     private void renderSearchBar(
-            GuiGraphics g, Font font, int screenWidth, int screenHeight, int mouseX, int mouseY) {
+            GuiGraphicsExtractor g, Font font, int screenWidth, int screenHeight, int mouseX, int mouseY) {
         int l = searchLeft(screenWidth);
         int r = searchRight(screenWidth);
         int t = searchTop(screenHeight, font);
@@ -984,7 +984,7 @@ public final class ChatSymbolPalette {
         int bg = searchFocused ? 0x50203040 : hov ? 0x40202028 : 0x30202028;
         int edge = searchFocused ? 0xFF6A88D0 : 0xFF2C2C3A;
         g.fill(l, t, r, b, bg);
-        g.renderOutline(l, t, r - l, b - t, edge);
+        g.outline(l, t, r - l, b - t, edge);
 
         String q = searchQuery == null ? "" : searchQuery;
         boolean empty = q.isEmpty();
@@ -1015,7 +1015,7 @@ public final class ChatSymbolPalette {
                 g.fill(hlX0, t + 2, hlX1, b - 2, 0x804A6ED6);
             }
         }
-        g.drawString(font, clipped, x, y, color, false);
+        g.text(font, clipped, x, y, color, false);
 
         boolean showCursor = false;
         if (searchFocused) {
@@ -1040,7 +1040,7 @@ public final class ChatSymbolPalette {
     }
 
     private void renderFormatStrip(
-            GuiGraphics graphics, Font font, int mouseX, int mouseY, int screenWidth, int screenHeight) {
+            GuiGraphicsExtractor graphics, Font font, int mouseX, int mouseY, int screenWidth, int screenHeight) {
         int st = stackTop(screenHeight);
         int sl = stripLeft(screenWidth);
         int innerLeft = sl + PANEL_PAD;
@@ -1060,7 +1060,7 @@ public final class ChatSymbolPalette {
                 Component label = formatStripLabelComponent(code);
                 int tw = font.width(label);
                 int fg = labelColorForCode(code);
-                graphics.drawString(font, label, cx + (CELL - tw) / 2, cy + 3, fg, false);
+                graphics.text(font, label, cx + (CELL - tw) / 2, cy + 3, fg, false);
             }
         }
     }

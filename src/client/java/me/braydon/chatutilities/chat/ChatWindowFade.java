@@ -1,13 +1,19 @@
 package me.braydon.chatutilities.chat;
 
 import me.braydon.chatutilities.client.ChatUtilitiesClientOptions;
-import net.minecraft.client.GuiMessage;
 import net.minecraft.client.gui.components.ChatComponent;
+import net.minecraft.client.multiplayer.chat.GuiMessage;
+import net.minecraft.client.multiplayer.chat.GuiMessageSource;
+import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 
 public final class ChatWindowFade {
     private ChatWindowFade() {}
+
+    private static GuiMessage fakeParentMessage(int addedGuiTick) {
+        return new GuiMessage(addedGuiTick, Component.empty(), null, (GuiMessageSource) null, null);
+    }
 
     /**
      * Opacity for a chat-window line when the chat UI is closed: vanilla time-based HUD fade (unfocused chat) times
@@ -16,7 +22,7 @@ public final class ChatWindowFade {
     public static float chatWindowLineAlpha(ChatWindowLine line, int currentGuiTick) {
         ChatComponent.AlphaCalculator opacity = ChatComponent.AlphaCalculator.timeBased(currentGuiTick);
         GuiMessage.Line fake =
-                new GuiMessage.Line(line.addedGuiTick(), FormattedCharSequence.EMPTY, null, true);
+                new GuiMessage.Line(fakeParentMessage(line.addedGuiTick()), FormattedCharSequence.EMPTY, true);
         float base = Mth.clamp(opacity.calculate(fake), 0f, 1f);
         return base * chatWindowSmoothFadeMultiplier(line, currentGuiTick);
     }
@@ -51,7 +57,7 @@ public final class ChatWindowFade {
     public static float lineAlpha(int addedGuiTick, int currentGuiTick) {
         ChatComponent.AlphaCalculator opacity = ChatComponent.AlphaCalculator.timeBased(currentGuiTick);
         GuiMessage.Line line =
-                new GuiMessage.Line(addedGuiTick, FormattedCharSequence.EMPTY, null, true);
+                new GuiMessage.Line(fakeParentMessage(addedGuiTick), FormattedCharSequence.EMPTY, true);
         float base = Mth.clamp(opacity.calculate(line), 0f, 1f);
         return base * ChatSmoothAppearance.fadeInMultiplier(addedGuiTick);
     }

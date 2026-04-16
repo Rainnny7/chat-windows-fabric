@@ -3,7 +3,7 @@ package me.braydon.chatutilities.mixin.client;
 import me.braydon.chatutilities.chat.ChatImagePreviewUrlResolver;
 import me.braydon.chatutilities.client.ChatUtilitiesClientOptions;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -23,23 +23,23 @@ import org.jspecify.annotations.Nullable;
 public class ScreenMixin {
 
     @Inject(
-            method = "renderComponentHoverEffect(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/network/chat/Style;II)V",
+            method = "renderComponentHoverEffect(Lnet/minecraft/client/gui/GuiGraphicsExtractor;Lnet/minecraft/network/chat/Style;II)V",
             at = @At("HEAD"),
             cancellable = true,
             require = 0)
     private void chatUtilities$suppressHoverTooltipWhenImagePreviewActive(
-            GuiGraphics graphics, Style style, int mouseX, int mouseY, CallbackInfo ci) {
+            GuiGraphicsExtractor graphics, Style style, int mouseX, int mouseY, CallbackInfo ci) {
         suppressIfPreviewHover(mouseX, mouseY, ci);
     }
 
     @Inject(
             method =
-                    "renderComponentHoverEffect(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/network/chat/Style;IILnet/minecraft/network/chat/Component;)V",
+                    "renderComponentHoverEffect(Lnet/minecraft/client/gui/GuiGraphicsExtractor;Lnet/minecraft/network/chat/Style;IILnet/minecraft/network/chat/Component;)V",
             at = @At("HEAD"),
             cancellable = true,
             require = 0)
     private void chatUtilities$suppressHoverTooltipWhenImagePreviewActive_component(
-            GuiGraphics graphics, Style style, int mouseX, int mouseY, @Nullable Component component, CallbackInfo ci) {
+            GuiGraphicsExtractor graphics, Style style, int mouseX, int mouseY, @Nullable Component component, CallbackInfo ci) {
         suppressIfPreviewHover(mouseX, mouseY, ci);
     }
 

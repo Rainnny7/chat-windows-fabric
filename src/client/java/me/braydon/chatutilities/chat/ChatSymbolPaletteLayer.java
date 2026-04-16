@@ -2,7 +2,7 @@ package me.braydon.chatutilities.chat;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import org.jspecify.annotations.Nullable;
 
@@ -54,19 +54,19 @@ public final class ChatSymbolPaletteLayer {
     }
 
     private static void drawHudChip(
-            GuiGraphics graphics, Font font, int x, int y, int w, int h, int mouseX, int mouseY, Component glyph) {
+            GuiGraphicsExtractor graphics, Font font, int x, int y, int w, int h, int mouseX, int mouseY, Component glyph) {
         boolean hovered =
                 mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + h;
         int bg = hovered ? ChatSymbolPalette.HUD_CHIP_FILL_HOVER : ChatSymbolPalette.HUD_CHIP_FILL;
         graphics.fill(x, y, x + w, y + h, bg);
-        graphics.renderOutline(x, y, w, h, ChatSymbolPalette.HUD_CHIP_EDGE);
+        graphics.outline(x, y, w, h, ChatSymbolPalette.HUD_CHIP_EDGE);
         int tw = font.width(glyph);
         int th = font.lineHeight;
-        graphics.drawString(
+        graphics.text(
                 font, glyph, x + (w - tw) / 2, y + (h - th) / 2, ChatSymbolPalette.HUD_CHIP_TEXT, false);
     }
 
-    public static void render(GuiGraphics graphics, Font font, int screenW, int screenH, int mouseX, int mouseY) {
+    public static void render(GuiGraphicsExtractor graphics, Font font, int screenW, int screenH, int mouseX, int mouseY) {
         Minecraft mc = Minecraft.getInstance();
         if (chipVisible && chipW > 0) {
             drawHudChip(

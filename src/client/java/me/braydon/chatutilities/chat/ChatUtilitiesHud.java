@@ -3,11 +3,12 @@ package me.braydon.chatutilities.chat;
 import com.mojang.blaze3d.platform.Window;
 import me.braydon.chatutilities.ChatUtilitiesModClient;
 import me.braydon.chatutilities.client.ChatUtilitiesClientOptions;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
@@ -26,10 +27,13 @@ public final class ChatUtilitiesHud {
     private ChatUtilitiesHud() {}
 
     public static void register() {
-        HudRenderCallback.EVENT.register(ChatUtilitiesHud::render);
+        HudElementRegistry.attachElementBefore(
+                VanillaHudElements.CHAT,
+                net.minecraft.resources.Identifier.fromNamespaceAndPath("chatutilities", "hud_chat_windows"),
+                ChatUtilitiesHud::render);
     }
 
-    private static void render(GuiGraphics graphics, DeltaTracker deltaTracker) {
+    private static void render(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
         Minecraft mc = Minecraft.getInstance();
         // Only suppress when the full F3 overlay is open — not for lines/charts set to "always" in debug settings.
         if (mc.options.hideGui || mc.debugEntries.isOverlayVisible()) {
@@ -44,11 +48,7 @@ public final class ChatUtilitiesHud {
         renderChatWindowsLayer(graphics, deltaTracker);
     }
 
-    /**
-     * Called from {@link net.minecraft.client.gui.screens.ChatScreen} render TAIL while adjusting layout so windows
-     * and guidelines appear above the chat UI.
-     */
-    public static void renderPositioningOverChatScreen(GuiGraphics graphics, DeltaTracker deltaTracker) {
+    public static void renderPositioningOverChatScreen(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.options.hideGui || mc.debugEntries.isOverlayVisible()) {
             return;
@@ -61,7 +61,7 @@ public final class ChatUtilitiesHud {
         renderChatWindowsLayer(graphics, deltaTracker);
     }
 
-    private static void renderChatWindowsLayer(GuiGraphics graphics, DeltaTracker deltaTracker) {
+    private static void renderChatWindowsLayer(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
         Minecraft mc = Minecraft.getInstance();
 
         int gw = mc.getWindow().getGuiScaledWidth();
@@ -211,7 +211,7 @@ public final class ChatUtilitiesHud {
                 }
                 // Geometry hit-tests use (x,y,boxW,boxH); outline flush with that rect.
                 int edge = 0xFF8A8A98;
-                graphics.renderOutline(x, y, boxW, boxH, edge);
+                graphics.outline(x, y, boxW, boxH, edge);
                 int hintLen = Math.min(12, Math.min(boxW, boxH) / 2);
                 if (hintLen >= 3) {
                     int hi = 0xFFFFFFFF;
@@ -285,15 +285,8 @@ public final class ChatUtilitiesHud {
                 .ifPresent(
                         tip -> {
                             List<FormattedCharSequence> lines = Tooltip.splitTooltip(mc, tip);
-                            List<ClientTooltipComponent> components =
-                                    lines.stream().map(ClientTooltipComponent::create).toList();
-                            graphics.renderTooltip(
-                                    mc.font,
-                                    components,
-                                    mx,
-                                    my,
-                                    DefaultTooltipPositioner.INSTANCE,
-                                    null);
+                            graphics.setTooltipForNextFrame(
+                                    mc.font, lines, DefaultTooltipPositioner.INSTANCE, mx, my, true);
                         });
     }
 
@@ -375,7 +368,7 @@ public final class ChatUtilitiesHud {
         return out;
     }
 
-    private static void renderLayoutModeHelp(GuiGraphics graphics, Minecraft mc, int gw, int gh) {
+    private static void renderLayoutModeHelp(GuiGraphicsExtractor graphics, Minecraft mc, int gw, int gh) {
         String block = I18n.get("chat-utilities.layout_mode.help.compact");
         String[] lines = block.split("\n");
         var font = mc.font;
@@ -392,10 +385,10 @@ public final class ChatUtilitiesHud {
         int bx = (gw - boxW) / 2;
         int by = (gh - boxH) / 2;
         graphics.fill(bx, by, bx + boxW, by + boxH, 0xC0101010);
-        graphics.renderOutline(bx, by, boxW, boxH, 0xFF707088);
+        graphics.outline(bx, by, boxW, boxH, 0xFF707088);
         int y = by + padY;
         for (String line : lines) {
-            graphics.drawString(font, line, bx + padX, y, 0xFFE8EEF8, false);
+            graphics.text(font, line, bx + padX, y, 0xFFE8EEF8, false);
             y += lineH + gap;
         }
     }
@@ -405,7 +398,7 @@ public final class ChatUtilitiesHud {
      * ARGB.black(lineOpacity * textBackgroundOpacity))} in chat-local space; here {@code tx} is the text origin.
      */
     private static void fillVanillaStyleChatRowBackdrop(
-            GuiGraphics graphics,
+            GuiGraphicsExtractor graphics,
             Minecraft mc,
             int tx,
             int rowTop,
@@ -423,7 +416,7 @@ public final class ChatUtilitiesHud {
      * @param layoutPreview when true, caller has already scissored to the inner content rect (adjust-layout overlay).
      */
     private static void renderStyledRows(
-            GuiGraphics graphics,
+            GuiGraphicsExtractor graphics,
             Minecraft mc,
             ChatWindowGeometry geo,
             int x,
@@ -453,14 +446,14 @@ public final class ChatUtilitiesHud {
                 int color = ChatWindowGeometry.argbText(a, 0xFFFFFF);
                 int drawY = ty + row.slideYOffset + ChatWindowGeometry.ROW_TEXT_TOP_NUDGE;
                 if (rowScale > 0.999f && rowScale < 1.001f) {
-                    graphics.drawString(
+                    graphics.text(
                             mc.font, row.text, tx, drawY, color, ChatUtilitiesClientOptions.isChatTextShadow());
                 } else {
                     var pose = graphics.pose();
                     pose.pushMatrix();
                     pose.translate(tx, drawY);
                     pose.scale(rowScale, rowScale);
-                    graphics.drawString(
+                    graphics.text(
                             mc.font, row.text, 0, 0, color, ChatUtilitiesClientOptions.isChatTextShadow());
                     pose.popMatrix();
                 }
@@ -474,7 +467,7 @@ public final class ChatUtilitiesHud {
     }
 
     private static void renderPlaceholderRows(
-            GuiGraphics graphics,
+            GuiGraphicsExtractor graphics,
             Minecraft mc,
             ChatWindowGeometry geo,
             int x,
@@ -505,7 +498,7 @@ public final class ChatUtilitiesHud {
                 int color = ChatWindowGeometry.argbText(a, rgb);
                 int drawY = ty + row.slideYOffset + ChatWindowGeometry.ROW_TEXT_TOP_NUDGE;
                 if (rowScale > 0.999f && rowScale < 1.001f) {
-                    graphics.drawString(
+                    graphics.text(
                             mc.font,
                             row.text,
                             tx,
@@ -517,7 +510,7 @@ public final class ChatUtilitiesHud {
                     pose.pushMatrix();
                     pose.translate(tx, drawY);
                     pose.scale(rowScale, rowScale);
-                    graphics.drawString(
+                    graphics.text(
                             mc.font,
                             row.text,
                             0,

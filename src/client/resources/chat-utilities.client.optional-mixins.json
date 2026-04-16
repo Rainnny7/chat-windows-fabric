@@ -1,7 +1,7 @@
 {
 	"required": false,
 	"package": "me.braydon.chatutilities.mixin.client",
-	"compatibilityLevel": "JAVA_21",
+	"compatibilityLevel": "JAVA_25",
 	"refmap": "chat-utilities.client.refmap.json",
 	"client": [
 		"DebugScreenOverlayMixin"

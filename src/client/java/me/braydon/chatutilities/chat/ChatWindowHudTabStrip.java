@@ -5,7 +5,7 @@ import me.braydon.chatutilities.client.ModAccentAnimator;
 import me.braydon.chatutilities.gui.RoundedPanelRenderer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
@@ -268,7 +268,7 @@ public final class ChatWindowHudTabStrip {
     }
 
     public static void render(
-            GuiGraphics g,
+            GuiGraphicsExtractor g,
             Minecraft mc,
             ChatWindow window,
             Placement p,
@@ -340,7 +340,7 @@ public final class ChatWindowHudTabStrip {
                                     ? packRgba(0xA0, 0xA0, 0xA8, stripA)
                                     : packRgba(0x55, 0x55, 0x5A, stripA);
                     g.fill(lx, ly, lx + rw, ly + rh, face);
-                    g.renderOutline(lx, ly, rw, rh, edge);
+                    g.outline(lx, ly, rw, rh, edge);
 
                     int unreadCount = i != selRender ? renderTabs.get(i).getUnreadCount() : 0;
                     UnreadBadgeSpec badge = unreadBadgeSpec(font, unreadCount);
@@ -350,7 +350,7 @@ public final class ChatWindowHudTabStrip {
                     int tc = i == selRender ? 0xFFFFFFFF : 0xFFE0E0E8;
                     int labelX = lx + 3;
                     int labelY = ly + (rh - 8) / 2;
-                    g.drawString(font, label, labelX, labelY, tc, false);
+                    g.text(font, label, labelX, labelY, tc, false);
                     if (badge != null) {
                         int bx = labelX + tw + BADGE_GAP;
                         int rightLimit = lx + rw - 2;
@@ -391,7 +391,7 @@ public final class ChatWindowHudTabStrip {
                                     ? packRgba(0xA0, 0xA0, 0xA8, stripA)
                                     : packRgba(0x55, 0x55, 0x5A, stripA);
                     g.fill(p.sx(), ly, p.sx() + p.sw(), ly + rh, face);
-                    g.renderOutline(p.sx(), ly, p.sw(), rh, edge);
+                    g.outline(p.sx(), ly, p.sw(), rh, edge);
 
                     int unreadCount = i != selRender ? renderTabs.get(i).getUnreadCount() : 0;
                     UnreadBadgeSpec badge = unreadBadgeSpec(font, unreadCount);
@@ -401,7 +401,7 @@ public final class ChatWindowHudTabStrip {
                     int tc = i == selRender ? 0xFFFFFFFF : 0xFFE0E0E8;
                     int labelX = p.sx() + 3;
                     int labelY = ly + (rh - 8) / 2;
-                    g.drawString(font, label, labelX, labelY, tc, false);
+                    g.text(font, label, labelX, labelY, tc, false);
                     if (badge != null) {
                         int bx = labelX + tw + BADGE_GAP;
                         int rightLimit = p.sx() + p.sw() - 2;
@@ -454,7 +454,7 @@ public final class ChatWindowHudTabStrip {
         return new Placement(Edge.TOP, x, sy, sw, sh);
     }
 
-    public static void renderUnreadOnly(GuiGraphics g, Minecraft mc, List<ChatWindowTab> unreadTabs, Placement p, float chatOpacity) {
+    public static void renderUnreadOnly(GuiGraphicsExtractor g, Minecraft mc, List<ChatWindowTab> unreadTabs, Placement p, float chatOpacity) {
         if (unreadTabs == null || unreadTabs.isEmpty()) {
             return;
         }
@@ -474,7 +474,7 @@ public final class ChatWindowHudTabStrip {
             int rw = rc.w();
             int rh = rc.h();
             g.fill(lx, ly, lx + rw, ly + rh, packRgba(0x22, 0x22, 0x28, stripA));
-            g.renderOutline(lx, ly, rw, rh, packRgba(0x55, 0x55, 0x5A, stripA));
+            g.outline(lx, ly, rw, rh, packRgba(0x55, 0x55, 0x5A, stripA));
 
             int unreadCount = tab.getUnreadCount();
             UnreadBadgeSpec badge =
@@ -486,7 +486,7 @@ public final class ChatWindowHudTabStrip {
             int tw = font.width(label);
             int labelX = lx + 3;
             int labelY = ly + (rh - 8) / 2;
-            g.drawString(font, label, labelX, labelY, 0xFFE0E0E8, false);
+            g.text(font, label, labelX, labelY, 0xFFE0E0E8, false);
             if (badge != null) {
                 int bx = labelX + tw + BADGE_GAP;
                 int rightLimit = lx + rw - 2;
@@ -526,7 +526,7 @@ public final class ChatWindowHudTabStrip {
         return new UnreadBadgeSpec(text, w, h);
     }
 
-    private static void renderUnreadBadgeAt(GuiGraphics g, Font font, int bx, int by, UnreadBadgeSpec badge) {
+    private static void renderUnreadBadgeAt(GuiGraphicsExtractor g, Font font, int bx, int by, UnreadBadgeSpec badge) {
         if (badge == null) {
             return;
         }
@@ -545,12 +545,12 @@ public final class ChatWindowHudTabStrip {
         pose.scale(BADGE_TEXT_SCALE, BADGE_TEXT_SCALE);
         int tw = font.width(badge.text);
         int th = font.lineHeight;
-        g.drawString(font, badge.text, -tw / 2, -th / 2, 0xFFFFFFFF, false);
+        g.text(font, badge.text, -tw / 2, -th / 2, 0xFFFFFFFF, false);
         pose.popMatrix();
     }
 
     /** Filled heart shape inside {@code [x,y,w,h]} (scanline silhouette). */
-    private static void fillHeartBadgeBackground(GuiGraphics g, int x, int y, int w, int h, int color) {
+    private static void fillHeartBadgeBackground(GuiGraphicsExtractor g, int x, int y, int w, int h, int color) {
         if (w <= 0 || h <= 0) {
             return;
         }

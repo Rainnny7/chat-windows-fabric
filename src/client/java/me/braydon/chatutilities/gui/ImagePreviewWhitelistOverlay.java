@@ -3,7 +3,7 @@ package me.braydon.chatutilities.gui;
 import me.braydon.chatutilities.client.ChatUtilitiesClientOptions;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
@@ -109,10 +109,10 @@ public final class ImagePreviewWhitelistOverlay {
         return mx >= removeLeft && mx < removeLeft + btnW && my >= btnRowY && my < btnRowY + btnH;
     }
 
-    public void render(GuiGraphics g, Font font, int mouseX, int mouseY, float partialTick) {
+    public void render(GuiGraphicsExtractor g, Font font, int mouseX, int mouseY, float partialTick) {
         g.fill(panelX, panelY, panelX + PANEL_W, panelY + PANEL_H, 0xF0101018);
-        g.renderOutline(panelX, panelY, PANEL_W, PANEL_H, 0xFF6A6A80);
-        g.drawString(
+        g.outline(panelX, panelY, PANEL_W, PANEL_H, 0xFF6A6A80);
+        g.text(
                 font,
                 Component.translatable("chat-utilities.image_preview.whitelist.title"),
                 panelX + 10,
@@ -133,10 +133,10 @@ public final class ImagePreviewWhitelistOverlay {
             }
             String line = draft.get(i);
             line = truncate(font, line, PANEL_W - 24);
-            g.drawString(font, line, panelX + 10, y, sel ? 0xFFFFFFFF : ChatUtilitiesScreenLayout.TEXT_GRAY, false);
+            g.text(font, line, panelX + 10, y, sel ? 0xFFFFFFFF : ChatUtilitiesScreenLayout.TEXT_GRAY, false);
             y += rowH;
         }
-        g.drawString(
+        g.text(
                 font,
                 Component.translatable("chat-utilities.image_preview.whitelist.add_label"),
                 panelX + 10,
@@ -144,7 +144,7 @@ public final class ImagePreviewWhitelistOverlay {
                 ChatUtilitiesScreenLayout.TEXT_LABEL,
                 false);
         if (addField != null) {
-            addField.render(g, mouseX, mouseY, partialTick);
+            addField.extractRenderState(g, mouseX, mouseY, partialTick);
         }
         drawBtn(g, font, removeLeft, btnRowY, "chat-utilities.image_preview.whitelist.remove", mouseX, mouseY);
         drawBtn(g, font, doneLeft, btnRowY, "chat-utilities.image_preview.whitelist.done", mouseX, mouseY);
@@ -163,12 +163,12 @@ public final class ImagePreviewWhitelistOverlay {
         return s + ell;
     }
 
-    private void drawBtn(GuiGraphics g, Font font, int x, int y, String key, int mx, int my) {
+    private void drawBtn(GuiGraphicsExtractor g, Font font, int x, int y, String key, int mx, int my) {
         boolean h = mx >= x && mx < x + btnW && my >= y && my < y + btnH;
         g.fill(x, y, x + btnW, y + btnH, h ? 0x55FFFFFF : 0x35000000);
-        g.renderOutline(x, y, btnW, btnH, 0x55FFFFFF);
+        g.outline(x, y, btnW, btnH, 0x55FFFFFF);
         Component msg = Component.translatable(key);
-        g.drawString(
+        g.text(
                 font,
                 msg,
                 x + (btnW - font.width(msg)) / 2,

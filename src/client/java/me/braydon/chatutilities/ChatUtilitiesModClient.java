@@ -8,8 +8,8 @@ import me.braydon.chatutilities.chat.ChatUtilitiesTick;
 import me.braydon.chatutilities.client.ChatUtilitiesClientOptions;
 import me.braydon.chatutilities.command.ChatUtilitiesCommands;
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientLoginConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.minecraft.client.KeyMapping;
@@ -32,12 +32,12 @@ public class ChatUtilitiesModClient implements ClientModInitializer {
         ChatUtilitiesClientOptions.init();
         CHAT_UTILITIES_KEY_CATEGORY =
                 KeyMapping.Category.register(Identifier.fromNamespaceAndPath("chatutilities", "root"));
-        OPEN_MENU_KEY = KeyBindingHelper.registerKeyBinding(new KeyMapping(
+        OPEN_MENU_KEY = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.chatutilities.open_menu",
                 GLFW.GLFW_KEY_MENU,
                 CHAT_UTILITIES_KEY_CATEGORY
         ));
-        CHAT_PEEK_KEY = KeyBindingHelper.registerKeyBinding(new KeyMapping(
+        CHAT_PEEK_KEY = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.chatutilities.chat_peek",
                 GLFW.GLFW_KEY_RIGHT_ALT,
                 CHAT_UTILITIES_KEY_CATEGORY
@@ -83,8 +83,8 @@ public class ChatUtilitiesModClient implements ClientModInitializer {
                 ChatUtilitiesManager.get().onPlayDisconnect());
 
         // When the client level is torn down (e.g. disconnect to title), capture chat before it is replaced/cleared.
-        ClientWorldEvents.AFTER_CLIENT_WORLD_CHANGE.register((client, world) -> {
-            if (world == null) {
+        ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register((client, level) -> {
+            if (level == null) {
                 ChatUtilitiesManager.get().snapshotVanillaChatIfPreserving(client);
             }
         });

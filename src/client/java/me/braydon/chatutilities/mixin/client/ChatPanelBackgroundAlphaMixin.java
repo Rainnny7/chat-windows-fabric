@@ -15,8 +15,22 @@ public class ChatPanelBackgroundAlphaMixin {
                     @At(
                             value = "INVOKE",
                             target = "Lnet/minecraft/client/gui/GuiGraphics;fill(IIIII)V"),
-            index = 4)
+            index = 4,
+            require = 0)
     private int chatUtilities$multiplyChatRowFillAlpha(int color) {
+        return ChatUtilitiesClientOptions.multiplyChatPanelBackgroundArgb(color, true);
+    }
+
+    @ModifyArg(
+            method = "fill",
+            at =
+                    @At(
+                            value = "INVOKE",
+                            target =
+                                    "Lnet/minecraft/client/gui/GuiGraphics;fill(Lnet/minecraft/client/renderer/RenderType;IIIII)V"),
+            index = 5,
+            require = 0)
+    private int chatUtilities$multiplyChatRowFillAlpha$renderType(int color) {
         return ChatUtilitiesClientOptions.multiplyChatPanelBackgroundArgb(color, true);
     }
 
@@ -26,8 +40,22 @@ public class ChatPanelBackgroundAlphaMixin {
                     @At(
                             value = "INVOKE",
                             target = "Lnet/minecraft/client/gui/GuiGraphics;fill(IIIII)V"),
-            index = 4)
+            index = 4,
+            require = 0)
     private int chatUtilities$multiplyTagFillAlpha(int color) {
+        return ChatUtilitiesClientOptions.multiplyChatPanelBackgroundArgb(color, true);
+    }
+
+    @ModifyArg(
+            method = "handleTag",
+            at =
+                    @At(
+                            value = "INVOKE",
+                            target =
+                                    "Lnet/minecraft/client/gui/GuiGraphics;fill(Lnet/minecraft/client/renderer/RenderType;IIIII)V"),
+            index = 5,
+            require = 0)
+    private int chatUtilities$multiplyTagFillAlpha$renderType(int color) {
         return ChatUtilitiesClientOptions.multiplyChatPanelBackgroundArgb(color, true);
     }
 }

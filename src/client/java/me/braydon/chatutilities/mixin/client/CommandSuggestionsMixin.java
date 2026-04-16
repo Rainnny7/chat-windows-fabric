@@ -121,7 +121,7 @@ public class CommandSuggestionsMixin {
     }
 
     @WrapOperation(
-            method = "updateUsageInfo()V",
+            method = {"updateUsageInfo()V", "updateCommandInfo()V"},
             at =
                     @At(
                             value = "INVOKE",

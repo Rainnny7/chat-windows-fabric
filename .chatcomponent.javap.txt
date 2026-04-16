@@ -1,0 +1,1348 @@
+Compiled from "ChatComponent.java"
+public class net.minecraft.client.gui.components.ChatComponent {
+  private static final org.slf4j.Logger LOGGER;
+
+  private static final int MAX_CHAT_HISTORY;
+
+  private static final int MESSAGE_INDENT;
+
+  private static final int BOTTOM_MARGIN;
+
+  private static final int TOOLTIP_MAX_WIDTH;
+
+  private static final int TIME_BEFORE_MESSAGE_DELETION;
+
+  private static final net.minecraft.network.chat.Component DELETED_CHAT_MESSAGE;
+
+  public static final int MESSAGE_BOTTOM_TO_MESSAGE_TOP;
+
+  public static final net.minecraft.resources.Identifier QUEUE_EXPAND_ID;
+
+  private static final net.minecraft.network.chat.Style QUEUE_EXPAND_TEXT_STYLE;
+
+  public static final net.minecraft.resources.Identifier GO_TO_RESTRICTIONS_SCREEN;
+
+  private static final net.minecraft.network.chat.Component RESTRICTED_CHAT_MESSAGE;
+
+  private static final net.minecraft.network.chat.Component RESTRICTED_CHAT_MESSAGE_WITH_HOVER;
+
+  private final net.minecraft.client.Minecraft minecraft;
+
+  private final net.minecraft.util.ArrayListDeque<java.lang.String> recentChat;
+
+  private final java.util.List<net.minecraft.client.multiplayer.chat.GuiMessage> allMessages;
+
+  private final java.util.List<net.minecraft.client.multiplayer.chat.GuiMessage$Line> trimmedMessages;
+
+  private int chatScrollbarPos;
+
+  private boolean newMessageSinceScroll;
+
+  private net.minecraft.client.gui.components.ChatComponent$Draft latestDraft;
+
+  private net.minecraft.client.gui.screens.ChatScreen preservedScreen;
+
+  private final java.util.List<net.minecraft.client.gui.components.ChatComponent$DelayedMessageDeletion> messageDeletionQueue;
+
+  private java.util.function.Predicate<net.minecraft.client.multiplayer.chat.GuiMessage> visibleMessageFilter;
+
+  public net.minecraft.client.gui.components.ChatComponent(net.minecraft.client.Minecraft);
+    Code:
+         0: aload_0
+         1: invokespecial #5                  // Method java/lang/Object."<init>":()V
+         4: aload_0
+         5: new           #11                 // class net/minecraft/util/ArrayListDeque
+         8: dup
+         9: bipush        100
+        11: invokespecial #15                 // Method net/minecraft/util/ArrayListDeque."<init>":(I)V
+        14: putfield      #18                 // Field recentChat:Lnet/minecraft/util/ArrayListDeque;
+        17: aload_0
+        18: invokestatic  #22                 // Method com/google/common/collect/Lists.newArrayList:()Ljava/util/ArrayList;
+        21: putfield      #28                 // Field allMessages:Ljava/util/List;
+        24: aload_0
+        25: invokestatic  #22                 // Method com/google/common/collect/Lists.newArrayList:()Ljava/util/ArrayList;
+        28: putfield      #32                 // Field trimmedMessages:Ljava/util/List;
+        31: aload_0
+        32: new           #35                 // class java/util/ArrayList
+        35: dup
+        36: invokespecial #37                 // Method java/util/ArrayList."<init>":()V
+        39: putfield      #38                 // Field messageDeletionQueue:Ljava/util/List;
+        42: aload_0
+        43: invokedynamic #41,  0             // InvokeDynamic #0:test:()Ljava/util/function/Predicate;
+        48: putfield      #45                 // Field visibleMessageFilter:Ljava/util/function/Predicate;
+        51: aload_0
+        52: aload_1
+        53: putfield      #49                 // Field minecraft:Lnet/minecraft/client/Minecraft;
+        56: aload_0
+        57: getfield      #18                 // Field recentChat:Lnet/minecraft/util/ArrayListDeque;
+        60: aload_1
+        61: invokevirtual #53                 // Method net/minecraft/client/Minecraft.commandHistory:()Lnet/minecraft/client/CommandHistory;
+        64: invokevirtual #59                 // Method net/minecraft/client/CommandHistory.history:()Ljava/util/Collection;
+        67: invokevirtual #65                 // Method net/minecraft/util/ArrayListDeque.addAll:(Ljava/util/Collection;)Z
+        70: pop
+        71: return
+
+  public void tick();
+    Code:
+         0: aload_0
+         1: getfield      #38                 // Field messageDeletionQueue:Ljava/util/List;
+         4: invokeinterface #69,  1           // InterfaceMethod java/util/List.isEmpty:()Z
+         9: ifne          16
+        12: aload_0
+        13: invokevirtual #75                 // Method processMessageDeletionQueue:()V
+        16: return
+
+  public void setVisibleMessageFilter(java.util.function.Predicate<net.minecraft.client.multiplayer.chat.GuiMessage>);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: putfield      #45                 // Field visibleMessageFilter:Ljava/util/function/Predicate;
+         5: aload_0
+         6: invokevirtual #78                 // Method refreshTrimmedMessages:()V
+         9: return
+
+  private int forEachLine(net.minecraft.client.gui.components.ChatComponent$AlphaCalculator, net.minecraft.client.gui.components.ChatComponent$LineConsumer);
+    Code:
+         0: aload_0
+         1: invokevirtual #81                 // Method getLinesPerPage:()I
+         4: istore_3
+         5: iconst_0
+         6: istore        4
+         8: aload_0
+         9: getfield      #32                 // Field trimmedMessages:Ljava/util/List;
+        12: invokeinterface #85,  1           // InterfaceMethod java/util/List.size:()I
+        17: aload_0
+        18: getfield      #88                 // Field chatScrollbarPos:I
+        21: isub
+        22: iload_3
+        23: invokestatic  #92                 // Method java/lang/Math.min:(II)I
+        26: iconst_1
+        27: isub
+        28: istore        5
+        30: iload         5
+        32: iflt          99
+        35: iload         5
+        37: aload_0
+        38: getfield      #88                 // Field chatScrollbarPos:I
+        41: iadd
+        42: istore        6
+        44: aload_0
+        45: getfield      #32                 // Field trimmedMessages:Ljava/util/List;
+        48: iload         6
+        50: invokeinterface #98,  2           // InterfaceMethod java/util/List.get:(I)Ljava/lang/Object;
+        55: checkcast     #102                // class net/minecraft/client/multiplayer/chat/GuiMessage$Line
+        58: astore        7
+        60: aload_1
+        61: aload         7
+        63: invokeinterface #104,  2          // InterfaceMethod net/minecraft/client/gui/components/ChatComponent$AlphaCalculator.calculate:(Lnet/minecraft/client/multiplayer/chat/GuiMessage$Line;)F
+        68: fstore        8
+        70: fload         8
+        72: ldc           #112                // float 1.0E-5f
+        74: fcmpl
+        75: ifle          93
+        78: iinc          4, 1
+        81: aload_2
+        82: aload         7
+        84: iload         5
+        86: fload         8
+        88: invokeinterface #113,  4          // InterfaceMethod net/minecraft/client/gui/components/ChatComponent$LineConsumer.accept:(Lnet/minecraft/client/multiplayer/chat/GuiMessage$Line;IF)V
+        93: iinc          5, -1
+        96: goto          30
+        99: iload         4
+       101: ireturn
+
+  public void extractRenderState(net.minecraft.client.gui.GuiGraphicsExtractor, net.minecraft.client.gui.Font, int, int, int, net.minecraft.client.gui.components.ChatComponent$DisplayMode, boolean);
+    Code:
+         0: aload_1
+         1: invokevirtual #119                // Method net/minecraft/client/gui/GuiGraphicsExtractor.pose:()Lorg/joml/Matrix3x2fStack;
+         4: invokevirtual #125                // Method org/joml/Matrix3x2fStack.pushMatrix:()Lorg/joml/Matrix3x2fStack;
+         7: pop
+         8: aload_0
+         9: aload         6
+        11: getfield      #130                // Field net/minecraft/client/gui/components/ChatComponent$DisplayMode.foreground:Z
+        14: ifeq          35
+        17: new           #136                // class net/minecraft/client/gui/components/ChatComponent$DrawingFocusedGraphicsAccess
+        20: dup
+        21: aload_1
+        22: aload_2
+        23: iload         4
+        25: iload         5
+        27: iload         7
+        29: invokespecial #138                // Method net/minecraft/client/gui/components/ChatComponent$DrawingFocusedGraphicsAccess."<init>":(Lnet/minecraft/client/gui/GuiGraphicsExtractor;Lnet/minecraft/client/gui/Font;IIZ)V
+        32: goto          43
+        35: new           #141                // class net/minecraft/client/gui/components/ChatComponent$DrawingBackgroundGraphicsAccess
+        38: dup
+        39: aload_1
+        40: invokespecial #143                // Method net/minecraft/client/gui/components/ChatComponent$DrawingBackgroundGraphicsAccess."<init>":(Lnet/minecraft/client/gui/GuiGraphicsExtractor;)V
+        43: aload_1
+        44: invokevirtual #146                // Method net/minecraft/client/gui/GuiGraphicsExtractor.guiHeight:()I
+        47: iload_3
+        48: aload         6
+        50: invokevirtual #149                // Method extractRenderState:(Lnet/minecraft/client/gui/components/ChatComponent$ChatGraphicsAccess;IILnet/minecraft/client/gui/components/ChatComponent$DisplayMode;)V
+        53: aload_1
+        54: invokevirtual #119                // Method net/minecraft/client/gui/GuiGraphicsExtractor.pose:()Lorg/joml/Matrix3x2fStack;
+        57: invokevirtual #153                // Method org/joml/Matrix3x2fStack.popMatrix:()Lorg/joml/Matrix3x2fStack;
+        60: pop
+        61: return
+
+  public void captureClickableText(net.minecraft.client.gui.ActiveTextCollector, int, int, net.minecraft.client.gui.components.ChatComponent$DisplayMode);
+    Code:
+         0: aload_0
+         1: new           #156                // class net/minecraft/client/gui/components/ChatComponent$ClickableTextOnlyGraphicsAccess
+         4: dup
+         5: aload_1
+         6: invokespecial #158                // Method net/minecraft/client/gui/components/ChatComponent$ClickableTextOnlyGraphicsAccess."<init>":(Lnet/minecraft/client/gui/ActiveTextCollector;)V
+         9: iload_2
+        10: iload_3
+        11: aload         4
+        13: invokevirtual #149                // Method extractRenderState:(Lnet/minecraft/client/gui/components/ChatComponent$ChatGraphicsAccess;IILnet/minecraft/client/gui/components/ChatComponent$DisplayMode;)V
+        16: return
+
+  private void extractRenderState(net.minecraft.client.gui.components.ChatComponent$ChatGraphicsAccess, int, int, net.minecraft.client.gui.components.ChatComponent$DisplayMode);
+    Code:
+         0: aload         4
+         2: getfield      #130                // Field net/minecraft/client/gui/components/ChatComponent$DisplayMode.foreground:Z
+         5: istore        5
+         7: aload         4
+         9: getfield      #161                // Field net/minecraft/client/gui/components/ChatComponent$DisplayMode.showRestrictedPrompt:Z
+        12: istore        6
+        14: aload_0
+        15: getfield      #32                 // Field trimmedMessages:Ljava/util/List;
+        18: invokeinterface #85,  1           // InterfaceMethod java/util/List.size:()I
+        23: istore        7
+        25: iload         7
+        27: ifgt          36
+        30: iload         6
+        32: ifne          36
+        35: return
+        36: invokestatic  #164                // Method net/minecraft/util/profiling/Profiler.get:()Lnet/minecraft/util/profiling/ProfilerFiller;
+        39: astore        8
+        41: aload         8
+        43: ldc           #169                // String chat
+        45: invokeinterface #171,  2          // InterfaceMethod net/minecraft/util/profiling/ProfilerFiller.push:(Ljava/lang/String;)V
+        50: aload_0
+        51: invokevirtual #177                // Method getScale:()D
+        54: d2f
+        55: fstore        9
+        57: aload_0
+        58: invokevirtual #181                // Method getWidth:()I
+        61: i2f
+        62: fload         9
+        64: fdiv
+        65: invokestatic  #184                // Method net/minecraft/util/Mth.ceil:(F)I
+        68: istore        10
+        70: iload_2
+        71: bipush        40
+        73: isub
+        74: i2f
+        75: fload         9
+        77: fdiv
+        78: invokestatic  #188                // Method net/minecraft/util/Mth.floor:(F)I
+        81: istore        11
+        83: aload_0
+        84: getfield      #49                 // Field minecraft:Lnet/minecraft/client/Minecraft;
+        87: getfield      #191                // Field net/minecraft/client/Minecraft.options:Lnet/minecraft/client/Options;
+        90: invokevirtual #195                // Method net/minecraft/client/Options.chatOpacity:()Lnet/minecraft/client/OptionInstance;
+        93: invokevirtual #201                // Method net/minecraft/client/OptionInstance.get:()Ljava/lang/Object;
+        96: checkcast     #206                // class java/lang/Double
+        99: invokevirtual #208                // Method java/lang/Double.floatValue:()F
+       102: ldc           #212                // float 0.9f
+       104: fmul
+       105: ldc           #213                // float 0.1f
+       107: fadd
+       108: fstore        12
+       110: aload_0
+       111: getfield      #49                 // Field minecraft:Lnet/minecraft/client/Minecraft;
+       114: getfield      #191                // Field net/minecraft/client/Minecraft.options:Lnet/minecraft/client/Options;
+       117: invokevirtual #214                // Method net/minecraft/client/Options.textBackgroundOpacity:()Lnet/minecraft/client/OptionInstance;
+       120: invokevirtual #201                // Method net/minecraft/client/OptionInstance.get:()Ljava/lang/Object;
+       123: checkcast     #206                // class java/lang/Double
+       126: invokevirtual #208                // Method java/lang/Double.floatValue:()F
+       129: fstore        13
+       131: aload_0
+       132: getfield      #49                 // Field minecraft:Lnet/minecraft/client/Minecraft;
+       135: getfield      #217                // Field net/minecraft/client/Minecraft.font:Lnet/minecraft/client/gui/Font;
+       138: invokestatic  #221                // Method java/util/Objects.requireNonNull:(Ljava/lang/Object;)Ljava/lang/Object;
+       141: pop
+       142: bipush        9
+       144: istore        14
+       146: bipush        8
+       148: istore        15
+       150: aload_0
+       151: getfield      #49                 // Field minecraft:Lnet/minecraft/client/Minecraft;
+       154: getfield      #191                // Field net/minecraft/client/Minecraft.options:Lnet/minecraft/client/Options;
+       157: invokevirtual #227                // Method net/minecraft/client/Options.chatLineSpacing:()Lnet/minecraft/client/OptionInstance;
+       160: invokevirtual #201                // Method net/minecraft/client/OptionInstance.get:()Ljava/lang/Object;
+       163: checkcast     #206                // class java/lang/Double
+       166: invokevirtual #230                // Method java/lang/Double.doubleValue:()D
+       169: dstore        16
+       171: iload         14
+       173: i2d
+       174: dload         16
+       176: dconst_1
+       177: dadd
+       178: dmul
+       179: d2i
+       180: istore        18
+       182: ldc2_w        #233                // double 8.0d
+       185: dload         16
+       187: dconst_1
+       188: dadd
+       189: dmul
+       190: ldc2_w        #235                // double 4.0d
+       193: dload         16
+       195: dmul
+       196: dsub
+       197: invokestatic  #237                // Method java/lang/Math.round:(D)J
+       200: l2i
+       201: istore        19
+       203: aload_0
+       204: getfield      #49                 // Field minecraft:Lnet/minecraft/client/Minecraft;
+       207: invokevirtual #241                // Method net/minecraft/client/Minecraft.getChatListener:()Lnet/minecraft/client/multiplayer/chat/ChatListener;
+       210: invokevirtual #245                // Method net/minecraft/client/multiplayer/chat/ChatListener.queueSize:()J
+       213: lstore        20
+       215: iload         5
+       217: ifeq          226
+       220: getstatic     #251                // Field net/minecraft/client/gui/components/ChatComponent$AlphaCalculator.FULLY_VISIBLE:Lnet/minecraft/client/gui/components/ChatComponent$AlphaCalculator;
+       223: goto          230
+       226: iload_3
+       227: invokestatic  #255                // InterfaceMethod net/minecraft/client/gui/components/ChatComponent$AlphaCalculator.timeBased:(I)Lnet/minecraft/client/gui/components/ChatComponent$AlphaCalculator;
+       230: astore        22
+       232: aload_1
+       233: fload         9
+       235: invokedynamic #259,  0            // InvokeDynamic #1:accept:(F)Ljava/util/function/Consumer;
+       240: invokeinterface #262,  2          // InterfaceMethod net/minecraft/client/gui/components/ChatComponent$ChatGraphicsAccess.updatePose:(Ljava/util/function/Consumer;)V
+       245: aload_0
+       246: aload         22
+       248: iload         11
+       250: iload         18
+       252: aload_1
+       253: iload         10
+       255: fload         13
+       257: invokedynamic #268,  0            // InvokeDynamic #2:accept:(IILnet/minecraft/client/gui/components/ChatComponent$ChatGraphicsAccess;IF)Lnet/minecraft/client/gui/components/ChatComponent$LineConsumer;
+       262: invokevirtual #271                // Method forEachLine:(Lnet/minecraft/client/gui/components/ChatComponent$AlphaCalculator;Lnet/minecraft/client/gui/components/ChatComponent$LineConsumer;)I
+       265: istore        23
+       267: iload         11
+       269: iload         23
+       271: iconst_1
+       272: iadd
+       273: iload         18
+       275: imul
+       276: isub
+       277: istore        24
+       279: lload         20
+       281: lconst_0
+       282: lcmp
+       283: ifle          310
+       286: aload_1
+       287: bipush        -2
+       289: iload         11
+       291: iload         10
+       293: iconst_4
+       294: iadd
+       295: iload         11
+       297: iload         14
+       299: iadd
+       300: fload         13
+       302: invokestatic  #275                // Method net/minecraft/util/ARGB.black:(F)I
+       305: invokeinterface #280,  6          // InterfaceMethod net/minecraft/client/gui/components/ChatComponent$ChatGraphicsAccess.fill:(IIIII)V
+       310: iload         6
+       312: ifeq          341
+       315: aload_1
+       316: bipush        -2
+       318: iload         24
+       320: iload         10
+       322: iconst_4
+       323: iadd
+       324: iconst_4
+       325: iadd
+       326: iload         24
+       328: iload         18
+       330: iadd
+       331: fload         13
+       333: invokestatic  #275                // Method net/minecraft/util/ARGB.black:(F)I
+       336: invokeinterface #280,  6          // InterfaceMethod net/minecraft/client/gui/components/ChatComponent$ChatGraphicsAccess.fill:(IIIII)V
+       341: aload_0
+       342: aload         22
+       344: new           #284                // class net/minecraft/client/gui/components/ChatComponent$1
+       347: dup
+       348: aload_0
+       349: iload         11
+       351: iload         18
+       353: iload         19
+       355: aload_1
+       356: fload         12
+       358: iload         14
+       360: invokespecial #286                // Method net/minecraft/client/gui/components/ChatComponent$1."<init>":(Lnet/minecraft/client/gui/components/ChatComponent;IIILnet/minecraft/client/gui/components/ChatComponent$ChatGraphicsAccess;FI)V
+       363: invokevirtual #271                // Method forEachLine:(Lnet/minecraft/client/gui/components/ChatComponent$AlphaCalculator;Lnet/minecraft/client/gui/components/ChatComponent$LineConsumer;)I
+       366: pop
+       367: lload         20
+       369: lconst_0
+       370: lcmp
+       371: ifle          432
+       374: iload         11
+       376: iload         14
+       378: iadd
+       379: istore        25
+       381: ldc_w         #289                // String chat.queue
+       384: iconst_1
+       385: anewarray     #6                  // class java/lang/Object
+       388: dup
+       389: iconst_0
+       390: lload         20
+       392: invokestatic  #291                // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+       395: aastore
+       396: invokestatic  #297                // InterfaceMethod net/minecraft/network/chat/Component.translatable:(Ljava/lang/String;[Ljava/lang/Object;)Lnet/minecraft/network/chat/MutableComponent;
+       399: getstatic     #303                // Field QUEUE_EXPAND_TEXT_STYLE:Lnet/minecraft/network/chat/Style;
+       402: invokevirtual #307                // Method net/minecraft/network/chat/MutableComponent.setStyle:(Lnet/minecraft/network/chat/Style;)Lnet/minecraft/network/chat/MutableComponent;
+       405: astore        26
+       407: aload_1
+       408: iload         25
+       410: bipush        8
+       412: isub
+       413: ldc_w         #313                // float 0.5f
+       416: fload         12
+       418: fmul
+       419: aload         26
+       421: invokeinterface #314,  1          // InterfaceMethod net/minecraft/network/chat/Component.getVisualOrderText:()Lnet/minecraft/util/FormattedCharSequence;
+       426: invokeinterface #318,  4          // InterfaceMethod net/minecraft/client/gui/components/ChatComponent$ChatGraphicsAccess.handleMessage:(IFLnet/minecraft/util/FormattedCharSequence;)Z
+       431: pop
+       432: iload         6
+       434: ifeq          508
+       437: aload_0
+       438: getfield      #49                 // Field minecraft:Lnet/minecraft/client/Minecraft;
+       441: getfield      #217                // Field net/minecraft/client/Minecraft.font:Lnet/minecraft/client/gui/Font;
+       444: getstatic     #322                // Field RESTRICTED_CHAT_MESSAGE:Lnet/minecraft/network/chat/Component;
+       447: invokevirtual #326                // Method net/minecraft/client/gui/Font.width:(Lnet/minecraft/network/chat/FormattedText;)I
+       450: istore        25
+       452: iload         25
+       454: iload         10
+       456: if_icmple     477
+       459: getstatic     #332                // Field RESTRICTED_CHAT_MESSAGE_WITH_HOVER:Lnet/minecraft/network/chat/Component;
+       462: aload_0
+       463: getfield      #49                 // Field minecraft:Lnet/minecraft/client/Minecraft;
+       466: getfield      #217                // Field net/minecraft/client/Minecraft.font:Lnet/minecraft/client/gui/Font;
+       469: iload         10
+       471: invokestatic  #335                // Method net/minecraft/client/gui/components/ComponentRenderUtils.clipText:(Lnet/minecraft/network/chat/Component;Lnet/minecraft/client/gui/Font;I)Lnet/minecraft/util/FormattedCharSequence;
+       474: goto          485
+       477: getstatic     #322                // Field RESTRICTED_CHAT_MESSAGE:Lnet/minecraft/network/chat/Component;
+       480: invokeinterface #314,  1          // InterfaceMethod net/minecraft/network/chat/Component.getVisualOrderText:()Lnet/minecraft/util/FormattedCharSequence;
+       485: astore        26
+       487: aload_1
+       488: iload         24
+       490: iload         18
+       492: iadd
+       493: iload         19
+       495: isub
+       496: iconst_1
+       497: isub
+       498: fload         12
+       500: aload         26
+       502: invokeinterface #318,  4          // InterfaceMethod net/minecraft/client/gui/components/ChatComponent$ChatGraphicsAccess.handleMessage:(IFLnet/minecraft/util/FormattedCharSequence;)Z
+       507: pop
+       508: iload         7
+       510: ifle          662
+       513: iload         5
+       515: ifeq          662
+       518: iload         23
+       520: iload         18
+       522: imul
+       523: istore        25
+       525: iload         7
+       527: iload         18
+       529: imul
+       530: istore        26
+       532: aload_0
+       533: getfield      #88                 // Field chatScrollbarPos:I
+       536: iload         25
+       538: imul
+       539: iload         7
+       541: idiv
+       542: iload         11
+       544: isub
+       545: istore        27
+       547: iload         25
+       549: iload         25
+       551: imul
+       552: iload         26
+       554: idiv
+       555: istore        28
+       557: iload         26
+       559: iload         25
+       561: if_icmpeq     662
+       564: iload         27
+       566: ifle          575
+       569: sipush        170
+       572: goto          577
+       575: bipush        96
+       577: istore        29
+       579: aload_0
+       580: getfield      #341                // Field newMessageSinceScroll:Z
+       583: ifeq          592
+       586: ldc_w         #344                // int 13382451
+       589: goto          595
+       592: ldc_w         #345                // int 3355562
+       595: istore        30
+       597: iload         10
+       599: iconst_4
+       600: iadd
+       601: istore        31
+       603: aload_1
+       604: iload         31
+       606: iload         27
+       608: ineg
+       609: iload         31
+       611: iconst_2
+       612: iadd
+       613: iload         27
+       615: ineg
+       616: iload         28
+       618: isub
+       619: iload         29
+       621: iload         30
+       623: invokestatic  #346                // Method net/minecraft/util/ARGB.color:(II)I
+       626: invokeinterface #280,  6          // InterfaceMethod net/minecraft/client/gui/components/ChatComponent$ChatGraphicsAccess.fill:(IIIII)V
+       631: aload_1
+       632: iload         31
+       634: iconst_2
+       635: iadd
+       636: iload         27
+       638: ineg
+       639: iload         31
+       641: iconst_1
+       642: iadd
+       643: iload         27
+       645: ineg
+       646: iload         28
+       648: isub
+       649: iload         29
+       651: ldc_w         #349                // int 13421772
+       654: invokestatic  #346                // Method net/minecraft/util/ARGB.color:(II)I
+       657: invokeinterface #280,  6          // InterfaceMethod net/minecraft/client/gui/components/ChatComponent$ChatGraphicsAccess.fill:(IIIII)V
+       662: aload         8
+       664: invokeinterface #350,  1          // InterfaceMethod net/minecraft/util/profiling/ProfilerFiller.pop:()V
+       669: return
+
+  public void clearMessages(boolean);
+    Code:
+         0: aload_0
+         1: getfield      #49                 // Field minecraft:Lnet/minecraft/client/Minecraft;
+         4: invokevirtual #241                // Method net/minecraft/client/Minecraft.getChatListener:()Lnet/minecraft/client/multiplayer/chat/ChatListener;
+         7: invokevirtual #353                // Method net/minecraft/client/multiplayer/chat/ChatListener.flushQueue:()V
+        10: aload_0
+        11: getfield      #38                 // Field messageDeletionQueue:Ljava/util/List;
+        14: invokeinterface #356,  1          // InterfaceMethod java/util/List.clear:()V
+        19: aload_0
+        20: getfield      #32                 // Field trimmedMessages:Ljava/util/List;
+        23: invokeinterface #356,  1          // InterfaceMethod java/util/List.clear:()V
+        28: aload_0
+        29: getfield      #28                 // Field allMessages:Ljava/util/List;
+        32: invokeinterface #356,  1          // InterfaceMethod java/util/List.clear:()V
+        37: iload_1
+        38: ifeq          66
+        41: aload_0
+        42: getfield      #18                 // Field recentChat:Lnet/minecraft/util/ArrayListDeque;
+        45: invokevirtual #359                // Method net/minecraft/util/ArrayListDeque.clear:()V
+        48: aload_0
+        49: getfield      #18                 // Field recentChat:Lnet/minecraft/util/ArrayListDeque;
+        52: aload_0
+        53: getfield      #49                 // Field minecraft:Lnet/minecraft/client/Minecraft;
+        56: invokevirtual #53                 // Method net/minecraft/client/Minecraft.commandHistory:()Lnet/minecraft/client/CommandHistory;
+        59: invokevirtual #59                 // Method net/minecraft/client/CommandHistory.history:()Ljava/util/Collection;
+        62: invokevirtual #65                 // Method net/minecraft/util/ArrayListDeque.addAll:(Ljava/util/Collection;)Z
+        65: pop
+        66: return
+
+  public void addClientSystemMessage(net.minecraft.network.chat.Component);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: aconst_null
+         3: getstatic     #360                // Field net/minecraft/client/multiplayer/chat/GuiMessageSource.SYSTEM_CLIENT:Lnet/minecraft/client/multiplayer/chat/GuiMessageSource;
+         6: invokestatic  #366                // Method net/minecraft/client/multiplayer/chat/GuiMessageTag.systemSinglePlayer:()Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;
+         9: invokevirtual #372                // Method addMessage:(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/multiplayer/chat/GuiMessageSource;Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;)V
+        12: return
+
+  public void addServerSystemMessage(net.minecraft.network.chat.Component);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: aconst_null
+         3: getstatic     #376                // Field net/minecraft/client/multiplayer/chat/GuiMessageSource.SYSTEM_SERVER:Lnet/minecraft/client/multiplayer/chat/GuiMessageSource;
+         6: invokestatic  #366                // Method net/minecraft/client/multiplayer/chat/GuiMessageTag.systemSinglePlayer:()Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;
+         9: invokevirtual #372                // Method addMessage:(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/multiplayer/chat/GuiMessageSource;Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;)V
+        12: return
+
+  public void addPlayerMessage(net.minecraft.network.chat.Component, net.minecraft.network.chat.MessageSignature, net.minecraft.client.multiplayer.chat.GuiMessageTag);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: aload_2
+         3: getstatic     #379                // Field net/minecraft/client/multiplayer/chat/GuiMessageSource.PLAYER:Lnet/minecraft/client/multiplayer/chat/GuiMessageSource;
+         6: aload_3
+         7: invokevirtual #372                // Method addMessage:(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/multiplayer/chat/GuiMessageSource;Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;)V
+        10: return
+
+  private void addMessage(net.minecraft.network.chat.Component, net.minecraft.network.chat.MessageSignature, net.minecraft.client.multiplayer.chat.GuiMessageSource, net.minecraft.client.multiplayer.chat.GuiMessageTag);
+    Code:
+         0: new           #382                // class net/minecraft/client/multiplayer/chat/GuiMessage
+         3: dup
+         4: aload_0
+         5: getfield      #49                 // Field minecraft:Lnet/minecraft/client/Minecraft;
+         8: getfield      #384                // Field net/minecraft/client/Minecraft.gui:Lnet/minecraft/client/gui/Gui;
+        11: invokevirtual #388                // Method net/minecraft/client/gui/Gui.getGuiTicks:()I
+        14: aload_1
+        15: aload_2
+        16: aload_3
+        17: aload         4
+        19: invokespecial #393                // Method net/minecraft/client/multiplayer/chat/GuiMessage."<init>":(ILnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/multiplayer/chat/GuiMessageSource;Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;)V
+        22: astore        5
+        24: aload_0
+        25: getfield      #45                 // Field visibleMessageFilter:Ljava/util/function/Predicate;
+        28: aload         5
+        30: invokeinterface #396,  2          // InterfaceMethod java/util/function/Predicate.test:(Ljava/lang/Object;)Z
+        35: ifeq          56
+        38: aload_0
+        39: aload         5
+        41: invokevirtual #401                // Method logChatMessage:(Lnet/minecraft/client/multiplayer/chat/GuiMessage;)V
+        44: aload_0
+        45: aload         5
+        47: invokevirtual #405                // Method addMessageToDisplayQueue:(Lnet/minecraft/client/multiplayer/chat/GuiMessage;)V
+        50: aload_0
+        51: aload         5
+        53: invokevirtual #408                // Method addMessageToQueue:(Lnet/minecraft/client/multiplayer/chat/GuiMessage;)V
+        56: return
+
+  private void logChatMessage(net.minecraft.client.multiplayer.chat.GuiMessage);
+    Code:
+         0: aload_1
+         1: invokevirtual #411                // Method net/minecraft/client/multiplayer/chat/GuiMessage.content:()Lnet/minecraft/network/chat/Component;
+         4: invokeinterface #415,  1          // InterfaceMethod net/minecraft/network/chat/Component.getString:()Ljava/lang/String;
+         9: ldc_w         #419                // String \r
+        12: ldc_w         #421                // String \\\\r
+        15: invokevirtual #423                // Method java/lang/String.replaceAll:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+        18: ldc_w         #429                // String \n
+        21: ldc_w         #431                // String \\\\n
+        24: invokevirtual #423                // Method java/lang/String.replaceAll:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+        27: astore_2
+        28: aload_1
+        29: invokevirtual #433                // Method net/minecraft/client/multiplayer/chat/GuiMessage.tag:()Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;
+        32: invokedynamic #436,  0            // InvokeDynamic #3:apply:()Ljava/util/function/Function;
+        37: invokestatic  #440                // Method net/minecraft/Optionull.map:(Ljava/lang/Object;Ljava/util/function/Function;)Ljava/lang/Object;
+        40: checkcast     #424                // class java/lang/String
+        43: astore_3
+        44: aload_3
+        45: ifnull        64
+        48: getstatic     #446                // Field LOGGER:Lorg/slf4j/Logger;
+        51: ldc_w         #450                // String [{}] [CHAT] {}
+        54: aload_3
+        55: aload_2
+        56: invokeinterface #452,  4          // InterfaceMethod org/slf4j/Logger.info:(Ljava/lang/String;Ljava/lang/Object;Ljava/lang/Object;)V
+        61: goto          76
+        64: getstatic     #446                // Field LOGGER:Lorg/slf4j/Logger;
+        67: ldc_w         #458                // String [CHAT] {}
+        70: aload_2
+        71: invokeinterface #460,  3          // InterfaceMethod org/slf4j/Logger.info:(Ljava/lang/String;Ljava/lang/Object;)V
+        76: return
+
+  private void addMessageToDisplayQueue(net.minecraft.client.multiplayer.chat.GuiMessage);
+    Code:
+         0: aload_0
+         1: invokevirtual #181                // Method getWidth:()I
+         4: i2d
+         5: aload_0
+         6: invokevirtual #177                // Method getScale:()D
+         9: ddiv
+        10: invokestatic  #463                // Method net/minecraft/util/Mth.floor:(D)I
+        13: istore_2
+        14: aload_1
+        15: aload_0
+        16: getfield      #49                 // Field minecraft:Lnet/minecraft/client/Minecraft;
+        19: getfield      #217                // Field net/minecraft/client/Minecraft.font:Lnet/minecraft/client/gui/Font;
+        22: iload_2
+        23: invokevirtual #466                // Method net/minecraft/client/multiplayer/chat/GuiMessage.splitLines:(Lnet/minecraft/client/gui/Font;I)Ljava/util/List;
+        26: astore_3
+        27: aload_0
+        28: invokevirtual #470                // Method isChatFocused:()Z
+        31: istore        4
+        33: iconst_0
+        34: istore        5
+        36: iload         5
+        38: aload_3
+        39: invokeinterface #85,  1           // InterfaceMethod java/util/List.size:()I
+        44: if_icmpge     129
+        47: aload_3
+        48: iload         5
+        50: invokeinterface #98,  2           // InterfaceMethod java/util/List.get:(I)Ljava/lang/Object;
+        55: checkcast     #473                // class net/minecraft/util/FormattedCharSequence
+        58: astore        6
+        60: iload         4
+        62: ifeq          82
+        65: aload_0
+        66: getfield      #88                 // Field chatScrollbarPos:I
+        69: ifle          82
+        72: aload_0
+        73: iconst_1
+        74: putfield      #341                // Field newMessageSinceScroll:Z
+        77: aload_0
+        78: iconst_1
+        79: invokevirtual #475                // Method scrollChat:(I)V
+        82: iload         5
+        84: aload_3
+        85: invokeinterface #85,  1           // InterfaceMethod java/util/List.size:()I
+        90: iconst_1
+        91: isub
+        92: if_icmpne     99
+        95: iconst_1
+        96: goto          100
+        99: iconst_0
+       100: istore        7
+       102: aload_0
+       103: getfield      #32                 // Field trimmedMessages:Ljava/util/List;
+       106: new           #102                // class net/minecraft/client/multiplayer/chat/GuiMessage$Line
+       109: dup
+       110: aload_1
+       111: aload         6
+       113: iload         7
+       115: invokespecial #478                // Method net/minecraft/client/multiplayer/chat/GuiMessage$Line."<init>":(Lnet/minecraft/client/multiplayer/chat/GuiMessage;Lnet/minecraft/util/FormattedCharSequence;Z)V
+       118: invokeinterface #481,  2          // InterfaceMethod java/util/List.addFirst:(Ljava/lang/Object;)V
+       123: iinc          5, 1
+       126: goto          36
+       129: aload_0
+       130: getfield      #32                 // Field trimmedMessages:Ljava/util/List;
+       133: invokeinterface #85,  1           // InterfaceMethod java/util/List.size:()I
+       138: bipush        100
+       140: if_icmple     156
+       143: aload_0
+       144: getfield      #32                 // Field trimmedMessages:Ljava/util/List;
+       147: invokeinterface #485,  1          // InterfaceMethod java/util/List.removeLast:()Ljava/lang/Object;
+       152: pop
+       153: goto          129
+       156: return
+
+  private void addMessageToQueue(net.minecraft.client.multiplayer.chat.GuiMessage);
+    Code:
+         0: aload_0
+         1: getfield      #28                 // Field allMessages:Ljava/util/List;
+         4: aload_1
+         5: invokeinterface #481,  2          // InterfaceMethod java/util/List.addFirst:(Ljava/lang/Object;)V
+        10: aload_0
+        11: getfield      #28                 // Field allMessages:Ljava/util/List;
+        14: invokeinterface #85,  1           // InterfaceMethod java/util/List.size:()I
+        19: bipush        100
+        21: if_icmple     37
+        24: aload_0
+        25: getfield      #28                 // Field allMessages:Ljava/util/List;
+        28: invokeinterface #485,  1          // InterfaceMethod java/util/List.removeLast:()Ljava/lang/Object;
+        33: pop
+        34: goto          10
+        37: return
+
+  private void processMessageDeletionQueue();
+    Code:
+         0: aload_0
+         1: getfield      #49                 // Field minecraft:Lnet/minecraft/client/Minecraft;
+         4: getfield      #384                // Field net/minecraft/client/Minecraft.gui:Lnet/minecraft/client/gui/Gui;
+         7: invokevirtual #388                // Method net/minecraft/client/gui/Gui.getGuiTicks:()I
+        10: istore_1
+        11: aload_0
+        12: getfield      #38                 // Field messageDeletionQueue:Ljava/util/List;
+        15: aload_0
+        16: iload_1
+        17: invokedynamic #488,  0            // InvokeDynamic #4:test:(Lnet/minecraft/client/gui/components/ChatComponent;I)Ljava/util/function/Predicate;
+        22: invokeinterface #491,  2          // InterfaceMethod java/util/List.removeIf:(Ljava/util/function/Predicate;)Z
+        27: pop
+        28: return
+
+  public void deleteMessage(net.minecraft.network.chat.MessageSignature);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokevirtual #495                // Method deleteMessageOrDelay:(Lnet/minecraft/network/chat/MessageSignature;)Lnet/minecraft/client/gui/components/ChatComponent$DelayedMessageDeletion;
+         5: astore_2
+         6: aload_2
+         7: ifnull        21
+        10: aload_0
+        11: getfield      #38                 // Field messageDeletionQueue:Ljava/util/List;
+        14: aload_2
+        15: invokeinterface #499,  2          // InterfaceMethod java/util/List.add:(Ljava/lang/Object;)Z
+        20: pop
+        21: return
+
+  private net.minecraft.client.gui.components.ChatComponent$DelayedMessageDeletion deleteMessageOrDelay(net.minecraft.network.chat.MessageSignature);
+    Code:
+         0: aload_0
+         1: getfield      #49                 // Field minecraft:Lnet/minecraft/client/Minecraft;
+         4: getfield      #384                // Field net/minecraft/client/Minecraft.gui:Lnet/minecraft/client/gui/Gui;
+         7: invokevirtual #388                // Method net/minecraft/client/gui/Gui.getGuiTicks:()I
+        10: istore_2
+        11: aload_0
+        12: getfield      #28                 // Field allMessages:Ljava/util/List;
+        15: invokeinterface #502,  1          // InterfaceMethod java/util/List.listIterator:()Ljava/util/ListIterator;
+        20: astore_3
+        21: aload_3
+        22: invokeinterface #506,  1          // InterfaceMethod java/util/ListIterator.hasNext:()Z
+        27: ifeq          100
+        30: aload_3
+        31: invokeinterface #511,  1          // InterfaceMethod java/util/ListIterator.next:()Ljava/lang/Object;
+        36: checkcast     #382                // class net/minecraft/client/multiplayer/chat/GuiMessage
+        39: astore        4
+        41: aload_1
+        42: aload         4
+        44: invokevirtual #514                // Method net/minecraft/client/multiplayer/chat/GuiMessage.signature:()Lnet/minecraft/network/chat/MessageSignature;
+        47: invokevirtual #518                // Method net/minecraft/network/chat/MessageSignature.equals:(Ljava/lang/Object;)Z
+        50: ifeq          97
+        53: aload         4
+        55: invokevirtual #523                // Method net/minecraft/client/multiplayer/chat/GuiMessage.addedTime:()I
+        58: bipush        60
+        60: iadd
+        61: istore        5
+        63: iload_2
+        64: iload         5
+        66: if_icmplt     86
+        69: aload_3
+        70: aload         4
+        72: invokestatic  #526                // Method createDeletedMarker:(Lnet/minecraft/client/multiplayer/chat/GuiMessage;)Lnet/minecraft/client/multiplayer/chat/GuiMessage;
+        75: invokeinterface #530,  2          // InterfaceMethod java/util/ListIterator.set:(Ljava/lang/Object;)V
+        80: aload_0
+        81: invokevirtual #78                 // Method refreshTrimmedMessages:()V
+        84: aconst_null
+        85: areturn
+        86: new           #533                // class net/minecraft/client/gui/components/ChatComponent$DelayedMessageDeletion
+        89: dup
+        90: aload_1
+        91: iload         5
+        93: invokespecial #535                // Method net/minecraft/client/gui/components/ChatComponent$DelayedMessageDeletion."<init>":(Lnet/minecraft/network/chat/MessageSignature;I)V
+        96: areturn
+        97: goto          21
+       100: aconst_null
+       101: areturn
+
+  private static net.minecraft.client.multiplayer.chat.GuiMessage createDeletedMarker(net.minecraft.client.multiplayer.chat.GuiMessage);
+    Code:
+         0: new           #382                // class net/minecraft/client/multiplayer/chat/GuiMessage
+         3: dup
+         4: aload_0
+         5: invokevirtual #523                // Method net/minecraft/client/multiplayer/chat/GuiMessage.addedTime:()I
+         8: getstatic     #538                // Field DELETED_CHAT_MESSAGE:Lnet/minecraft/network/chat/Component;
+        11: aconst_null
+        12: getstatic     #376                // Field net/minecraft/client/multiplayer/chat/GuiMessageSource.SYSTEM_SERVER:Lnet/minecraft/client/multiplayer/chat/GuiMessageSource;
+        15: invokestatic  #541                // Method net/minecraft/client/multiplayer/chat/GuiMessageTag.system:()Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;
+        18: invokespecial #393                // Method net/minecraft/client/multiplayer/chat/GuiMessage."<init>":(ILnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/multiplayer/chat/GuiMessageSource;Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;)V
+        21: areturn
+
+  public void rescaleChat();
+    Code:
+         0: aload_0
+         1: invokevirtual #544                // Method resetChatScroll:()V
+         4: aload_0
+         5: invokevirtual #78                 // Method refreshTrimmedMessages:()V
+         8: return
+
+  private void refreshTrimmedMessages();
+    Code:
+         0: aload_0
+         1: getfield      #32                 // Field trimmedMessages:Ljava/util/List;
+         4: invokeinterface #356,  1          // InterfaceMethod java/util/List.clear:()V
+         9: aload_0
+        10: getfield      #28                 // Field allMessages:Ljava/util/List;
+        13: invokestatic  #547                // Method com/google/common/collect/Lists.reverse:(Ljava/util/List;)Ljava/util/List;
+        16: invokeinterface #551,  1          // InterfaceMethod java/util/List.iterator:()Ljava/util/Iterator;
+        21: astore_1
+        22: aload_1
+        23: invokeinterface #555,  1          // InterfaceMethod java/util/Iterator.hasNext:()Z
+        28: ifeq          62
+        31: aload_1
+        32: invokeinterface #558,  1          // InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;
+        37: checkcast     #382                // class net/minecraft/client/multiplayer/chat/GuiMessage
+        40: astore_2
+        41: aload_0
+        42: getfield      #45                 // Field visibleMessageFilter:Ljava/util/function/Predicate;
+        45: aload_2
+        46: invokeinterface #396,  2          // InterfaceMethod java/util/function/Predicate.test:(Ljava/lang/Object;)Z
+        51: ifeq          59
+        54: aload_0
+        55: aload_2
+        56: invokevirtual #405                // Method addMessageToDisplayQueue:(Lnet/minecraft/client/multiplayer/chat/GuiMessage;)V
+        59: goto          22
+        62: return
+
+  public net.minecraft.util.ArrayListDeque<java.lang.String> getRecentChat();
+    Code:
+         0: aload_0
+         1: getfield      #18                 // Field recentChat:Lnet/minecraft/util/ArrayListDeque;
+         4: areturn
+
+  public void addRecentChat(java.lang.String);
+    Code:
+         0: aload_1
+         1: aload_0
+         2: getfield      #18                 // Field recentChat:Lnet/minecraft/util/ArrayListDeque;
+         5: invokevirtual #559                // Method net/minecraft/util/ArrayListDeque.peekLast:()Ljava/lang/Object;
+         8: invokevirtual #562                // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+        11: ifne          42
+        14: aload_0
+        15: getfield      #18                 // Field recentChat:Lnet/minecraft/util/ArrayListDeque;
+        18: invokevirtual #563                // Method net/minecraft/util/ArrayListDeque.size:()I
+        21: bipush        100
+        23: if_icmplt     34
+        26: aload_0
+        27: getfield      #18                 // Field recentChat:Lnet/minecraft/util/ArrayListDeque;
+        30: invokevirtual #564                // Method net/minecraft/util/ArrayListDeque.removeFirst:()Ljava/lang/Object;
+        33: pop
+        34: aload_0
+        35: getfield      #18                 // Field recentChat:Lnet/minecraft/util/ArrayListDeque;
+        38: aload_1
+        39: invokevirtual #567                // Method net/minecraft/util/ArrayListDeque.addLast:(Ljava/lang/Object;)V
+        42: aload_1
+        43: ldc_w         #572                // String /
+        46: invokevirtual #574                // Method java/lang/String.startsWith:(Ljava/lang/String;)Z
+        49: ifeq          63
+        52: aload_0
+        53: getfield      #49                 // Field minecraft:Lnet/minecraft/client/Minecraft;
+        56: invokevirtual #53                 // Method net/minecraft/client/Minecraft.commandHistory:()Lnet/minecraft/client/CommandHistory;
+        59: aload_1
+        60: invokevirtual #578                // Method net/minecraft/client/CommandHistory.addCommand:(Ljava/lang/String;)V
+        63: return
+
+  public void resetChatScroll();
+    Code:
+         0: aload_0
+         1: iconst_0
+         2: putfield      #88                 // Field chatScrollbarPos:I
+         5: aload_0
+         6: iconst_0
+         7: putfield      #341                // Field newMessageSinceScroll:Z
+        10: return
+
+  public void scrollChat(int);
+    Code:
+         0: aload_0
+         1: aload_0
+         2: getfield      #88                 // Field chatScrollbarPos:I
+         5: iload_1
+         6: iadd
+         7: putfield      #88                 // Field chatScrollbarPos:I
+        10: aload_0
+        11: getfield      #32                 // Field trimmedMessages:Ljava/util/List;
+        14: invokeinterface #85,  1           // InterfaceMethod java/util/List.size:()I
+        19: istore_2
+        20: aload_0
+        21: getfield      #88                 // Field chatScrollbarPos:I
+        24: iload_2
+        25: aload_0
+        26: invokevirtual #81                 // Method getLinesPerPage:()I
+        29: isub
+        30: if_icmple     43
+        33: aload_0
+        34: iload_2
+        35: aload_0
+        36: invokevirtual #81                 // Method getLinesPerPage:()I
+        39: isub
+        40: putfield      #88                 // Field chatScrollbarPos:I
+        43: aload_0
+        44: getfield      #88                 // Field chatScrollbarPos:I
+        47: ifgt          60
+        50: aload_0
+        51: iconst_0
+        52: putfield      #88                 // Field chatScrollbarPos:I
+        55: aload_0
+        56: iconst_0
+        57: putfield      #341                // Field newMessageSinceScroll:Z
+        60: return
+
+  public boolean isChatFocused();
+    Code:
+         0: aload_0
+         1: getfield      #49                 // Field minecraft:Lnet/minecraft/client/Minecraft;
+         4: getfield      #581                // Field net/minecraft/client/Minecraft.screen:Lnet/minecraft/client/gui/screens/Screen;
+         7: instanceof    #585                // class net/minecraft/client/gui/screens/ChatScreen
+        10: ireturn
+
+  private int getWidth();
+    Code:
+         0: aload_0
+         1: getfield      #49                 // Field minecraft:Lnet/minecraft/client/Minecraft;
+         4: getfield      #191                // Field net/minecraft/client/Minecraft.options:Lnet/minecraft/client/Options;
+         7: invokevirtual #587                // Method net/minecraft/client/Options.chatWidth:()Lnet/minecraft/client/OptionInstance;
+        10: invokevirtual #201                // Method net/minecraft/client/OptionInstance.get:()Ljava/lang/Object;
+        13: checkcast     #206                // class java/lang/Double
+        16: invokevirtual #230                // Method java/lang/Double.doubleValue:()D
+        19: invokestatic  #590                // Method getWidth:(D)I
+        22: ireturn
+
+  private int getHeight();
+    Code:
+         0: aload_0
+         1: invokevirtual #470                // Method isChatFocused:()Z
+         4: ifeq          26
+         7: aload_0
+         8: getfield      #49                 // Field minecraft:Lnet/minecraft/client/Minecraft;
+        11: getfield      #191                // Field net/minecraft/client/Minecraft.options:Lnet/minecraft/client/Options;
+        14: invokevirtual #592                // Method net/minecraft/client/Options.chatHeightFocused:()Lnet/minecraft/client/OptionInstance;
+        17: invokevirtual #201                // Method net/minecraft/client/OptionInstance.get:()Ljava/lang/Object;
+        20: checkcast     #206                // class java/lang/Double
+        23: goto          42
+        26: aload_0
+        27: getfield      #49                 // Field minecraft:Lnet/minecraft/client/Minecraft;
+        30: getfield      #191                // Field net/minecraft/client/Minecraft.options:Lnet/minecraft/client/Options;
+        33: invokevirtual #595                // Method net/minecraft/client/Options.chatHeightUnfocused:()Lnet/minecraft/client/OptionInstance;
+        36: invokevirtual #201                // Method net/minecraft/client/OptionInstance.get:()Ljava/lang/Object;
+        39: checkcast     #206                // class java/lang/Double
+        42: invokevirtual #230                // Method java/lang/Double.doubleValue:()D
+        45: invokestatic  #598                // Method getHeight:(D)I
+        48: ireturn
+
+  private double getScale();
+    Code:
+         0: aload_0
+         1: getfield      #49                 // Field minecraft:Lnet/minecraft/client/Minecraft;
+         4: getfield      #191                // Field net/minecraft/client/Minecraft.options:Lnet/minecraft/client/Options;
+         7: invokevirtual #601                // Method net/minecraft/client/Options.chatScale:()Lnet/minecraft/client/OptionInstance;
+        10: invokevirtual #201                // Method net/minecraft/client/OptionInstance.get:()Ljava/lang/Object;
+        13: checkcast     #206                // class java/lang/Double
+        16: invokevirtual #230                // Method java/lang/Double.doubleValue:()D
+        19: dreturn
+
+  public static int getWidth(double);
+    Code:
+         0: sipush        320
+         3: istore_2
+         4: bipush        40
+         6: istore_3
+         7: dload_0
+         8: ldc2_w        #606                // double 280.0d
+        11: dmul
+        12: ldc2_w        #608                // double 40.0d
+        15: dadd
+        16: invokestatic  #463                // Method net/minecraft/util/Mth.floor:(D)I
+        19: ireturn
+
+  public static int getHeight(double);
+    Code:
+         0: sipush        180
+         3: istore_2
+         4: bipush        20
+         6: istore_3
+         7: dload_0
+         8: ldc2_w        #610                // double 160.0d
+        11: dmul
+        12: ldc2_w        #612                // double 20.0d
+        15: dadd
+        16: invokestatic  #463                // Method net/minecraft/util/Mth.floor:(D)I
+        19: ireturn
+
+  public static double defaultUnfocusedPct();
+    Code:
+         0: sipush        180
+         3: istore_0
+         4: bipush        20
+         6: istore_1
+         7: ldc2_w        #614                // double 70.0d
+        10: dconst_1
+        11: invokestatic  #598                // Method getHeight:(D)I
+        14: bipush        20
+        16: isub
+        17: i2d
+        18: ddiv
+        19: dreturn
+
+  public int getLinesPerPage();
+    Code:
+         0: aload_0
+         1: invokevirtual #616                // Method getHeight:()I
+         4: aload_0
+         5: invokevirtual #618                // Method getLineHeight:()I
+         8: idiv
+         9: ireturn
+
+  private int getLineHeight();
+    Code:
+         0: aload_0
+         1: getfield      #49                 // Field minecraft:Lnet/minecraft/client/Minecraft;
+         4: getfield      #217                // Field net/minecraft/client/Minecraft.font:Lnet/minecraft/client/gui/Font;
+         7: invokestatic  #221                // Method java/util/Objects.requireNonNull:(Ljava/lang/Object;)Ljava/lang/Object;
+        10: pop
+        11: ldc2_w        #621                // double 9.0d
+        14: aload_0
+        15: getfield      #49                 // Field minecraft:Lnet/minecraft/client/Minecraft;
+        18: getfield      #191                // Field net/minecraft/client/Minecraft.options:Lnet/minecraft/client/Options;
+        21: invokevirtual #227                // Method net/minecraft/client/Options.chatLineSpacing:()Lnet/minecraft/client/OptionInstance;
+        24: invokevirtual #201                // Method net/minecraft/client/OptionInstance.get:()Ljava/lang/Object;
+        27: checkcast     #206                // class java/lang/Double
+        30: invokevirtual #230                // Method java/lang/Double.doubleValue:()D
+        33: dconst_1
+        34: dadd
+        35: dmul
+        36: d2i
+        37: ireturn
+
+  public void saveAsDraft(java.lang.String);
+    Code:
+         0: aload_1
+         1: ldc_w         #572                // String /
+         4: invokevirtual #574                // Method java/lang/String.startsWith:(Ljava/lang/String;)Z
+         7: istore_2
+         8: aload_0
+         9: new           #623                // class net/minecraft/client/gui/components/ChatComponent$Draft
+        12: dup
+        13: aload_1
+        14: iload_2
+        15: ifeq          24
+        18: getstatic     #625                // Field net/minecraft/client/gui/components/ChatComponent$ChatMethod.COMMAND:Lnet/minecraft/client/gui/components/ChatComponent$ChatMethod;
+        21: goto          27
+        24: getstatic     #631                // Field net/minecraft/client/gui/components/ChatComponent$ChatMethod.MESSAGE:Lnet/minecraft/client/gui/components/ChatComponent$ChatMethod;
+        27: invokespecial #634                // Method net/minecraft/client/gui/components/ChatComponent$Draft."<init>":(Ljava/lang/String;Lnet/minecraft/client/gui/components/ChatComponent$ChatMethod;)V
+        30: putfield      #637                // Field latestDraft:Lnet/minecraft/client/gui/components/ChatComponent$Draft;
+        33: return
+
+  public void discardDraft();
+    Code:
+         0: aload_0
+         1: aconst_null
+         2: putfield      #637                // Field latestDraft:Lnet/minecraft/client/gui/components/ChatComponent$Draft;
+         5: return
+
+  public <T extends net.minecraft.client.gui.screens.ChatScreen> T createScreen(net.minecraft.client.gui.components.ChatComponent$ChatMethod, net.minecraft.client.gui.screens.ChatScreen$ChatConstructor<T>);
+    Code:
+         0: aload_0
+         1: getfield      #637                // Field latestDraft:Lnet/minecraft/client/gui/components/ChatComponent$Draft;
+         4: ifnull        33
+         7: aload_1
+         8: aload_0
+         9: getfield      #637                // Field latestDraft:Lnet/minecraft/client/gui/components/ChatComponent$Draft;
+        12: invokevirtual #641                // Method net/minecraft/client/gui/components/ChatComponent$ChatMethod.isDraftRestorable:(Lnet/minecraft/client/gui/components/ChatComponent$Draft;)Z
+        15: ifeq          33
+        18: aload_2
+        19: aload_0
+        20: getfield      #637                // Field latestDraft:Lnet/minecraft/client/gui/components/ChatComponent$Draft;
+        23: invokevirtual #645                // Method net/minecraft/client/gui/components/ChatComponent$Draft.text:()Ljava/lang/String;
+        26: iconst_1
+        27: invokeinterface #648,  3          // InterfaceMethod net/minecraft/client/gui/screens/ChatScreen$ChatConstructor.create:(Ljava/lang/String;Z)Lnet/minecraft/client/gui/screens/ChatScreen;
+        32: areturn
+        33: aload_2
+        34: aload_1
+        35: invokevirtual #654                // Method net/minecraft/client/gui/components/ChatComponent$ChatMethod.prefix:()Ljava/lang/String;
+        38: iconst_0
+        39: invokeinterface #648,  3          // InterfaceMethod net/minecraft/client/gui/screens/ChatScreen$ChatConstructor.create:(Ljava/lang/String;Z)Lnet/minecraft/client/gui/screens/ChatScreen;
+        44: areturn
+
+  public void openScreen(net.minecraft.client.gui.components.ChatComponent$ChatMethod, net.minecraft.client.gui.screens.ChatScreen$ChatConstructor<?>);
+    Code:
+         0: aload_0
+         1: getfield      #49                 // Field minecraft:Lnet/minecraft/client/Minecraft;
+         4: aload_0
+         5: aload_1
+         6: aload_2
+         7: invokevirtual #657                // Method createScreen:(Lnet/minecraft/client/gui/components/ChatComponent$ChatMethod;Lnet/minecraft/client/gui/screens/ChatScreen$ChatConstructor;)Lnet/minecraft/client/gui/screens/ChatScreen;
+        10: invokevirtual #661                // Method net/minecraft/client/Minecraft.setScreen:(Lnet/minecraft/client/gui/screens/Screen;)V
+        13: return
+
+  public void preserveCurrentChatScreen();
+    Code:
+         0: aload_0
+         1: getfield      #49                 // Field minecraft:Lnet/minecraft/client/Minecraft;
+         4: getfield      #581                // Field net/minecraft/client/Minecraft.screen:Lnet/minecraft/client/gui/screens/Screen;
+         7: astore_2
+         8: aload_2
+         9: instanceof    #585                // class net/minecraft/client/gui/screens/ChatScreen
+        12: ifeq          25
+        15: aload_2
+        16: checkcast     #585                // class net/minecraft/client/gui/screens/ChatScreen
+        19: astore_1
+        20: aload_0
+        21: aload_1
+        22: putfield      #665                // Field preservedScreen:Lnet/minecraft/client/gui/screens/ChatScreen;
+        25: return
+
+  public net.minecraft.client.gui.screens.ChatScreen restoreChatScreen();
+    Code:
+         0: aload_0
+         1: getfield      #665                // Field preservedScreen:Lnet/minecraft/client/gui/screens/ChatScreen;
+         4: astore_1
+         5: aload_0
+         6: aconst_null
+         7: putfield      #665                // Field preservedScreen:Lnet/minecraft/client/gui/screens/ChatScreen;
+        10: aload_1
+        11: areturn
+
+  public net.minecraft.client.gui.components.ChatComponent$State storeState();
+    Code:
+         0: new           #669                // class net/minecraft/client/gui/components/ChatComponent$State
+         3: dup
+         4: aload_0
+         5: getfield      #28                 // Field allMessages:Ljava/util/List;
+         8: invokestatic  #671                // InterfaceMethod java/util/List.copyOf:(Ljava/util/Collection;)Ljava/util/List;
+        11: aload_0
+        12: getfield      #18                 // Field recentChat:Lnet/minecraft/util/ArrayListDeque;
+        15: invokestatic  #671                // InterfaceMethod java/util/List.copyOf:(Ljava/util/Collection;)Ljava/util/List;
+        18: aload_0
+        19: getfield      #38                 // Field messageDeletionQueue:Ljava/util/List;
+        22: invokestatic  #671                // InterfaceMethod java/util/List.copyOf:(Ljava/util/Collection;)Ljava/util/List;
+        25: invokespecial #675                // Method net/minecraft/client/gui/components/ChatComponent$State."<init>":(Ljava/util/List;Ljava/util/List;Ljava/util/List;)V
+        28: areturn
+
+  public void restoreState(net.minecraft.client.gui.components.ChatComponent$State);
+    Code:
+         0: aload_0
+         1: getfield      #18                 // Field recentChat:Lnet/minecraft/util/ArrayListDeque;
+         4: invokevirtual #359                // Method net/minecraft/util/ArrayListDeque.clear:()V
+         7: aload_0
+         8: getfield      #18                 // Field recentChat:Lnet/minecraft/util/ArrayListDeque;
+        11: aload_1
+        12: getfield      #678                // Field net/minecraft/client/gui/components/ChatComponent$State.history:Ljava/util/List;
+        15: invokevirtual #65                 // Method net/minecraft/util/ArrayListDeque.addAll:(Ljava/util/Collection;)Z
+        18: pop
+        19: aload_0
+        20: getfield      #38                 // Field messageDeletionQueue:Ljava/util/List;
+        23: invokeinterface #356,  1          // InterfaceMethod java/util/List.clear:()V
+        28: aload_0
+        29: getfield      #38                 // Field messageDeletionQueue:Ljava/util/List;
+        32: aload_1
+        33: getfield      #680                // Field net/minecraft/client/gui/components/ChatComponent$State.delayedMessageDeletions:Ljava/util/List;
+        36: invokeinterface #683,  2          // InterfaceMethod java/util/List.addAll:(Ljava/util/Collection;)Z
+        41: pop
+        42: aload_0
+        43: getfield      #28                 // Field allMessages:Ljava/util/List;
+        46: invokeinterface #356,  1          // InterfaceMethod java/util/List.clear:()V
+        51: aload_0
+        52: getfield      #28                 // Field allMessages:Ljava/util/List;
+        55: aload_1
+        56: getfield      #684                // Field net/minecraft/client/gui/components/ChatComponent$State.messages:Ljava/util/List;
+        59: invokeinterface #683,  2          // InterfaceMethod java/util/List.addAll:(Ljava/util/Collection;)Z
+        64: pop
+        65: aload_0
+        66: invokevirtual #78                 // Method refreshTrimmedMessages:()V
+        69: return
+
+  private boolean lambda$processMessageDeletionQueue$0(int, net.minecraft.client.gui.components.ChatComponent$DelayedMessageDeletion);
+    Code:
+         0: iload_1
+         1: aload_2
+         2: invokevirtual #687                // Method net/minecraft/client/gui/components/ChatComponent$DelayedMessageDeletion.deletableAfter:()I
+         5: if_icmplt     25
+         8: aload_0
+         9: aload_2
+        10: invokevirtual #690                // Method net/minecraft/client/gui/components/ChatComponent$DelayedMessageDeletion.signature:()Lnet/minecraft/network/chat/MessageSignature;
+        13: invokevirtual #495                // Method deleteMessageOrDelay:(Lnet/minecraft/network/chat/MessageSignature;)Lnet/minecraft/client/gui/components/ChatComponent$DelayedMessageDeletion;
+        16: ifnonnull     23
+        19: iconst_1
+        20: goto          24
+        23: iconst_0
+        24: ireturn
+        25: iconst_0
+        26: ireturn
+
+  private static void lambda$extractRenderState$1(int, int, net.minecraft.client.gui.components.ChatComponent$ChatGraphicsAccess, int, float, net.minecraft.client.multiplayer.chat.GuiMessage$Line, int, float);
+    Code:
+         0: iload_0
+         1: iload         6
+         3: iload_1
+         4: imul
+         5: isub
+         6: istore        8
+         8: iload         8
+        10: iload_1
+        11: isub
+        12: istore        9
+        14: aload_2
+        15: bipush        -4
+        17: iload         9
+        19: iload_3
+        20: iconst_4
+        21: iadd
+        22: iconst_4
+        23: iadd
+        24: iload         8
+        26: fload         7
+        28: fload         4
+        30: fmul
+        31: invokestatic  #275                // Method net/minecraft/util/ARGB.black:(F)I
+        34: invokeinterface #280,  6          // InterfaceMethod net/minecraft/client/gui/components/ChatComponent$ChatGraphicsAccess.fill:(IIIII)V
+        39: return
+
+  private static void lambda$extractRenderState$0(float, org.joml.Matrix3x2f);
+    Code:
+         0: aload_1
+         1: fload_0
+         2: fload_0
+         3: invokevirtual #691                // Method org/joml/Matrix3x2f.scale:(FF)Lorg/joml/Matrix3x2f;
+         6: pop
+         7: aload_1
+         8: ldc_w         #697                // float 4.0f
+        11: fconst_0
+        12: invokevirtual #698                // Method org/joml/Matrix3x2f.translate:(FF)Lorg/joml/Matrix3x2f;
+        15: pop
+        16: return
+
+  private static boolean lambda$new$0(net.minecraft.client.multiplayer.chat.GuiMessage);
+    Code:
+         0: iconst_1
+         1: ireturn
+
+  static {};
+    Code:
+         0: invokestatic  #701                // Method com/mojang/logging/LogUtils.getLogger:()Lorg/slf4j/Logger;
+         3: putstatic     #446                // Field LOGGER:Lorg/slf4j/Logger;
+         6: ldc_w         #707                // String chat.deleted_marker
+         9: invokestatic  #709                // InterfaceMethod net/minecraft/network/chat/Component.translatable:(Ljava/lang/String;)Lnet/minecraft/network/chat/MutableComponent;
+        12: iconst_2
+        13: anewarray     #712                // class net/minecraft/ChatFormatting
+        16: dup
+        17: iconst_0
+        18: getstatic     #714                // Field net/minecraft/ChatFormatting.GRAY:Lnet/minecraft/ChatFormatting;
+        21: aastore
+        22: dup
+        23: iconst_1
+        24: getstatic     #718                // Field net/minecraft/ChatFormatting.ITALIC:Lnet/minecraft/ChatFormatting;
+        27: aastore
+        28: invokevirtual #721                // Method net/minecraft/network/chat/MutableComponent.withStyle:([Lnet/minecraft/ChatFormatting;)Lnet/minecraft/network/chat/MutableComponent;
+        31: putstatic     #538                // Field DELETED_CHAT_MESSAGE:Lnet/minecraft/network/chat/Component;
+        34: ldc_w         #725                // String internal/expand_chat_queue
+        37: invokestatic  #727                // Method net/minecraft/resources/Identifier.withDefaultNamespace:(Ljava/lang/String;)Lnet/minecraft/resources/Identifier;
+        40: putstatic     #733                // Field QUEUE_EXPAND_ID:Lnet/minecraft/resources/Identifier;
+        43: getstatic     #737                // Field net/minecraft/network/chat/Style.EMPTY:Lnet/minecraft/network/chat/Style;
+        46: new           #742                // class net/minecraft/network/chat/ClickEvent$Custom
+        49: dup
+        50: getstatic     #733                // Field QUEUE_EXPAND_ID:Lnet/minecraft/resources/Identifier;
+        53: invokestatic  #744                // Method java/util/Optional.empty:()Ljava/util/Optional;
+        56: invokespecial #750                // Method net/minecraft/network/chat/ClickEvent$Custom."<init>":(Lnet/minecraft/resources/Identifier;Ljava/util/Optional;)V
+        59: invokevirtual #753                // Method net/minecraft/network/chat/Style.withClickEvent:(Lnet/minecraft/network/chat/ClickEvent;)Lnet/minecraft/network/chat/Style;
+        62: new           #757                // class net/minecraft/network/chat/HoverEvent$ShowText
+        65: dup
+        66: ldc_w         #759                // String chat.queue.tooltip
+        69: invokestatic  #709                // InterfaceMethod net/minecraft/network/chat/Component.translatable:(Ljava/lang/String;)Lnet/minecraft/network/chat/MutableComponent;
+        72: invokespecial #761                // Method net/minecraft/network/chat/HoverEvent$ShowText."<init>":(Lnet/minecraft/network/chat/Component;)V
+        75: invokevirtual #764                // Method net/minecraft/network/chat/Style.withHoverEvent:(Lnet/minecraft/network/chat/HoverEvent;)Lnet/minecraft/network/chat/Style;
+        78: putstatic     #303                // Field QUEUE_EXPAND_TEXT_STYLE:Lnet/minecraft/network/chat/Style;
+        81: ldc_w         #768                // String internal/go_to_restrictions_screen
+        84: invokestatic  #727                // Method net/minecraft/resources/Identifier.withDefaultNamespace:(Ljava/lang/String;)Lnet/minecraft/resources/Identifier;
+        87: putstatic     #770                // Field GO_TO_RESTRICTIONS_SCREEN:Lnet/minecraft/resources/Identifier;
+        90: ldc_w         #773                // String chat_screen.restricted
+        93: invokestatic  #709                // InterfaceMethod net/minecraft/network/chat/Component.translatable:(Ljava/lang/String;)Lnet/minecraft/network/chat/MutableComponent;
+        96: getstatic     #737                // Field net/minecraft/network/chat/Style.EMPTY:Lnet/minecraft/network/chat/Style;
+        99: getstatic     #775                // Field net/minecraft/ChatFormatting.RED:Lnet/minecraft/ChatFormatting;
+       102: invokevirtual #778                // Method net/minecraft/network/chat/Style.withColor:(Lnet/minecraft/ChatFormatting;)Lnet/minecraft/network/chat/Style;
+       105: iconst_1
+       106: invokestatic  #782                // Method java/lang/Boolean.valueOf:(Z)Ljava/lang/Boolean;
+       109: invokevirtual #787                // Method net/minecraft/network/chat/Style.withUnderlined:(Ljava/lang/Boolean;)Lnet/minecraft/network/chat/Style;
+       112: new           #742                // class net/minecraft/network/chat/ClickEvent$Custom
+       115: dup
+       116: getstatic     #770                // Field GO_TO_RESTRICTIONS_SCREEN:Lnet/minecraft/resources/Identifier;
+       119: invokestatic  #744                // Method java/util/Optional.empty:()Ljava/util/Optional;
+       122: invokespecial #750                // Method net/minecraft/network/chat/ClickEvent$Custom."<init>":(Lnet/minecraft/resources/Identifier;Ljava/util/Optional;)V
+       125: invokevirtual #753                // Method net/minecraft/network/chat/Style.withClickEvent:(Lnet/minecraft/network/chat/ClickEvent;)Lnet/minecraft/network/chat/Style;
+       128: invokevirtual #791                // Method net/minecraft/network/chat/MutableComponent.withStyle:(Lnet/minecraft/network/chat/Style;)Lnet/minecraft/network/chat/MutableComponent;
+       131: putstatic     #322                // Field RESTRICTED_CHAT_MESSAGE:Lnet/minecraft/network/chat/Component;
+       134: getstatic     #322                // Field RESTRICTED_CHAT_MESSAGE:Lnet/minecraft/network/chat/Component;
+       137: getstatic     #737                // Field net/minecraft/network/chat/Style.EMPTY:Lnet/minecraft/network/chat/Style;
+       140: new           #757                // class net/minecraft/network/chat/HoverEvent$ShowText
+       143: dup
+       144: ldc_w         #773                // String chat_screen.restricted
+       147: invokestatic  #709                // InterfaceMethod net/minecraft/network/chat/Component.translatable:(Ljava/lang/String;)Lnet/minecraft/network/chat/MutableComponent;
+       150: invokespecial #761                // Method net/minecraft/network/chat/HoverEvent$ShowText."<init>":(Lnet/minecraft/network/chat/Component;)V
+       153: invokevirtual #764                // Method net/minecraft/network/chat/Style.withHoverEvent:(Lnet/minecraft/network/chat/HoverEvent;)Lnet/minecraft/network/chat/Style;
+       156: invokestatic  #793                // Method net/minecraft/network/chat/ComponentUtils.mergeStyles:(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/Style;)Lnet/minecraft/network/chat/Component;
+       159: putstatic     #332                // Field RESTRICTED_CHAT_MESSAGE_WITH_HOVER:Lnet/minecraft/network/chat/Component;
+       162: return
+}
